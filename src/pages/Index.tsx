@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, createContext, useContext } from 'react';
 import Header from '@/components/racing/Header';
 import TabNav from '@/components/racing/TabNav';
 import Footer from '@/components/racing/Footer';
@@ -10,6 +10,15 @@ import HeadToHeadTab from '@/components/tabs/HeadToHeadTab';
 import PitStrategyTab from '@/components/tabs/PitStrategyTab';
 import FastestLapsTab from '@/components/tabs/FastestLapsTab';
 import ChampionshipTab from '@/components/tabs/ChampionshipTab';
+import { useRaces } from '@/hooks/useRaceData';
+
+interface RaceContextType {
+  raceId: string | null;
+  setRaceId: (id: string) => void;
+}
+
+export const RaceContext = createContext<RaceContextType>({ raceId: null, setRaceId: () => {} });
+export const useRaceContext = () => useContext(RaceContext);
 
 const TAB_COMPONENTS: Record<string, React.FC> = {
   'Results': ResultsTab,
@@ -24,17 +33,29 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('Results');
+  const { data: races, isLoading } = useRaces();
+  const [selectedRaceId, setSelectedRaceId] = useState<string | null>(null);
+
+  // Auto-select first race
+  const raceId = selectedRaceId || races?.[0]?.id || null;
+
   const ActiveComponent = TAB_COMPONENTS[activeTab] || ResultsTab;
 
   return (
-    <div className="min-h-screen bg-racing-bg">
-      <Header />
-      <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
-      <main className="max-w-[1400px] mx-auto px-4 py-6">
-        <ActiveComponent />
-      </main>
-      <Footer />
-    </div>
+    <RaceContext.Provider value={{ raceId, setRaceId: setSelectedRaceId }}>
+      <div className="min-h-screen bg-racing-bg">
+        <Header races={races || []} selectedRaceId={raceId} onRaceChange={setSelectedRaceId} isLoading={isLoading} />
+        <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <main className="max-w-[1400px] mx-auto px-4 py-6">
+          {raceId ? <ActiveComponent /> : (
+            <p className="text-racing-muted font-body text-center py-12">
+              {isLoading ? 'Loading races…' : 'No races available yet.'}
+            </p>
+          )}
+        </main>
+        <Footer />
+      </div>
+    </RaceContext.Provider>
   );
 };
 
