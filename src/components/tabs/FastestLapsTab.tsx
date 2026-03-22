@@ -7,14 +7,6 @@ const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
 );
 
-const SpeedBar = ({ speed, max }: { speed: number; max: number }) => (
-  <div className="flex items-center gap-2 min-w-[140px]">
-    <div className="flex-1 h-1.5 bg-racing-surface2 rounded overflow-hidden">
-      <div className="h-full bg-racing-yellow rounded" style={{ width: `${(speed / max) * 100}%` }} />
-    </div>
-    <span className="font-mono text-xs text-racing-yellow whitespace-nowrap">{speed.toFixed(3)}</span>
-  </div>
-);
 
 const SESSION_OPTIONS = [
   { value: 'Race', label: 'Race' },
@@ -46,7 +38,7 @@ const FastestLapsTab = () => {
   const { data: qualSectors } = useQualifyingSectors(raceId);
   const { data: qualResults } = useQualifyingResults(raceId);
 
-  const maxSpeed = laps?.length ? Math.max(...laps.map(f => Number(f.section_speed) || 0)) : 0;
+  
 
   const sectionOptions = sections?.map(s => ({
     name: s.section_name,
@@ -153,7 +145,7 @@ const FastestLapsTab = () => {
                 <td className="px-3 py-2"><CarBadge num={f.car_number} /></td>
                 <td className="px-3 py-2 font-body text-sm text-racing-text">{f.driver_name}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time}{selectedSection !== 'Full Lap' ? 's' : ''}</td>
-                <td className="px-3 py-2"><SpeedBar speed={Number(f.section_speed) || 0} max={maxSpeed} /></td>
+                <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(f.section_speed)?.toFixed(3)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-muted">L{f.lap_number}</td>
               </tr>
             ))}

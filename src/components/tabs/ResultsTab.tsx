@@ -20,14 +20,6 @@ const EngineText = ({ engine }: { engine: string }) => (
   <span className={`font-mono text-xs ${engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{engine}</span>
 );
 
-const SpeedBar = ({ speed, max }: { speed: number; max: number }) => (
-  <div className="flex items-center gap-2 min-w-[140px]">
-    <div className="flex-1 h-1.5 bg-racing-surface rounded overflow-hidden">
-      <div className="h-full bg-racing-yellow rounded" style={{ width: `${max > 0 ? (speed / max) * 100 : 0}%` }} />
-    </div>
-    <span className="font-mono text-xs text-racing-yellow whitespace-nowrap">{speed.toFixed(3)}</span>
-  </div>
-);
 
 const ResultsTab = () => {
   const { raceId } = useRaceContext();
@@ -40,7 +32,7 @@ const ResultsTab = () => {
   if (loadingResults) return <p className="text-racing-muted font-body">Loading results…</p>;
   if (!results?.length) return <p className="text-racing-muted font-body">No results data.</p>;
 
-  const maxSpeed = Math.max(...results.map(r => Number(r.avg_speed) || 0));
+  
 
   const filtered = results.filter(r => {
     if (!search) return true;
@@ -99,7 +91,7 @@ const ResultsTab = () => {
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.time_gap}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.pit_stops}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.elapsed_time}</td>
-                <td className="px-2 py-2"><SpeedBar speed={Number(r.avg_speed) || 0} max={maxSpeed} /></td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-yellow">{Number(r.avg_speed)?.toFixed(3)}</td>
                 <td className="px-2 py-2"><StatusBadge status={r.status} /></td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-yellow">{r.race_points}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.total_points}</td>
