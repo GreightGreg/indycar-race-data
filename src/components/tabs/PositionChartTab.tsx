@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { useRaceContext } from '@/pages/Index';
 import { useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
@@ -14,7 +14,6 @@ const PositionChartTab = () => {
 
     const cRanges: [number, number][] = (cautions || []).map(c => [c.start_lap, c.end_lap]);
 
-    // Group by lap
     const byLap: Record<number, Record<string, number>> = {};
     const carSet = new Set<string>();
     for (const p of positions) {
@@ -26,7 +25,6 @@ const PositionChartTab = () => {
     const laps = Object.keys(byLap).map(Number).sort((a, b) => a - b);
     const chartData = laps.map(lap => ({ lap, ...byLap[lap] }));
 
-    // Add caution entries
     for (const [start, end] of cRanges) {
       for (const lap of [start, end]) {
         if (!byLap[lap]) {
@@ -41,6 +39,10 @@ const PositionChartTab = () => {
     return { data: chartData, cars: Array.from(carSet), cautionRanges: cRanges };
   }, [positions, cautions]);
 
+  const handleLineClick = useCallback((car: string) => {
+    setHighlightedCar(prev => prev === car ? null : car);
+  }, []);
+
   if (!data.length) return <p className="text-racing-muted font-body">Loading position chart…</p>;
 
   const maxLap = Math.max(...data.map((d: any) => d.lap));
@@ -48,7 +50,7 @@ const PositionChartTab = () => {
   return (
     <div className="space-y-4">
       <h2 className="font-heading text-2xl text-racing-text">Position Chart</h2>
-      <p className="font-mono text-xs text-racing-muted">Y-axis: Position (P1 top). Yellow bands = caution periods. Click legend to highlight a driver.</p>
+      <p className="font-mono text-xs text-racing-muted">Y-axis: Position (P1 top). Yellow bands = caution periods. Click a driver below to track their race.</p>
 
       <div className="w-full" style={{ height: 500 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -72,11 +74,13 @@ const PositionChartTab = () => {
                 type="linear"
                 dataKey={`car${car}`}
                 stroke={DRIVER_COLORS[car] || '#888'}
-                strokeWidth={highlightedCar === car ? 3 : 1.5}
-                strokeOpacity={highlightedCar === null ? 0.7 : highlightedCar === car ? 1 : 0.12}
+                strokeWidth={highlightedCar === car ? 3.5 : 1.5}
+                strokeOpacity={highlightedCar === null ? 0.7 : highlightedCar === car ? 1 : 0.1}
                 dot={false}
                 connectNulls={false}
                 isAnimationActive={false}
+                style={{ cursor: 'pointer' }}
+                onClick={() => handleLineClick(car)}
               />
             ))}
           </LineChart>
@@ -87,10 +91,14 @@ const PositionChartTab = () => {
         {cars.map(car => (
           <button
             key={car}
-            onClick={() => setHighlightedCar(prev => prev === car ? null : car)}
-            className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs font-body transition-opacity ${
-              highlightedCar !== null && highlightedCar !== car ? 'opacity-30' : 'opacity-100'
-            } hover:opacity-100`}
+            onClick={() => handleLineClick(car)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-body transition-all ${
+              highlightedCar === car
+                ? 'bg-racing-surface2 ring-1 ring-racing-yellow/50 opacity-100'
+                : highlightedCar !== null
+                  ? 'opacity-25 hover:opacity-60'
+                  : 'opacity-100 hover:bg-racing-surface'
+            }`}
           >
             <span className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: DRIVER_COLORS[car] }} />
             <span className="text-racing-text">#{car}</span>

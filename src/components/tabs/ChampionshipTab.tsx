@@ -22,18 +22,16 @@ const ChampionshipTab = () => {
 
   if (isLoading || !standings) return <p className="text-racing-muted font-body">Loading standings…</p>;
 
-  const maxPts = standings[0]?.maxPts || 1;
-
   return (
     <div className="space-y-6">
       <h2 className="font-heading text-2xl text-racing-text">2026 NTT INDYCAR SERIES</h2>
       <p className="font-condensed text-sm text-racing-muted">Championship Standings</p>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[800px] text-left">
+        <table className="w-full min-w-[700px] text-left">
           <thead>
             <tr className="border-b border-racing-border">
-              {['Rank','Car','Driver','Engine','Prior Pts','Race Pts','Total Pts','Gap',''].map(h => (
+              {['Rank','Car','Driver','Engine','Prior Pts','Race Pts','Total Pts','Gap'].map(h => (
                 <th key={h} className="font-condensed font-semibold text-xs text-racing-muted uppercase px-3 py-2">{h}</th>
               ))}
             </tr>
@@ -49,11 +47,6 @@ const ChampionshipTab = () => {
                 <td className="px-3 py-2 font-mono text-xs text-racing-text">{s.r2}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-yellow font-bold">{s.total}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-muted">{s.gap}</td>
-                <td className="px-3 py-2 w-32">
-                  <div className="h-2 bg-racing-surface rounded overflow-hidden">
-                    <div className="h-full bg-racing-yellow rounded" style={{ width: `${(s.total / maxPts) * 100}%` }} />
-                  </div>
-                </td>
               </tr>
             ))}
           </tbody>
