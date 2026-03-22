@@ -19,11 +19,11 @@ const HeadToHeadTab = () => {
   const { data: positions } = useRacePositions(raceId);
   const { data: cautions } = useCautions(raceId);
 
-  const drivers = useMemo(() => results?.map(r => ({ num: r.car_number, name: r.driver_name })) || [], [results]);
   const [car1, setCar1] = useState('2');
   const [car2, setCar2] = useState('27');
 
-  // Auto-set defaults when data loads
+  const drivers = useMemo(() => results?.map(r => ({ num: r.car_number, name: r.driver_name })) || [], [results]);
+
   useMemo(() => {
     if (drivers.length >= 2 && !drivers.find(d => d.num === car1)) {
       setCar1(drivers[0].num);
