@@ -47,6 +47,20 @@ const HeadToHeadTab = () => {
 
   const s1 = getStats(car1);
   const s2 = getStats(car2);
+  // Build chart data from positions (moved before early return)
+  const chartData = useMemo(() => {
+    if (!positions?.length) return [];
+    const byLap: Record<number, Record<string, number>> = {};
+    for (const p of positions) {
+      if (p.car_number !== car1 && p.car_number !== car2) continue;
+      if (!byLap[p.lap_number]) byLap[p.lap_number] = {};
+      byLap[p.lap_number][`car${p.car_number}`] = p.position;
+    }
+    return Object.entries(byLap).map(([lap, data]) => ({ lap: Number(lap), ...data })).sort((a, b) => a.lap - b.lap);
+  }, [positions, car1, car2]);
+
+  const cautionRanges: [number, number][] = (cautions || []).map(c => [c.start_lap, c.end_lap]);
+
   if (!s1 || !s2) return <p className="text-racing-muted font-body">Loading…</p>;
 
   const comparisons = [
