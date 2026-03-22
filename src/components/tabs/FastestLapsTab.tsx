@@ -38,7 +38,7 @@ const FastestLapsTab = () => {
   const { data: qualSectors } = useQualifyingSectors(raceId);
   const { data: qualResults } = useQualifyingResults(raceId);
 
-  const maxSpeed = laps?.length ? Math.max(...laps.map(f => Number(f.section_speed) || 0)) : 0;
+  
 
   const sectionOptions = sections?.map(s => ({
     name: s.section_name,

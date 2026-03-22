@@ -32,7 +32,7 @@ const ResultsTab = () => {
   if (loadingResults) return <p className="text-racing-muted font-body">Loading results…</p>;
   if (!results?.length) return <p className="text-racing-muted font-body">No results data.</p>;
 
-  const maxSpeed = Math.max(...results.map(r => Number(r.avg_speed) || 0));
+  
 
   const filtered = results.filter(r => {
     if (!search) return true;
