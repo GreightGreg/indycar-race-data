@@ -1,16 +1,41 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import Header from '@/components/racing/Header';
+import TabNav from '@/components/racing/TabNav';
+import Footer from '@/components/racing/Footer';
+import ResultsTab from '@/components/tabs/ResultsTab';
+import WeekendTab from '@/components/tabs/WeekendTab';
+import PositionChartTab from '@/components/tabs/PositionChartTab';
+import LapsLedTab from '@/components/tabs/LapsLedTab';
+import HeadToHeadTab from '@/components/tabs/HeadToHeadTab';
+import PitStrategyTab from '@/components/tabs/PitStrategyTab';
+import FastestLapsTab from '@/components/tabs/FastestLapsTab';
+import ChampionshipTab from '@/components/tabs/ChampionshipTab';
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const TAB_COMPONENTS: Record<string, React.FC> = {
+  'Results': ResultsTab,
+  'Weekend': WeekendTab,
+  'Position Chart': PositionChartTab,
+  'Laps Led': LapsLedTab,
+  'Head to Head': HeadToHeadTab,
+  'Pit Strategy': PitStrategyTab,
+  'Fastest Laps': FastestLapsTab,
+  'Championship': ChampionshipTab,
+};
+
+const Index = () => {
+  const [activeTab, setActiveTab] = useState('Results');
+  const ActiveComponent = TAB_COMPONENTS[activeTab] || ResultsTab;
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-racing-bg">
+      <Header />
+      <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+      <main className="max-w-[1400px] mx-auto px-4 py-6">
+        <ActiveComponent />
+      </main>
+      <Footer />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
