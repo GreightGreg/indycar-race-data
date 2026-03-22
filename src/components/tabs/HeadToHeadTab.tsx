@@ -87,19 +87,7 @@ const HeadToHeadTab = () => {
     return n1 > n2 ? 'left' : 'right';
   };
 
-  // Build chart data from positions
-  const chartData = useMemo(() => {
-    if (!positions?.length) return [];
-    const byLap: Record<number, Record<string, number>> = {};
-    for (const p of positions) {
-      if (p.car_number !== car1 && p.car_number !== car2) continue;
-      if (!byLap[p.lap_number]) byLap[p.lap_number] = {};
-      byLap[p.lap_number][`car${p.car_number}`] = p.position;
-    }
-    return Object.entries(byLap).map(([lap, data]) => ({ lap: Number(lap), ...data })).sort((a, b) => a.lap - b.lap);
-  }, [positions, car1, car2]);
 
-  const cautionRanges: [number, number][] = (cautions || []).map(c => [c.start_lap, c.end_lap]);
 
   return (
     <div className="space-y-6">
