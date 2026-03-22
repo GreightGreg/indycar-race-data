@@ -74,8 +74,8 @@ const PositionChartTab = () => {
                 type="linear"
                 dataKey={`car${car}`}
                 stroke={DRIVER_COLORS[car] || '#888'}
-                strokeWidth={highlightedCar === car ? 3.5 : 1.5}
-                strokeOpacity={highlightedCar === null ? 0.7 : highlightedCar === car ? 1 : 0.1}
+                strokeWidth={highlightedCar === car ? 3 : 1.5}
+                strokeOpacity={highlightedCar === null ? 0.7 : highlightedCar === car ? 1 : 0.7}
                 dot={false}
                 connectNulls={false}
                 isAnimationActive={false}

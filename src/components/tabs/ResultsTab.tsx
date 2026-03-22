@@ -99,7 +99,7 @@ const ResultsTab = () => {
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.time_gap}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.pit_stops}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.elapsed_time}</td>
-                <td className="px-2 py-2"><SpeedBar speed={Number(r.avg_speed) || 0} max={maxSpeed} /></td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-yellow">{Number(r.avg_speed)?.toFixed(3)}</td>
                 <td className="px-2 py-2"><StatusBadge status={r.status} /></td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-yellow">{r.race_points}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.total_points}</td>

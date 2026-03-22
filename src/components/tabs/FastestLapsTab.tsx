@@ -145,7 +145,7 @@ const FastestLapsTab = () => {
                 <td className="px-3 py-2"><CarBadge num={f.car_number} /></td>
                 <td className="px-3 py-2 font-body text-sm text-racing-text">{f.driver_name}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time}{selectedSection !== 'Full Lap' ? 's' : ''}</td>
-                <td className="px-3 py-2"><SpeedBar speed={Number(f.section_speed) || 0} max={maxSpeed} /></td>
+                <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(f.section_speed)?.toFixed(3)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-muted">L{f.lap_number}</td>
               </tr>
             ))}
