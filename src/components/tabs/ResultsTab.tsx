@@ -20,14 +20,6 @@ const EngineText = ({ engine }: { engine: string }) => (
   <span className={`font-mono text-xs ${engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{engine}</span>
 );
 
-const SpeedBar = ({ speed, max }: { speed: number; max: number }) => (
-  <div className="flex items-center gap-2 min-w-[140px]">
-    <div className="flex-1 h-1.5 bg-racing-surface rounded overflow-hidden">
-      <div className="h-full bg-racing-yellow rounded" style={{ width: `${max > 0 ? (speed / max) * 100 : 0}%` }} />
-    </div>
-    <span className="font-mono text-xs text-racing-yellow whitespace-nowrap">{speed.toFixed(3)}</span>
-  </div>
-);
 
 const ResultsTab = () => {
   const { raceId } = useRaceContext();
