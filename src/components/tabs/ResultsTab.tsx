@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { raceResults, driverMap, cautions, penalties } from '@/data/raceData';
+import { useRaceContext } from '@/pages/Index';
+import { useRaceResults, useRaceDetails, useCautions, usePenalties } from '@/hooks/useRaceData';
 
-const CarBadge = ({ num }: { num: number }) => (
+const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
 );
 
@@ -29,28 +30,36 @@ const SpeedBar = ({ speed, max }: { speed: number; max: number }) => (
 );
 
 const ResultsTab = () => {
+  const { raceId } = useRaceContext();
+  const { data: results, isLoading: loadingResults } = useRaceResults(raceId);
+  const { data: race } = useRaceDetails(raceId);
+  const { data: cautions } = useCautions(raceId);
+  const { data: penalties } = usePenalties(raceId);
   const [search, setSearch] = useState('');
-  const maxSpeed = Math.max(...raceResults.map(r => r.avgSpeed));
 
-  const filtered = raceResults.filter(r => {
+  if (loadingResults) return <p className="text-racing-muted font-body">Loading results…</p>;
+  if (!results?.length) return <p className="text-racing-muted font-body">No results data.</p>;
+
+  const maxSpeed = Math.max(...results.map(r => Number(r.avg_speed) || 0));
+
+  const filtered = results.filter(r => {
     if (!search) return true;
-    const d = driverMap[r.car];
     const q = search.toLowerCase();
-    return d.first.toLowerCase().includes(q) || d.last.toLowerCase().includes(q) || String(r.car).includes(q);
+    return r.driver_name.toLowerCase().includes(q) || r.car_number.includes(q);
   });
 
-  const statCards = [
-    { label: 'Winner', value: 'Newgarden', sub: '#2 · Chevy', border: 'border-racing-blue' },
-    { label: 'Race Time', value: '1:51:14', sub: '134.842 mph avg', border: 'border-racing-yellow' },
-    { label: 'Total Laps', value: '250', sub: '209 green · 41 caution', border: 'border-racing-blue' },
-    { label: 'Lead Changes', value: '18', sub: '11 drivers led', border: 'border-racing-yellow' },
-    { label: 'Fastest Lap', value: '164.620 mph', sub: '#26 Power · Lap 192', border: 'border-racing-blue' },
-    { label: 'Race Passes', value: '565', sub: '323 position passes', border: 'border-racing-yellow' },
-  ];
+  const winner = results[0];
+  const statCards = race ? [
+    { label: 'Winner', value: winner?.driver_name.split(' ')[0] || '', sub: `#${winner?.car_number} · ${winner?.engine}`, border: 'border-racing-blue' },
+    { label: 'Race Time', value: race.total_race_time || '', sub: `${race.avg_speed} mph avg`, border: 'border-racing-yellow' },
+    { label: 'Total Laps', value: String(race.total_laps || ''), sub: `${race.green_laps} green · ${race.caution_laps} caution`, border: 'border-racing-blue' },
+    { label: 'Lead Changes', value: String(race.lead_changes || ''), sub: `${race.drivers_who_led} drivers led`, border: 'border-racing-yellow' },
+    { label: 'Fastest Lap', value: `${race.fastest_lap_speed} mph`, sub: `#${race.fastest_lap_car} ${race.fastest_lap_driver?.split(' ')[0]} · Lap ${race.fastest_lap_number}`, border: 'border-racing-blue' },
+    { label: 'Race Passes', value: String(race.total_passes || ''), sub: `${race.position_passes} position passes`, border: 'border-racing-yellow' },
+  ] : [];
 
   return (
     <div className="space-y-6">
-      {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {statCards.map(c => (
           <div key={c.label} className={`bg-racing-surface rounded border-t-2 ${c.border} p-4`}>
@@ -61,7 +70,6 @@ const ResultsTab = () => {
         ))}
       </div>
 
-      {/* Search */}
       <input
         type="text"
         placeholder="Search driver or car number…"
@@ -70,7 +78,6 @@ const ResultsTab = () => {
         className="w-full max-w-sm bg-racing-surface border border-racing-border text-racing-text font-body text-sm px-3 py-2 rounded placeholder:text-racing-muted"
       />
 
-      {/* Results Table */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1100px] text-left">
           <thead>
@@ -81,39 +88,35 @@ const ResultsTab = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(r => {
-              const d = driverMap[r.car];
-              return (
-                <tr key={r.car} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
-                  <td className="px-2 py-2"><PosBadge pos={r.pos} /></td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-muted">P{r.sp}</td>
-                  <td className="px-2 py-2"><CarBadge num={r.car} /></td>
-                  <td className="px-2 py-2 font-body text-sm text-racing-text">{d.last} {d.first}{d.rookie ? <span className="text-racing-muted text-[10px] ml-1">(R)</span> : ''}</td>
-                  <td className="px-2 py-2"><EngineText engine={d.engine} /></td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.laps}</td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.gap}</td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.pits}</td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.elapsed}</td>
-                  <td className="px-2 py-2"><SpeedBar speed={r.avgSpeed} max={maxSpeed} /></td>
-                  <td className="px-2 py-2"><StatusBadge status={r.status} /></td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-yellow">{r.racePts}</td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.totalPts}</td>
-                  <td className="px-2 py-2 font-mono text-xs text-racing-muted">Rank {r.champRank}</td>
-                </tr>
-              );
-            })}
+            {filtered.map(r => (
+              <tr key={r.id} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
+                <td className="px-2 py-2"><PosBadge pos={r.finish_position} /></td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-muted">P{r.start_position}</td>
+                <td className="px-2 py-2"><CarBadge num={r.car_number} /></td>
+                <td className="px-2 py-2 font-body text-sm text-racing-text">{r.driver_name}</td>
+                <td className="px-2 py-2"><EngineText engine={r.engine} /></td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.laps_completed}</td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.time_gap}</td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.pit_stops}</td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.elapsed_time}</td>
+                <td className="px-2 py-2"><SpeedBar speed={Number(r.avg_speed) || 0} max={maxSpeed} /></td>
+                <td className="px-2 py-2"><StatusBadge status={r.status} /></td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-yellow">{r.race_points}</td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.total_points}</td>
+                <td className="px-2 py-2 font-mono text-xs text-racing-muted">Rank {r.championship_rank}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
-      {/* Caution & Penalty Summary */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-3">Caution Summary</h3>
           <div className="space-y-2">
-            {cautions.map(c => (
-              <div key={c.num} className="bg-racing-surface border-l-2 border-racing-yellow rounded-r px-4 py-3">
-                <p className="font-condensed text-xs text-racing-text">Caution {c.num}: Laps {c.startLap}–{c.endLap} · {c.laps} laps</p>
+            {cautions?.map(c => (
+              <div key={c.id} className="bg-racing-surface border-l-2 border-racing-yellow rounded-r px-4 py-3">
+                <p className="font-condensed text-xs text-racing-text">Caution {c.caution_number}: Laps {c.start_lap}–{c.end_lap} · {c.total_laps} laps</p>
                 <p className="font-mono text-[10px] text-racing-muted">{c.reason}</p>
               </div>
             ))}
@@ -122,9 +125,9 @@ const ResultsTab = () => {
         <div>
           <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-3">Penalty Summary</h3>
           <div className="space-y-2">
-            {penalties.map((p, i) => (
-              <div key={i} className="bg-racing-surface border-l-2 border-racing-orange rounded-r px-4 py-3">
-                <p className="font-condensed text-xs text-racing-text">#{p.car} {p.infraction} · Lap {p.lap}</p>
+            {penalties?.map(p => (
+              <div key={p.id} className="bg-racing-surface border-l-2 border-racing-orange rounded-r px-4 py-3">
+                <p className="font-condensed text-xs text-racing-text">#{p.car_number} {p.reason} · Lap {p.lap_number}</p>
                 <p className="font-mono text-[10px] text-racing-muted">{p.penalty}</p>
               </div>
             ))}
