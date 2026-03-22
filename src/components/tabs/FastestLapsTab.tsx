@@ -7,14 +7,6 @@ const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
 );
 
-const SpeedBar = ({ speed, max }: { speed: number; max: number }) => (
-  <div className="flex items-center gap-2 min-w-[140px]">
-    <div className="flex-1 h-1.5 bg-racing-surface2 rounded overflow-hidden">
-      <div className="h-full bg-racing-yellow rounded" style={{ width: `${(speed / max) * 100}%` }} />
-    </div>
-    <span className="font-mono text-xs text-racing-yellow whitespace-nowrap">{speed.toFixed(3)}</span>
-  </div>
-);
 
 const SESSION_OPTIONS = [
   { value: 'Race', label: 'Race' },
