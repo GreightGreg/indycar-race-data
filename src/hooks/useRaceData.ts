@@ -166,15 +166,16 @@ export const usePitExecution = (raceId: string | null) =>
     enabled: !!raceId,
   });
 
-export const useFastestLaps = (raceId: string | null, sectionName: string) =>
+export const useFastestLaps = (raceId: string | null, sectionName: string, sessionType: string = 'Race') =>
   useQuery({
-    queryKey: ['fastest_laps', raceId, sectionName],
+    queryKey: ['fastest_laps', raceId, sectionName, sessionType],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fastest_laps')
         .select('*')
         .eq('race_id', raceId!)
         .eq('section_name', sectionName)
+        .eq('session_type', sessionType)
         .order('rank');
       if (error) throw error;
       return data;
@@ -182,14 +183,15 @@ export const useFastestLaps = (raceId: string | null, sectionName: string) =>
     enabled: !!raceId,
   });
 
-export const useFastestLapSections = (raceId: string | null) =>
+export const useFastestLapSections = (raceId: string | null, sessionType: string = 'Race') =>
   useQuery({
-    queryKey: ['fastest_lap_sections', raceId],
+    queryKey: ['fastest_lap_sections', raceId, sessionType],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('fastest_laps')
         .select('section_name, section_length_miles')
         .eq('race_id', raceId!)
+        .eq('session_type', sessionType)
         .eq('rank', 1);
       if (error) throw error;
       return data;

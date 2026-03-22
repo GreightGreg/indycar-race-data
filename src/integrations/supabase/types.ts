@@ -52,6 +52,56 @@ export type Database = {
           },
         ]
       }
+      combined_practice_results: {
+        Row: {
+          best_session: string | null
+          best_speed: number | null
+          best_time: string | null
+          car_number: string
+          created_at: string
+          driver_name: string | null
+          engine: string | null
+          id: string
+          race_id: string
+          rank: number
+          total_laps: number | null
+        }
+        Insert: {
+          best_session?: string | null
+          best_speed?: number | null
+          best_time?: string | null
+          car_number: string
+          created_at?: string
+          driver_name?: string | null
+          engine?: string | null
+          id?: string
+          race_id: string
+          rank: number
+          total_laps?: number | null
+        }
+        Update: {
+          best_session?: string | null
+          best_speed?: number | null
+          best_time?: string | null
+          car_number?: string
+          created_at?: string
+          driver_name?: string | null
+          engine?: string | null
+          id?: string
+          race_id?: string
+          rank?: number
+          total_laps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "combined_practice_results_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fastest_laps: {
         Row: {
           car_number: string
@@ -64,6 +114,7 @@ export type Database = {
           section_name: string
           section_speed: number | null
           section_time: string | null
+          session_type: string
         }
         Insert: {
           car_number: string
@@ -76,6 +127,7 @@ export type Database = {
           section_name: string
           section_speed?: number | null
           section_time?: string | null
+          session_type?: string
         }
         Update: {
           car_number?: string
@@ -88,6 +140,7 @@ export type Database = {
           section_name?: string
           section_speed?: number | null
           section_time?: string | null
+          session_type?: string
         }
         Relationships: [
           {
@@ -247,6 +300,157 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pit_stops_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qualifying_results: {
+        Row: {
+          avg_speed: number | null
+          best_lap_time: string | null
+          car_number: string
+          comment: string | null
+          created_at: string
+          driver_name: string | null
+          engine: string | null
+          id: string
+          lap1_time: string | null
+          lap2_time: string | null
+          qual_position: number
+          race_id: string
+          total_time: string | null
+        }
+        Insert: {
+          avg_speed?: number | null
+          best_lap_time?: string | null
+          car_number: string
+          comment?: string | null
+          created_at?: string
+          driver_name?: string | null
+          engine?: string | null
+          id?: string
+          lap1_time?: string | null
+          lap2_time?: string | null
+          qual_position: number
+          race_id: string
+          total_time?: string | null
+        }
+        Update: {
+          avg_speed?: number | null
+          best_lap_time?: string | null
+          car_number?: string
+          comment?: string | null
+          created_at?: string
+          driver_name?: string | null
+          engine?: string | null
+          id?: string
+          lap1_time?: string | null
+          lap2_time?: string | null
+          qual_position?: number
+          race_id?: string
+          total_time?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualifying_results_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      qualifying_sectors: {
+        Row: {
+          car_number: string
+          created_at: string
+          dogleg_speed: number | null
+          dogleg_time: number | null
+          driver_name: string | null
+          front_stretch_speed: number | null
+          front_stretch_time: number | null
+          full_lap_speed: number | null
+          full_lap_time: number | null
+          id: string
+          lap_number: number
+          race_id: string
+          turn1_entry_speed: number | null
+          turn1_entry_time: number | null
+          turn1_exit_speed: number | null
+          turn1_exit_time: number | null
+          turn2_entry_speed: number | null
+          turn2_entry_time: number | null
+          turn2_exit_speed: number | null
+          turn2_exit_time: number | null
+          turn3_entry_speed: number | null
+          turn3_entry_time: number | null
+          turn3_exit_speed: number | null
+          turn3_exit_time: number | null
+          turn4_speed: number | null
+          turn4_time: number | null
+        }
+        Insert: {
+          car_number: string
+          created_at?: string
+          dogleg_speed?: number | null
+          dogleg_time?: number | null
+          driver_name?: string | null
+          front_stretch_speed?: number | null
+          front_stretch_time?: number | null
+          full_lap_speed?: number | null
+          full_lap_time?: number | null
+          id?: string
+          lap_number: number
+          race_id: string
+          turn1_entry_speed?: number | null
+          turn1_entry_time?: number | null
+          turn1_exit_speed?: number | null
+          turn1_exit_time?: number | null
+          turn2_entry_speed?: number | null
+          turn2_entry_time?: number | null
+          turn2_exit_speed?: number | null
+          turn2_exit_time?: number | null
+          turn3_entry_speed?: number | null
+          turn3_entry_time?: number | null
+          turn3_exit_speed?: number | null
+          turn3_exit_time?: number | null
+          turn4_speed?: number | null
+          turn4_time?: number | null
+        }
+        Update: {
+          car_number?: string
+          created_at?: string
+          dogleg_speed?: number | null
+          dogleg_time?: number | null
+          driver_name?: string | null
+          front_stretch_speed?: number | null
+          front_stretch_time?: number | null
+          full_lap_speed?: number | null
+          full_lap_time?: number | null
+          id?: string
+          lap_number?: number
+          race_id?: string
+          turn1_entry_speed?: number | null
+          turn1_entry_time?: number | null
+          turn1_exit_speed?: number | null
+          turn1_exit_time?: number | null
+          turn2_entry_speed?: number | null
+          turn2_entry_time?: number | null
+          turn2_exit_speed?: number | null
+          turn2_exit_time?: number | null
+          turn3_entry_speed?: number | null
+          turn3_entry_time?: number | null
+          turn3_exit_speed?: number | null
+          turn3_exit_time?: number | null
+          turn4_speed?: number | null
+          turn4_time?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qualifying_sectors_race_id_fkey"
             columns: ["race_id"]
             isOneToOne: false
             referencedRelation: "races"
@@ -531,6 +735,65 @@ export type Database = {
           year?: number
         }
         Relationships: []
+      }
+      session_full_results: {
+        Row: {
+          best_lap_number: number | null
+          best_speed: number | null
+          best_time: string | null
+          car_number: string
+          created_at: string
+          diff_to_leader: string | null
+          driver_name: string | null
+          engine: string | null
+          gap_to_ahead: string | null
+          id: string
+          race_id: string
+          rank: number
+          session_type: string
+          total_laps: number | null
+        }
+        Insert: {
+          best_lap_number?: number | null
+          best_speed?: number | null
+          best_time?: string | null
+          car_number: string
+          created_at?: string
+          diff_to_leader?: string | null
+          driver_name?: string | null
+          engine?: string | null
+          gap_to_ahead?: string | null
+          id?: string
+          race_id: string
+          rank: number
+          session_type: string
+          total_laps?: number | null
+        }
+        Update: {
+          best_lap_number?: number | null
+          best_speed?: number | null
+          best_time?: string | null
+          car_number?: string
+          created_at?: string
+          diff_to_leader?: string | null
+          driver_name?: string | null
+          engine?: string | null
+          gap_to_ahead?: string | null
+          id?: string
+          race_id?: string
+          rank?: number
+          session_type?: string
+          total_laps?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_full_results_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       session_results: {
         Row: {
