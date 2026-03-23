@@ -42,7 +42,7 @@ const Index = () => {
     <RaceContext.Provider value={{ raceId, setRaceId: setSelectedRaceId }}>
       <div className="min-h-screen bg-racing-bg">
         <Header races={races || []} selectedRaceId={raceId} onRaceChange={setSelectedRaceId} isLoading={isLoading} />
-        <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
+        <TabNav activeTab={activeTab} onTabChange={handleTabChange} />
         <main className="max-w-[1400px] mx-auto px-4 py-6">
           {raceId ? <ActiveComponent /> : (
             <p className="text-racing-muted font-body text-center py-12">
