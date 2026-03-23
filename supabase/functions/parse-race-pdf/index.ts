@@ -635,48 +635,103 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   }
 
   // Parse cautions and penalties from collected post-results lines
-  // unpdf splits these across lines: reason on one line, numbers on the next
+  // unpdf can interleave lead-change rows with caution/penalty fragments, so we parse these separately.
   let pendingCautionReason = "";
-  for (const line of postResultsLines) {
-    const trimmed = line.trim();
-    if (!trimmed || /^(Lead Change Summary|Penalty Summary|Caution Summary|Caution Flag Summary|Car\s+Reason|On Lap)/i.test(trimmed)) {
+  let inPenaltySection = false;
+  const penaltyFragments: string[] = [];
+  const actionPattern = /(Restart at the Back of Field|Drive-Through|Stop\s*&\s*Hold(?:\s*-\s*[^$]+)?|Warning(?:\s*-\s*[^$]+)?|Penalty(?:\s*-\s*[^$]+)?|Loss\s+of\s+[^$]+)$/i;
+  const leadChangeRowPattern = /^\d+\s+\d{1,3}\s+.+,\s+.+\s+\d{1,3}\s+.+,\s+.+(?:\s+\d+)?$/;
+
+  for (const rawLine of postResultsLines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+
+    if (/^Penalty\s*Summary/i.test(trimmed)) {
+      inPenaltySection = true;
+      sawPenaltySection = true;
       continue;
     }
 
-    // Caution reason line (standalone text before its numeric row)
-    if (/^[A-Z]/.test(trimmed) && !/^\d/.test(trimmed)) {
-      pendingCautionReason = trimmed;
+    if (!inPenaltySection) {
+      if (/^(Lead Change Summary|Caution Summary|Caution Flag Summary|Car\s+Reason|On Lap)/i.test(trimmed)) {
+        continue;
+      }
+
+      if (/^[A-Z]/.test(trimmed) && !/^\d/.test(trimmed)) {
+        pendingCautionReason = trimmed;
+        continue;
+      }
+
+      const cautionM = trimmed.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\b/);
+      if (cautionM && parseInt(cautionM[1]) <= 20 && parseInt(cautionM[2]) > 0) {
+        sawCautionSection = true;
+        cautions.push({
+          race_id: raceId,
+          caution_number: parseInt(cautionM[1]),
+          start_lap: parseInt(cautionM[2]),
+          end_lap: parseInt(cautionM[3]),
+          laps: parseInt(cautionM[3]) - parseInt(cautionM[2]) + 1,
+          total_laps: parseInt(cautionM[4]),
+          reason: pendingCautionReason || "Unknown"
+        });
+        pendingCautionReason = "";
+      }
       continue;
     }
 
-    // Caution numbers: "cautionNum startLap to endLap totalLaps"
-    const cautionM = trimmed.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\b/);
-    if (cautionM && parseInt(cautionM[1]) <= 20 && parseInt(cautionM[2]) > 0) {
-      sawCautionSection = true;
-      cautions.push({
-        race_id: raceId,
-        caution_number: parseInt(cautionM[1]),
-        start_lap: parseInt(cautionM[2]),
-        end_lap: parseInt(cautionM[3]),
-        laps: parseInt(cautionM[3]) - parseInt(cautionM[2]) + 1,
-        total_laps: parseInt(cautionM[4]),
-        reason: pendingCautionReason || "Unknown"
-      });
-      pendingCautionReason = "";
-      continue;
-    }
+    if (/^(Car\s+Reason\s+Lap\s+Penalty|On Lap|Lead Change Summary)$/i.test(trimmed)) continue;
+    if (leadChangeRowPattern.test(trimmed)) continue;
+    penaltyFragments.push(trimmed);
+  }
 
-    // Penalty rows vary a lot by track/report, so parse broadly once we're in the section.
-    const penaltyM = trimmed.match(/^\s*(\d{1,3})\s+(.+?)\s+(\d{1,3})\s+(Stop\s*&\s*Hold.*|Drive\s*Through.*|Warning.*|Penalty.*|Loss\s+of.*|\$[\d,]+.*)$/i);
-    if (penaltyM && sawPenaltySection) {
+  let pendingPenaltyReason = "";
+  let pendingPenaltyAction = "";
+  let lastPenaltyIndex = -1;
+
+  for (const fragment of penaltyFragments) {
+    const inlinePenalty = fragment.match(/^\s*(\d{1,3})\s+(.+?)\s+(\d{1,3})\s+(Restart at the Back of Field|Drive-Through|Stop\s*&\s*Hold.*|Warning.*|Penalty.*|Loss\s+of.*)$/i);
+    if (inlinePenalty) {
       penalties.push({
         race_id: raceId,
-        car_number: penaltyM[1],
-        reason: penaltyM[2].trim(),
-        lap_number: parseInt(penaltyM[3]),
-        penalty: penaltyM[4].trim()
+        car_number: inlinePenalty[1],
+        reason: inlinePenalty[2].trim(),
+        lap_number: parseInt(inlinePenalty[3]),
+        penalty: inlinePenalty[4].trim(),
       });
+      lastPenaltyIndex = penalties.length - 1;
+      pendingPenaltyReason = "";
+      pendingPenaltyAction = "";
+      continue;
     }
+
+    const numericPenalty = fragment.match(/^(\d{1,3})\s+(\d{1,3})$/);
+    if (numericPenalty && (pendingPenaltyReason || pendingPenaltyAction)) {
+      penalties.push({
+        race_id: raceId,
+        car_number: numericPenalty[1],
+        reason: pendingPenaltyReason.trim() || "Unknown",
+        lap_number: parseInt(numericPenalty[2]),
+        penalty: pendingPenaltyAction.trim() || null,
+      });
+      lastPenaltyIndex = penalties.length - 1;
+      pendingPenaltyReason = "";
+      pendingPenaltyAction = "";
+      continue;
+    }
+
+    const actionMatch = fragment.match(/^(.*?)(Restart at the Back of Field|Drive-Through|Stop\s*&\s*Hold.*|Warning.*|Penalty.*|Loss\s+of.*)$/i);
+    if (actionMatch) {
+      pendingPenaltyReason = [pendingPenaltyReason, actionMatch[1].trim()].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
+      pendingPenaltyAction = actionMatch[2].trim();
+      continue;
+    }
+
+    if (lastPenaltyIndex >= 0) {
+      penalties[lastPenaltyIndex].reason = `${penalties[lastPenaltyIndex].reason} ${fragment}`.replace(/\s+/g, " ").trim();
+      continue;
+    }
+
+    pendingPenaltyReason = [pendingPenaltyReason, fragment].filter(Boolean).join(" ").replace(/\s+/g, " ").trim();
   }
 
   flushPendingResultLine();
