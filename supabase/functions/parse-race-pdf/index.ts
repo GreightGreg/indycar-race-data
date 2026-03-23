@@ -624,11 +624,13 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
       continue;
     }
-    // In postresults section, extract cautions and penalties from multi-column lines
-    if (section === "postresults") {
+    // Collect post-results, caution, and penalty sections for downstream parsing.
+    // Some PDFs put Penalty Summary after switching sections, so we must keep reading there too.
+    if (section === "postresults" || section === "cautions" || section === "penalties") {
       postResultsLines.push(line);
-      if (/Caution\s*Summary/i.test(line)) sawCautionSection = true;
+      if (/Caution\s*Summary/i.test(line) || /Caution\s*Flag/i.test(line)) sawCautionSection = true;
       if (/Penalty\s*Summary/i.test(line)) sawPenaltySection = true;
+      continue;
     }
   }
 
@@ -636,13 +638,19 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   // unpdf splits these across lines: reason on one line, numbers on the next
   let pendingCautionReason = "";
   for (const line of postResultsLines) {
-    // Caution reason line (starts with capital letter, no leading digits matching caution pattern)
-    if (/^[A-Z]/.test(line.trim()) && !line.includes("On Lap") && !line.includes("Penalty Summary") && !line.includes("Car Reason") && !line.includes("Caution Summary")) {
-      pendingCautionReason = line.trim();
+    const trimmed = line.trim();
+    if (!trimmed || /^(Lead Change Summary|Penalty Summary|Caution Summary|Caution Flag Summary|Car\s+Reason|On Lap)/i.test(trimmed)) {
       continue;
     }
+
+    // Caution reason line (standalone text before its numeric row)
+    if (/^[A-Z]/.test(trimmed) && !/^\d/.test(trimmed)) {
+      pendingCautionReason = trimmed;
+      continue;
+    }
+
     // Caution numbers: "cautionNum startLap to endLap totalLaps"
-    const cautionM = line.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\b/);
+    const cautionM = trimmed.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\b/);
     if (cautionM && parseInt(cautionM[1]) <= 20 && parseInt(cautionM[2]) > 0) {
       sawCautionSection = true;
       cautions.push({
@@ -657,29 +665,16 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       pendingCautionReason = "";
       continue;
     }
-    // Penalty: "carNum reason lap penalty"
-    // Try strict pattern first
-    const penaltyM = line.match(/\b(\d{1,3})\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+(?:Violation|Speed)|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|Speeding|Contact)[^\d]*?(\d+)\s+(Stop\s+&\s+Hold[^$]*|Drive\s+Through[^$]*|Penalty[^$]*|Warning[^$]*|\$[\d,]+[^$]*)/i);
-    if (penaltyM) {
-      sawPenaltySection = true;
+
+    // Penalty rows vary a lot by track/report, so parse broadly once we're in the section.
+    const penaltyM = trimmed.match(/^\s*(\d{1,3})\s+(.+?)\s+(\d{1,3})\s+(Stop\s*&\s*Hold.*|Drive\s*Through.*|Warning.*|Penalty.*|Loss\s+of.*|\$[\d,]+.*)$/i);
+    if (penaltyM && sawPenaltySection) {
       penalties.push({
         race_id: raceId,
         car_number: penaltyM[1],
         reason: penaltyM[2].trim(),
         lap_number: parseInt(penaltyM[3]),
         penalty: penaltyM[4].trim()
-      });
-      continue;
-    }
-    // Fallback: broad pattern — car_number, any text reason, a lap number, then penalty action
-    const penaltyBroad = line.match(/^\s*(\d{1,3})\s+(.+?)\s+(\d{1,3})\s+(Stop\s+&\s+Hold.*|Drive\s+Through.*|Penalty.*|Warning.*|\$[\d,]+.*)/i);
-    if (penaltyBroad && sawPenaltySection) {
-      penalties.push({
-        race_id: raceId,
-        car_number: penaltyBroad[1],
-        reason: penaltyBroad[2].trim(),
-        lap_number: parseInt(penaltyBroad[3]),
-        penalty: penaltyBroad[4].trim()
       });
     }
   }
