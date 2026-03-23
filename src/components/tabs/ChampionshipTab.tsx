@@ -1,6 +1,7 @@
 import { useRaceContext } from '@/pages/Index';
 import { useChampionshipStandings } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
+import EngineIcon from '@/components/racing/EngineIcon';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
@@ -12,10 +13,6 @@ const MedalBadge = ({ rank }: { rank: number }) => {
   if (rank === 3) return <span className="inline-flex items-center justify-center bg-racing-bronze text-white font-heading text-sm w-8 h-6 rounded-sm">P3</span>;
   return <span className="font-heading text-sm text-racing-muted">{rank}</span>;
 };
-
-const EngineText = ({ engine }: { engine: string }) => (
-  <span className={`font-mono text-xs ${engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{engine}</span>
-);
 
 const ChampionshipTab = () => {
   const { raceId } = useRaceContext();
@@ -43,7 +40,7 @@ const ChampionshipTab = () => {
                 <td className="px-3 py-2"><MedalBadge rank={s.rank} /></td>
                 <td className="px-3 py-2"><CarBadge num={s.car} /></td>
                 <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(s.driver_name)}</td>
-                <td className="px-3 py-2"><EngineText engine={s.engine} /></td>
+                <td className="px-3 py-2"><EngineIcon engine={s.engine} /></td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-muted">{s.r1}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-text">{s.r2}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-yellow font-bold">{s.total}</td>

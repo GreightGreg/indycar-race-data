@@ -3,13 +3,10 @@ import { useRaceDetails, useSessionStats } from '@/hooks/useRaceData';
 import { useSessionFullResults, useQualifyingResults, useCombinedPracticeResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
+import EngineIcon from '@/components/racing/EngineIcon';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
-);
-
-const EngineText = ({ engine }: { engine: string }) => (
-  <span className={`font-mono text-xs ${engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{engine}</span>
 );
 
 const WeekendTab = () => {
@@ -141,7 +138,7 @@ const WeekendTab = () => {
                       <td className="px-3 py-2 font-heading text-sm text-racing-muted">{d.rank}</td>
                       <td className="px-3 py-2"><CarBadge num={d.car_number} /></td>
                       <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(d.driver_name)}</td>
-                      <td className="px-3 py-2"><EngineText engine={d.engine || ''} /></td>
+                      <td className="px-3 py-2"><EngineIcon engine={d.engine || ''} /></td>
                       <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{d.best_time}s</td>
                       <td className="px-3 py-2 font-mono text-xs text-racing-text">{Number(d.best_speed).toFixed(3)} mph</td>
                       <td className="px-3 py-2 font-mono text-xs text-racing-muted">{d.best_session}</td>
@@ -173,7 +170,7 @@ const WeekendTab = () => {
                       <span className="font-heading text-sm text-racing-muted w-6 shrink-0">P{q.qual_position}</span>
                       <CarBadge num={q.car_number} />
                       <span className="font-body text-sm text-racing-text">{formatDriverName(q.driver_name)}</span>
-                      <EngineText engine={q.engine || ''} />
+                      <EngineIcon engine={q.engine || ''} />
                       {isDNQ && <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-heading bg-racing-orange/20 text-racing-orange">DNQ</span>}
                     </div>
                     <div className="flex gap-3 font-mono text-[10px]">
@@ -206,7 +203,7 @@ const WeekendTab = () => {
                         <td className="px-3 py-2 font-heading text-sm text-racing-muted">P{q.qual_position}</td>
                         <td className="px-3 py-2"><CarBadge num={q.car_number} /></td>
                         <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(q.driver_name)}</td>
-                        <td className="px-3 py-2"><EngineText engine={q.engine || ''} /></td>
+                        <td className="px-3 py-2"><EngineIcon engine={q.engine || ''} /></td>
                         <td className={`px-3 py-2 font-mono text-xs ${fasterLap === 1 ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
                           {q.lap1_time ? `${q.lap1_time}s` : 'No Time'}
                         </td>
@@ -272,7 +269,7 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
                   <td className="px-2 py-1.5 font-heading text-sm text-racing-muted">{d.rank}</td>
                   <td className="px-2 py-1.5"><span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-xs w-7 h-5 rounded-sm">{d.car_number}</span></td>
                   <td className="px-2 py-1.5 font-body text-xs text-racing-text">{formatDriverName(d.driver_name)}</td>
-                  <td className="px-2 py-1.5"><span className={`font-mono text-[10px] ${d.engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{d.engine}</span></td>
+                  <td className="px-2 py-1.5"><EngineIcon engine={d.engine || ''} /></td>
                   <td className="px-2 py-1.5 font-mono text-xs text-racing-yellow">{d.best_time}s</td>
                   <td className="px-2 py-1.5 font-mono text-xs text-racing-text">{Number(d.best_speed).toFixed(3)} mph</td>
                   <td className="px-2 py-1.5 font-mono text-[10px] text-racing-muted">{d.diff_to_leader || '—'}</td>

@@ -3,12 +3,17 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceA
 import { useRaceContext } from '@/pages/Index';
 import { useRaceResults, useLapsLed, useFastestLaps, useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
+import EngineIcon from '@/components/racing/EngineIcon';
 
-const StatRow = ({ label, v1, v2, highlight }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none' }) => (
+const StatRow = ({ label, v1, v2, highlight, isEngine }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none'; isEngine?: boolean }) => (
   <div className="flex items-center py-1.5 border-b border-racing-border/30">
-    <span className={`flex-1 text-right font-mono text-xs ${highlight === 'left' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>{v1}{highlight === 'left' && ' ◀'}</span>
+    <span className={`flex-1 text-right font-mono text-xs ${highlight === 'left' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+      {isEngine ? <span className="inline-flex justify-end w-full"><EngineIcon engine={v1} /></span> : <>{v1}{highlight === 'left' && ' ◀'}</>}
+    </span>
     <span className="w-32 text-center font-condensed text-[10px] text-racing-muted uppercase px-2">{label}</span>
-    <span className={`flex-1 font-mono text-xs ${highlight === 'right' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>{highlight === 'right' && '▶ '}{v2}</span>
+    <span className={`flex-1 font-mono text-xs ${highlight === 'right' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+      {isEngine ? <EngineIcon engine={v2} /> : <>{highlight === 'right' && '▶ '}{v2}</>}
+    </span>
   </div>
 );
 
@@ -77,7 +82,7 @@ const HeadToHeadTab = () => {
     { label: 'Best Lap Number', v1: `L${s1.bestLapNum}`, v2: `L${s2.bestLapNum}` },
     { label: 'Race Points', v1: `${s1.racePts} pts`, v2: `${s2.racePts} pts` },
     { label: 'Championship Rank', v1: `Rank ${s1.champRank}`, v2: `Rank ${s2.champRank}`, lowerWins: true },
-    { label: 'Engine', v1: s1.engine, v2: s2.engine },
+    { label: 'Engine', v1: s1.engine, v2: s2.engine, isEngine: true },
   ];
 
   const getHighlight = (c: typeof comparisons[0]): 'left' | 'right' | 'none' => {
@@ -116,7 +121,7 @@ const HeadToHeadTab = () => {
       </div>
 
       <div className="bg-racing-surface rounded p-4 max-w-2xl mx-auto">
-        {comparisons.map(c => <StatRow key={c.label} label={c.label} v1={c.v1} v2={c.v2} highlight={getHighlight(c)} />)}
+        {comparisons.map(c => <StatRow key={c.label} label={c.label} v1={c.v1} v2={c.v2} highlight={getHighlight(c)} isEngine={(c as any).isEngine} />)}
       </div>
 
       {chartData.length > 0 && (
