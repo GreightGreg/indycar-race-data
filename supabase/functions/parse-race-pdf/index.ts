@@ -191,8 +191,8 @@ function identifyReport(lines: string[]): string | null {
     // Road/street course qualifying rounds
     if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 1")) return "results_quals_group1";
     if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 2")) return "results_quals_group2";
-    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12"))) return "results_quals_round2";
-    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6"))) return "results_quals_round3";
+    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12") || sessionLine.includes("Segment 2") || sessionLine.includes("Top 12"))) return "results_quals_round2";
+    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6") || sessionLine.includes("Segment 3"))) return "results_quals_round3";
   }
   if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
   if (reportLine.includes("Combined Qualifying Results") || reportLine.includes("Starting Line-Up")) return "results_quals_combined";
