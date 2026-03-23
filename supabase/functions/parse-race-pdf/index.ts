@@ -630,8 +630,8 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
 
       // Caution pattern: "N  startLap to endLap  totalLaps  reason"
       // May appear anywhere in the line (multi-column layout)
-      const cautionM = line.match(/(\d+)\s+(\d+)\s+to\s+(\d+)\s+(\d+)\s+([A-Z].+?)(?:\s{3,}|$)/);
-      if (cautionM && parseInt(cautionM[1]) <= 30 && parseInt(cautionM[2]) > 0) {
+      const cautionM = line.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\s+((?:Contact|Mechanical|Debris|Incident|Stall|Spin|Loose|Off|Fluid|Rain|Weather|Accident|Fire|Oil|Other|Schedule|Track|Red|Full|Local).+?)(?:\s{4,}|$)/i);
+      if (cautionM && parseInt(cautionM[1]) <= 20 && parseInt(cautionM[2]) > 0) {
         sawCautionSection = true;
         cautions.push({
           race_id: raceId,
@@ -645,7 +645,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
 
       // Penalty pattern: "carNum  reason  lap  penalty"
-      const penaltyM = line.match(/(\d+)\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+Violation|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|\.+).*?\s+(\d+)\s+(Stop\s+&\s+Hold.+|Drive\s+Through.+|Penalty\s+-.+|Warning.+)/i);
+      const penaltyM = line.match(/\b(\d{1,3})\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+(?:Violation|Speed)|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|Speeding)[^\d]*?(\d+)\s+(Stop\s+&\s+Hold[^$]*|Drive\s+Through[^$]*|Penalty[^$]*|Warning[^$]*|\$[\d,]+[^$]*)/i);
       if (penaltyM) {
         sawPenaltySection = true;
         penalties.push({
