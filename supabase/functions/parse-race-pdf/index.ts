@@ -30,13 +30,7 @@ serve(async (req) => {
     const uint8Array = new Uint8Array(arrayBuffer);
     const pdf = await getDocumentProxy(uint8Array);
 
-    const pages: string[] = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items.map((item: any) => item.str).join(" ");
-      pages.push(text);
-    }
+    // Don't pre-extract all pages — let parsers read on demand to save CPU
 
     const page1 = await pdf.getPage(1);
     const page1Content = await page1.getTextContent();
@@ -63,28 +57,28 @@ serve(async (req) => {
         result = await parseEventSummary(supabase, page1Lines, raceId);
         break;
       case "leader_laps":
-        result = await parseLeaderLaps(supabase, pages, pdf, raceId);
+        result = await parseLeaderLaps(supabase, pdf, raceId);
         break;
       case "lap_chart":
-        result = await parseLapChart(supabase, pages, pdf, raceId);
+        result = await parseLapChart(supabase, pdf, raceId);
         break;
       case "pit_stops":
-        result = await parsePitStops(supabase, pages, pdf, raceId);
+        result = await parsePitStops(supabase, pdf, raceId);
         break;
       case "section_times_race":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Race");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Race");
         break;
       case "section_times_p1":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Practice 1");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Practice 1");
         break;
       case "section_times_p2":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Practice 2");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Practice 2");
         break;
       case "section_times_pf":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Practice Final");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Practice Final");
         break;
       case "section_times_quals":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Qualifying");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Qualifying");
         break;
       case "results_p1":
         result = await parseSessionResults(supabase, page1Lines, raceId, "Practice 1");
@@ -102,7 +96,7 @@ serve(async (req) => {
         result = await parseCombinedPractice(supabase, page1Lines, raceId);
         break;
       case "quals_sectors":
-        result = await parseQualifyingSectors(supabase, pages, pdf, raceId);
+        result = await parseQualifyingSectors(supabase, pdf, raceId);
         break;
       default:
         result = { message: "Report type recognized but not yet parsed", type: reportType };
@@ -229,23 +223,35 @@ function parseEventInfo(lines: string[]) {
 }
 
 async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
-  // Try matching on round_number + year first
-  const { data: existing } = await supabase
-    .from("races")
-    .select("id")
-    .eq("round_number", eventInfo.roundNumber)
-    .eq("year", eventInfo.year)
-    .maybeSingle();
-  if (existing) return existing.id;
+  // Try matching on round_number + year first (skip if round is 0)
+  if (eventInfo.roundNumber > 0) {
+    const { data: existing } = await supabase
+      .from("races")
+      .select("id")
+      .eq("round_number", eventInfo.roundNumber)
+      .eq("year", eventInfo.year)
+      .maybeSingle();
+    if (existing) return existing.id;
 
-  // Also try season_year
-  const { data: existing2 } = await supabase
-    .from("races")
-    .select("id")
-    .eq("round_number", eventInfo.roundNumber)
-    .eq("season_year", eventInfo.year)
-    .maybeSingle();
-  if (existing2) return existing2.id;
+    const { data: existing2 } = await supabase
+      .from("races")
+      .select("id")
+      .eq("round_number", eventInfo.roundNumber)
+      .eq("season_year", eventInfo.year)
+      .maybeSingle();
+    if (existing2) return existing2.id;
+  }
+
+  // Try matching by track name + year (for event summary where round may be 0)
+  if (eventInfo.trackName) {
+    const { data: byTrack } = await supabase
+      .from("races")
+      .select("id")
+      .eq("year", eventInfo.year)
+      .ilike("track_name", `%${eventInfo.trackName.split(' ')[0]}%`)
+      .maybeSingle();
+    if (byTrack) return byTrack.id;
+  }
 
   const { data: newRace, error } = await supabase
     .from("races")
@@ -409,7 +415,7 @@ async function parseEventSummary(supabase: any, lines: string[], raceId: string)
   return { stats };
 }
 
-async function parseLeaderLaps(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {
   await supabase.from("race_laps").delete().eq("race_id", raceId);
   const laps = [];
   for (let p = 1; p <= pdf.numPages; p++) {
@@ -435,7 +441,7 @@ async function parseLeaderLaps(supabase: any, pages: string[], pdf: any, raceId:
   return { laps: laps.length };
 }
 
-async function parseLapChart(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parseLapChart(supabase: any, pdf: any, raceId: string) {
   await supabase.from("race_positions").delete().eq("race_id", raceId);
   const carPositions: Record<string, Record<number, number>> = {};
 
@@ -471,7 +477,7 @@ async function parseLapChart(supabase: any, pages: string[], pdf: any, raceId: s
   return { positions: insertRows.length };
 }
 
-async function parsePitStops(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parsePitStops(supabase: any, pdf: any, raceId: string) {
   await supabase.from("pit_stops").delete().eq("race_id", raceId);
   const stops: any[] = [];
   let currentCar = "";
@@ -503,7 +509,7 @@ async function parsePitStops(supabase: any, pages: string[], pdf: any, raceId: s
   return { stops: stops.length };
 }
 
-async function parseSectionTimes(supabase: any, pages: string[], pdf: any, raceId: string, sessionType: string) {
+async function parseSectionTimes(supabase: any, pdf: any, raceId: string, sessionType: string) {
   await supabase.from("fastest_laps").delete().eq("race_id", raceId).eq("session_type", sessionType);
   const rows: any[] = [];
 
@@ -623,7 +629,7 @@ async function parseCombinedPractice(supabase: any, lines: string[], raceId: str
   return { drivers: results.length };
 }
 
-async function parseQualifyingSectors(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
   await supabase.from("qualifying_sectors").delete().eq("race_id", raceId);
   const sectorNames = ["dogleg", "front_stretch", "turn1_entry", "turn1_exit", "turn2_entry", "turn2_exit", "turn3_entry", "turn3_exit", "turn4", "full_lap"];
   const rows: any[] = [];
