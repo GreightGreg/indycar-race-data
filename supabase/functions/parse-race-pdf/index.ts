@@ -629,35 +629,45 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       postResultsLines.push(line);
       if (/Caution\s*Summary/i.test(line)) sawCautionSection = true;
       if (/Penalty\s*Summary/i.test(line)) sawPenaltySection = true;
+    }
+  }
 
-      // Caution pattern: "N  startLap to endLap  totalLaps  reason"
-      // May appear anywhere in the line (multi-column layout)
-      const cautionM = line.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\s+((?:Contact|Mechanical|Debris|Incident|Stall|Spin|Loose|Off|Fluid|Rain|Weather|Accident|Fire|Oil|Other|Schedule|Track|Red|Full|Local).+?)(?:\s{4,}|$)/i);
-      if (cautionM && parseInt(cautionM[1]) <= 20 && parseInt(cautionM[2]) > 0) {
-        sawCautionSection = true;
-        cautions.push({
-          race_id: raceId,
-          caution_number: parseInt(cautionM[1]),
-          start_lap: parseInt(cautionM[2]),
-          end_lap: parseInt(cautionM[3]),
-          laps: parseInt(cautionM[3]) - parseInt(cautionM[2]) + 1,
-          total_laps: parseInt(cautionM[4]),
-          reason: cautionM[5].trim()
-        });
-      }
-
-      // Penalty pattern: "carNum  reason  lap  penalty"
-      const penaltyM = line.match(/\b(\d{1,3})\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+(?:Violation|Speed)|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|Speeding)[^\d]*?(\d+)\s+(Stop\s+&\s+Hold[^$]*|Drive\s+Through[^$]*|Penalty[^$]*|Warning[^$]*|\$[\d,]+[^$]*)/i);
-      if (penaltyM) {
-        sawPenaltySection = true;
-        penalties.push({
-          race_id: raceId,
-          car_number: penaltyM[1],
-          reason: penaltyM[2].trim(),
-          lap_number: parseInt(penaltyM[3]),
-          penalty: penaltyM[4].trim()
-        });
-      }
+  // Parse cautions and penalties from collected post-results lines
+  // unpdf splits these across lines: reason on one line, numbers on the next
+  let pendingCautionReason = "";
+  for (const line of postResultsLines) {
+    // Caution reason line (starts with capital letter, no leading digits matching caution pattern)
+    if (/^[A-Z]/.test(line.trim()) && !line.includes("On Lap") && !line.includes("Penalty Summary") && !line.includes("Car Reason") && !line.includes("Caution Summary")) {
+      pendingCautionReason = line.trim();
+      continue;
+    }
+    // Caution numbers: "cautionNum startLap to endLap totalLaps"
+    const cautionM = line.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\b/);
+    if (cautionM && parseInt(cautionM[1]) <= 20 && parseInt(cautionM[2]) > 0) {
+      sawCautionSection = true;
+      cautions.push({
+        race_id: raceId,
+        caution_number: parseInt(cautionM[1]),
+        start_lap: parseInt(cautionM[2]),
+        end_lap: parseInt(cautionM[3]),
+        laps: parseInt(cautionM[3]) - parseInt(cautionM[2]) + 1,
+        total_laps: parseInt(cautionM[4]),
+        reason: pendingCautionReason || "Unknown"
+      });
+      pendingCautionReason = "";
+      continue;
+    }
+    // Penalty: "carNum reason lap penalty"
+    const penaltyM = line.match(/\b(\d{1,3})\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+(?:Violation|Speed)|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|Speeding)[^\d]*?(\d+)\s+(Stop\s+&\s+Hold[^$]*|Drive\s+Through[^$]*|Penalty[^$]*|Warning[^$]*|\$[\d,]+[^$]*)/i);
+    if (penaltyM) {
+      sawPenaltySection = true;
+      penalties.push({
+        race_id: raceId,
+        car_number: penaltyM[1],
+        reason: penaltyM[2].trim(),
+        lap_number: parseInt(penaltyM[3]),
+        penalty: penaltyM[4].trim()
+      });
     }
   }
 
