@@ -45,8 +45,8 @@ const Index = () => {
       <div className="min-h-screen bg-racing-bg">
         <Header races={races || []} selectedRaceId={raceId} onRaceChange={setSelectedRaceId} isLoading={isLoading} />
         <TabNav activeTab={activeTab} onTabChange={handleTabChange} />
-        <div className="h-[112px] md:hidden" /> {/* spacer for fixed header + mobile nav */}
-        <main className="max-w-[1400px] mx-auto px-4 py-6">
+        <div className="h-[100px] md:hidden" /> {/* spacer for fixed header + mobile nav */}
+        <main className="max-w-[1400px] mx-auto px-4 pt-3 pb-6">
           {raceId ? <ActiveComponent /> : (
             <p className="text-racing-muted font-body text-center py-12">
               {isLoading ? 'Loading races…' : 'No races available yet.'}

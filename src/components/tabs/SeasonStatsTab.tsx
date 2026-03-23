@@ -25,9 +25,11 @@ const SeasonStatsTab = () => {
   const [sortKey, setSortKey] = useState<SortKey>('totalPts');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+  const LOWER_IS_BETTER = new Set(['avgFinish', 'avgStart', 'dnfs']);
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('desc'); }
+    else { setSortKey(key); setSortDir(LOWER_IS_BETTER.has(key) ? 'asc' : 'desc'); }
   };
 
   const SortHeader = ({ k, label, className = '' }: { k: string; label: string; className?: string }) => (
