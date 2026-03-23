@@ -223,23 +223,35 @@ function parseEventInfo(lines: string[]) {
 }
 
 async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
-  // Try matching on round_number + year first
-  const { data: existing } = await supabase
-    .from("races")
-    .select("id")
-    .eq("round_number", eventInfo.roundNumber)
-    .eq("year", eventInfo.year)
-    .maybeSingle();
-  if (existing) return existing.id;
+  // Try matching on round_number + year first (skip if round is 0)
+  if (eventInfo.roundNumber > 0) {
+    const { data: existing } = await supabase
+      .from("races")
+      .select("id")
+      .eq("round_number", eventInfo.roundNumber)
+      .eq("year", eventInfo.year)
+      .maybeSingle();
+    if (existing) return existing.id;
 
-  // Also try season_year
-  const { data: existing2 } = await supabase
-    .from("races")
-    .select("id")
-    .eq("round_number", eventInfo.roundNumber)
-    .eq("season_year", eventInfo.year)
-    .maybeSingle();
-  if (existing2) return existing2.id;
+    const { data: existing2 } = await supabase
+      .from("races")
+      .select("id")
+      .eq("round_number", eventInfo.roundNumber)
+      .eq("season_year", eventInfo.year)
+      .maybeSingle();
+    if (existing2) return existing2.id;
+  }
+
+  // Try matching by track name + year (for event summary where round may be 0)
+  if (eventInfo.trackName) {
+    const { data: byTrack } = await supabase
+      .from("races")
+      .select("id")
+      .eq("year", eventInfo.year)
+      .ilike("track_name", `%${eventInfo.trackName.split(' ')[0]}%`)
+      .maybeSingle();
+    if (byTrack) return byTrack.id;
+  }
 
   const { data: newRace, error } = await supabase
     .from("races")
