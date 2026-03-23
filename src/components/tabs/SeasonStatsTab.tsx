@@ -25,9 +25,11 @@ const SeasonStatsTab = () => {
   const [sortKey, setSortKey] = useState<SortKey>('totalPts');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
 
+  const LOWER_IS_BETTER = new Set(['avgFinish', 'avgStart', 'dnfs']);
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir('desc'); }
+    else { setSortKey(key); setSortDir(LOWER_IS_BETTER.has(key) ? 'asc' : 'desc'); }
   };
 
   const SortHeader = ({ k, label, className = '' }: { k: string; label: string; className?: string }) => (
@@ -65,6 +67,7 @@ const SeasonStatsTab = () => {
           driver_name: r.driver_name,
           engine: r.engine,
           roundPoints: {} as Record<number, number>,
+          roundFinishes: {} as Record<number, number>,
           totalPts: 0,
           wins: 0,
           podiums: 0,
@@ -79,7 +82,10 @@ const SeasonStatsTab = () => {
       }
       const d = driverMap[key];
       const round = racesMap[r.race_id];
-      if (round) d.roundPoints[round] = r.race_points;
+      if (round) {
+        d.roundPoints[round] = r.race_points;
+        d.roundFinishes[round] = r.finish_position;
+      }
       d.totalPts += r.race_points;
       if (r.finish_position === 1) d.wins++;
       if (r.finish_position <= 3) d.podiums++;
@@ -333,6 +339,17 @@ const SORT_OPTIONS = [
   { key: 'netPos', label: 'Net Positions' },
 ];
 
+const getCardHighlightValue = (s: any, sortKey: string) => {
+  switch (sortKey) {
+    case 'wins': return s.wins;
+    case 'podiums': return s.podiums;
+    case 'avgFinish': return s.avgFinish;
+    case 'lapsLed': return s.lapsLed;
+    case 'netPos': return s.netPos > 0 ? `+${s.netPos}` : s.netPos;
+    default: return s.totalPts;
+  }
+};
+
 const MobileStandings = ({ standings, rounds, sortKey, sortDir, onSort }: {
   standings: any[];
   rounds: number[];
@@ -368,7 +385,7 @@ const MobileStandings = ({ standings, rounds, sortKey, sortDir, onSort }: {
           <CarBadge num={s.car} />
           <span className="font-body text-[15px] text-racing-text flex-1 truncate">{formatDriverName(s.driver_name)}</span>
           <EngineIcon engine={s.engine} />
-          <span className="font-mono text-base font-bold text-racing-yellow">{s.totalPts}</span>
+          <span className="font-mono text-base font-bold text-racing-yellow">{getCardHighlightValue(s, sortKey)}</span>
         </div>
 
         {/* Stats grid */}
@@ -383,15 +400,15 @@ const MobileStandings = ({ standings, rounds, sortKey, sortDir, onSort }: {
           <MiniStat label="DNFs" value={s.dnfs} highlight={s.dnfs > 0} />
         </div>
 
-        {/* Round-by-round points */}
+        {/* Round-by-round finish positions */}
         <div className="flex gap-1 flex-wrap">
           {rounds.map(rn => (
             <span key={rn} className={`font-mono text-[12px] px-1.5 py-0.5 rounded ${
-              s.roundPoints[rn] !== undefined
+              s.roundFinishes[rn] !== undefined
                 ? 'bg-racing-surface2 text-racing-text'
                 : 'text-racing-muted'
             }`}>
-              R{rn}: {s.roundPoints[rn] !== undefined ? s.roundPoints[rn] : '—'}
+              R{rn}: {s.roundFinishes[rn] !== undefined ? `P${s.roundFinishes[rn]}` : '—'}
             </span>
           ))}
         </div>
