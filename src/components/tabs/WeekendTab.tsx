@@ -81,7 +81,7 @@ const WeekendTab = () => {
         <div className="bg-racing-surface rounded border-t-2 border-racing-blue p-4">
           <p className="font-condensed text-xs text-racing-muted uppercase">Most Improved</p>
           <p className="font-heading text-xl text-racing-yellow mt-1">{formatDriverName(race.most_improved_driver)} #{race.most_improved_car}</p>
-          <p className="font-mono text-[10px] text-racing-muted">Gained {race.most_improved_positions} positions</p>
+          <p className="font-mono text-[10px] text-racing-muted">Gained {race.most_improved_positions ?? '—'} positions</p>
         </div>
         <div className="bg-racing-surface rounded border-t-2 border-racing-yellow p-4">
           <p className="font-condensed text-xs text-racing-muted uppercase">Best Race Lap</p>
