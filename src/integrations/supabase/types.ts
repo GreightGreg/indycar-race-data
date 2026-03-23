@@ -19,6 +19,7 @@ export type Database = {
           caution_number: number
           end_lap: number
           id: string
+          laps: number | null
           race_id: string
           reason: string | null
           start_lap: number
@@ -28,6 +29,7 @@ export type Database = {
           caution_number: number
           end_lap: number
           id?: string
+          laps?: number | null
           race_id: string
           reason?: string | null
           start_lap: number
@@ -37,6 +39,7 @@ export type Database = {
           caution_number?: number
           end_lap?: number
           id?: string
+          laps?: number | null
           race_id?: string
           reason?: string | null
           start_lap?: number
@@ -106,41 +109,53 @@ export type Database = {
         Row: {
           car_number: string
           driver_name: string | null
+          engine: string | null
           id: string
           lap_number: number | null
           race_id: string
           rank: number
+          section_length: number | null
           section_length_miles: number | null
           section_name: string
           section_speed: number | null
           section_time: string | null
           session_type: string
+          speed: number | null
+          time: string | null
         }
         Insert: {
           car_number: string
           driver_name?: string | null
+          engine?: string | null
           id?: string
           lap_number?: number | null
           race_id: string
           rank: number
+          section_length?: number | null
           section_length_miles?: number | null
           section_name: string
           section_speed?: number | null
           section_time?: string | null
           session_type?: string
+          speed?: number | null
+          time?: string | null
         }
         Update: {
           car_number?: string
           driver_name?: string | null
+          engine?: string | null
           id?: string
           lap_number?: number | null
           race_id?: string
           rank?: number
+          section_length?: number | null
           section_length_miles?: number | null
           section_name?: string
           section_speed?: number | null
           section_time?: string | null
           session_type?: string
+          speed?: number | null
+          time?: string | null
         }
         Relationships: [
           {
@@ -197,6 +212,8 @@ export type Database = {
         Row: {
           car_number: string
           id: string
+          infraction: string | null
+          lap: number | null
           lap_number: number | null
           penalty: string | null
           race_id: string
@@ -205,6 +222,8 @@ export type Database = {
         Insert: {
           car_number: string
           id?: string
+          infraction?: string | null
+          lap?: number | null
           lap_number?: number | null
           penalty?: string | null
           race_id: string
@@ -213,6 +232,8 @@ export type Database = {
         Update: {
           car_number?: string
           id?: string
+          infraction?: string | null
+          lap?: number | null
           lap_number?: number | null
           penalty?: string | null
           race_id?: string
@@ -271,6 +292,7 @@ export type Database = {
           car_number: string
           driver_name: string | null
           id: string
+          lap: number | null
           lap_number: number
           race_id: string
           race_lap: number | null
@@ -281,6 +303,7 @@ export type Database = {
           car_number: string
           driver_name?: string | null
           id?: string
+          lap?: number | null
           lap_number: number
           race_id: string
           race_lap?: number | null
@@ -291,6 +314,7 @@ export type Database = {
           car_number?: string
           driver_name?: string | null
           id?: string
+          lap?: number | null
           lap_number?: number
           race_id?: string
           race_lap?: number | null
@@ -462,35 +486,44 @@ export type Database = {
         Row: {
           car_number: string
           driver_name: string | null
+          flag: string | null
           flag_status: string | null
+          gap: string | null
           gap_to_leader: string | null
           id: string
           lap_number: number
           lap_speed: number | null
           lap_time: string | null
           race_id: string
+          speed: number | null
         }
         Insert: {
           car_number: string
           driver_name?: string | null
+          flag?: string | null
           flag_status?: string | null
+          gap?: string | null
           gap_to_leader?: string | null
           id?: string
           lap_number: number
           lap_speed?: number | null
           lap_time?: string | null
           race_id: string
+          speed?: number | null
         }
         Update: {
           car_number?: string
           driver_name?: string | null
+          flag?: string | null
           flag_status?: string | null
+          gap?: string | null
           gap_to_leader?: string | null
           id?: string
           lap_number?: number
           lap_speed?: number | null
           lap_time?: string | null
           race_id?: string
+          speed?: number | null
         }
         Relationships: [
           {
@@ -613,6 +646,7 @@ export type Database = {
           best_lead_lap_time: string | null
           caution_laps: number | null
           created_at: string
+          drivers_led: number | null
           drivers_who_led: number | null
           event_name: string
           fastest_lap_car: string | null
@@ -620,6 +654,7 @@ export type Database = {
           fastest_lap_number: number | null
           fastest_lap_speed: number | null
           fastest_lap_time: string | null
+          files_received: string[] | null
           green_laps: number | null
           id: string
           lead_changes: number | null
@@ -628,8 +663,10 @@ export type Database = {
           most_improved_positions: number | null
           position_passes: number | null
           race_date: string
+          race_time: string | null
           round_number: number
           season_id: string | null
+          season_year: number | null
           status: string
           total_laps: number | null
           total_passes: number | null
@@ -645,6 +682,7 @@ export type Database = {
           best_lead_lap_time?: string | null
           caution_laps?: number | null
           created_at?: string
+          drivers_led?: number | null
           drivers_who_led?: number | null
           event_name: string
           fastest_lap_car?: string | null
@@ -652,6 +690,7 @@ export type Database = {
           fastest_lap_number?: number | null
           fastest_lap_speed?: number | null
           fastest_lap_time?: string | null
+          files_received?: string[] | null
           green_laps?: number | null
           id?: string
           lead_changes?: number | null
@@ -660,8 +699,10 @@ export type Database = {
           most_improved_positions?: number | null
           position_passes?: number | null
           race_date: string
+          race_time?: string | null
           round_number: number
           season_id?: string | null
+          season_year?: number | null
           status?: string
           total_laps?: number | null
           total_passes?: number | null
@@ -677,6 +718,7 @@ export type Database = {
           best_lead_lap_time?: string | null
           caution_laps?: number | null
           created_at?: string
+          drivers_led?: number | null
           drivers_who_led?: number | null
           event_name?: string
           fastest_lap_car?: string | null
@@ -684,6 +726,7 @@ export type Database = {
           fastest_lap_number?: number | null
           fastest_lap_speed?: number | null
           fastest_lap_time?: string | null
+          files_received?: string[] | null
           green_laps?: number | null
           id?: string
           lead_changes?: number | null
@@ -692,8 +735,10 @@ export type Database = {
           most_improved_positions?: number | null
           position_passes?: number | null
           race_date?: string
+          race_time?: string | null
           round_number?: number
           season_id?: string | null
+          season_year?: number | null
           status?: string
           total_laps?: number | null
           total_passes?: number | null
