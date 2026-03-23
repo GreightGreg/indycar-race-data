@@ -184,6 +184,8 @@ function identifyReport(lines: string[]): string | null {
     if (sessionLine.includes("Qualifications")) return "section_times_quals";
     if (sessionLine.includes("Race")) return "section_times_race";
   }
+  // Must check "Official Results of Session" BEFORE generic "Results of Session"
+  if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
   if (reportLine.includes("Results of Session")) {
     if (sessionLine.includes("Practice 1")) return "results_p1";
     if (sessionLine.includes("Practice 2")) return "results_p2";
@@ -193,8 +195,9 @@ function identifyReport(lines: string[]): string | null {
     if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 2")) return "results_quals_group2";
     if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12") || sessionLine.includes("Segment 2") || sessionLine.includes("Top 12"))) return "results_quals_round2";
     if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6") || sessionLine.includes("Segment 3"))) return "results_quals_round3";
+    // Generic qualifying session results (e.g. combined starting order)
+    if (sessionLine.includes("Qualifications")) return "results_quals_combined";
   }
-  if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
   if (reportLine.includes("Combined Qualifying Results") || reportLine.includes("Starting Line-Up")) return "results_quals_combined";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
   if (reportLine.includes("Section Data Report")) {
