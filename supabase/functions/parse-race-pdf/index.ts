@@ -63,7 +63,7 @@ serve(async (req) => {
         result = await parseLapChart(supabase, pdf, raceId);
         break;
       case "pit_stops":
-        result = await parsePitStops(supabase, pages, pdf, raceId);
+        result = await parsePitStops(supabase, pdf, raceId);
         break;
       case "section_times_race":
         result = await parseSectionTimes(supabase, pages, pdf, raceId, "Race");
