@@ -25,13 +25,6 @@ const WeekendTab = () => {
 
   if (!race) return <p className="text-racing-muted font-body">Loading…</p>;
 
-  const weekendStory = results?.map(r => ({
-    car: r.car_number,
-    driver: formatDriverName(r.driver_name),
-    qualPos: r.start_position,
-    finishPos: r.finish_position,
-    change: r.start_position - r.finish_position,
-  })) || [];
 
   return (
     <div className="space-y-8">
