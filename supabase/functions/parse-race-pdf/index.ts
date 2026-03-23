@@ -918,12 +918,38 @@ async function parseCombinedPractice(supabase: any, lines: string[], raceId: str
 
   for (const line of lines) {
     if (line.includes("Rank Car Driver")) { inData = true; continue; }
-    if (line.includes("(C)hassis:")) break;
+    if (line.includes("(C)hassis:") || line.includes("Information provided by Indy Racing Information System")) break;
     if (!inData) continue;
-    const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+(Practice \d+|Practice Final)\s+([\d:\.]+)\s+([\d\.]+)\s+(\d+)/);
-    if (m) {
-      results.push({ race_id: raceId, rank: parseInt(m[1]), car_number: m[2], driver_name: m[3].trim(), engine: parseEngine(m[4]), best_session: m[5], best_time: m[6], best_speed: parseFloat(m[7]), total_laps: parseInt(m[8]) });
-    }
+
+    const tokens = line.trim().split(/\s+/);
+    if (tokens.length < 8) continue;
+
+    const rank = parseInt(tokens[0]);
+    const carNumber = tokens[1];
+    const cetIndex = tokens.findIndex(token => /^D\/[CH]\/F$/.test(token));
+    if (Number.isNaN(rank) || cetIndex < 0 || cetIndex <= 2) continue;
+
+    const totalLaps = parseInt(tokens[tokens.length - 1]);
+    const bestSpeed = parseFloat(tokens[tokens.length - 2]);
+    const bestTime = tokens[tokens.length - 3];
+
+    if (Number.isNaN(totalLaps) || Number.isNaN(bestSpeed) || !/^\d{2}:\d{2}\.\d+$/.test(bestTime)) continue;
+
+    const driverName = tokens.slice(2, cetIndex).join(" ").trim();
+    const bestSession = tokens.slice(cetIndex + 1, tokens.length - 3).join(" ").trim();
+    if (!driverName || !bestSession) continue;
+
+    results.push({
+      race_id: raceId,
+      rank,
+      car_number: carNumber,
+      driver_name: driverName,
+      engine: parseEngine(tokens[cetIndex]),
+      best_session: bestSession,
+      best_time: bestTime,
+      best_speed: bestSpeed,
+      total_laps: totalLaps,
+    });
   }
   if (results.length === 0) throw new Error("No combined practice rows parsed; existing combined practice data was preserved");
   await replaceRows(supabase, "combined_practice_results", { race_id: raceId }, results);
