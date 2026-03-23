@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useRaceContext } from '@/contexts/RaceContext';
-import { useFastestLaps, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
+import { useFastestLaps, useFastestLapRowsForSession, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
 import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar } from '@/lib/raceStats';
@@ -37,6 +37,7 @@ const FastestLapsTab = () => {
   const { data: availableSessions } = useFastestLapSessionTypes(raceId);
   const { data: sections } = useFastestLapSections(raceId, sessionType);
   const { data: laps } = useFastestLaps(raceId, selectedSection, sessionType);
+  const { data: sessionFastestRows } = useFastestLapRowsForSession(raceId, sessionType);
   const { data: qualSectors } = useQualifyingSectors(raceId);
   const { data: qualResults } = useQualifyingResults(raceId);
 
@@ -75,7 +76,7 @@ const FastestLapsTab = () => {
 
     if (sessionType !== 'Qualifying' || !qualResults?.length) return [];
 
-    const qualifyingFastestRows = (laps || []).filter((row) => row.section_name !== 'Lap');
+    const qualifyingFastestRows = (sessionFastestRows || []).filter((row) => row.section_name !== 'Lap');
     if (!qualifyingFastestRows.length) return [];
 
     const byDriver = aggregateFastestLapSectionsByCar(qualifyingFastestRows);
@@ -96,7 +97,7 @@ const FastestLapsTab = () => {
         };
       })
       .sort((a, b) => a.qualPos - b.qualPos);
-  }, [laps, qualResults, qualSectors, sessionType]);
+  }, [qualResults, qualSectors, sessionFastestRows, sessionType]);
 
   const bestSectorTimes = useMemo(() => {
     if (!qualSectors) return {} as Record<string, number>;
