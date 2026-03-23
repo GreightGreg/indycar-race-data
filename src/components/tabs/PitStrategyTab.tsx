@@ -54,7 +54,7 @@ const PitStrategyTab = () => {
             <div key={d.car} className="flex items-center gap-2 py-1">
               <div className="flex items-center gap-1.5 w-44 shrink-0">
                 <CarBadge num={d.car} />
-                <span className="font-body text-xs text-racing-text truncate">{d.driver.split(' ')[0]}</span>
+                <span className="font-body text-xs text-racing-text truncate">{d.driver}</span>
                 <span className="font-mono text-[10px] text-racing-muted">{d.stops.length}s</span>
               </div>
               <div className="flex-1 relative h-6 bg-racing-surface rounded">
