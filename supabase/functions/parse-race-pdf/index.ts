@@ -66,19 +66,19 @@ serve(async (req) => {
         result = await parsePitStops(supabase, pdf, raceId);
         break;
       case "section_times_race":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Race");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Race");
         break;
       case "section_times_p1":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Practice 1");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Practice 1");
         break;
       case "section_times_p2":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Practice 2");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Practice 2");
         break;
       case "section_times_pf":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Practice Final");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Practice Final");
         break;
       case "section_times_quals":
-        result = await parseSectionTimes(supabase, pages, pdf, raceId, "Qualifying");
+        result = await parseSectionTimes(supabase, pdf, raceId, "Qualifying");
         break;
       case "results_p1":
         result = await parseSessionResults(supabase, page1Lines, raceId, "Practice 1");
