@@ -33,6 +33,7 @@ const FastestLapsTab = () => {
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
+  const { data: availableSessions } = useFastestLapSessionTypes(raceId);
   const { data: sections } = useFastestLapSections(raceId, sessionType);
   const { data: laps } = useFastestLaps(raceId, selectedSection, sessionType);
   const { data: qualSectors } = useQualifyingSectors(raceId);
