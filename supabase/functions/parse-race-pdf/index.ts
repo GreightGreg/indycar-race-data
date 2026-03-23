@@ -399,9 +399,9 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
 
   for (const line of allLines) {
     if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { section = "results"; continue; }
-    if (line.includes("Lead Change Summary")) { section = "leadchanges"; continue; }
-    if (line.includes("Caution Flag") || line.includes("Caution Summary") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; continue; }
-    if (line.includes("Penalty Summary")) { section = "penalties"; continue; }
+    if (line.includes("Lead Change Summary") || line.includes("LeadChange")) { section = "leadchanges"; continue; }
+    if (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line) || line.includes("# Start End") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; continue; }
+    if (/penalty\s*summary/i.test(line)) { section = "penalties"; continue; }
     if (line.includes("(C)hassis:") || line.includes("Legend:")) { section = "done"; continue; }
     if (section === "done") break;
 
