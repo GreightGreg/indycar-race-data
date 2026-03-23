@@ -624,11 +624,13 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
       continue;
     }
-    // In postresults section, extract cautions and penalties from multi-column lines
-    if (section === "postresults") {
+    // Collect post-results, caution, and penalty sections for downstream parsing.
+    // Some PDFs put Penalty Summary after switching sections, so we must keep reading there too.
+    if (section === "postresults" || section === "cautions" || section === "penalties") {
       postResultsLines.push(line);
-      if (/Caution\s*Summary/i.test(line)) sawCautionSection = true;
+      if (/Caution\s*Summary/i.test(line) || /Caution\s*Flag/i.test(line)) sawCautionSection = true;
       if (/Penalty\s*Summary/i.test(line)) sawPenaltySection = true;
+      continue;
     }
   }
 
