@@ -35,7 +35,7 @@ const SECTOR_KEYS = [
 const FastestLapsTab = () => {
   const { raceId } = useRaceContext();
   const [sessionType, setSessionType] = useState('Race');
-  const [selectedSection, setSelectedSection] = useState('Full Lap');
+  const [selectedSection, setSelectedSection] = useState('Lap');
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
