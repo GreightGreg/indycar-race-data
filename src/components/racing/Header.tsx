@@ -37,8 +37,10 @@ const Header = ({ races, selectedRaceId, onRaceChange, isLoading }: HeaderProps)
           <p className="font-condensed text-[10px] text-racing-muted uppercase tracking-[0.2em]">DATA CENTER</p>
         </div>
         <div className="text-right shrink min-w-0">
-          <select
-            className="bg-racing-surface border border-racing-border text-racing-text font-mono text-xs md:text-sm px-3 py-1.5 rounded cursor-pointer w-full max-w-md appearance-none"
+          <div className="relative w-full max-w-md">
+            <select
+              className="bg-racing-surface border border-racing-border text-racing-text font-mono text-xs md:text-sm px-3 py-1.5 pr-8 rounded cursor-pointer w-full appearance-none"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e8ff00' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
             value={selectedRaceId || ''}
             onChange={e => onRaceChange(e.target.value)}
             disabled={isLoading}
