@@ -4,6 +4,7 @@ import { useRaceContext } from '@/contexts/RaceContext';
 import { useRaceResults, useLapsLed, useFastestLaps, useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';
+import { buildLapsLedStats } from '@/lib/raceStats';
 
 const StatRow = ({ label, v1, v2, highlight, isEngine }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none'; isEngine?: boolean }) => (
   <div className="flex items-center py-1.5 border-b border-racing-border/30">
@@ -21,7 +22,7 @@ const HeadToHeadTab = () => {
   const { raceId } = useRaceContext();
   const { data: results } = useRaceResults(raceId);
   const { data: lapsLedData } = useLapsLed(raceId);
-  const { data: fastestLapsData } = useFastestLaps(raceId, 'Full Lap');
+  const { data: fastestLapsData } = useFastestLaps(raceId, 'Lap');
   const { data: positions } = useRacePositions(raceId);
   const { data: cautions } = useCautions(raceId);
 
@@ -29,6 +30,11 @@ const HeadToHeadTab = () => {
   const [car2, setCar2] = useState('27');
 
   const drivers = useMemo(() => results?.map(r => ({ num: r.car_number, name: formatDriverName(r.driver_name) })) || [], [results]);
+  const derivedLapsLed = useMemo(() => buildLapsLedStats(positions, results), [positions, results]);
+  const lapsLedLookup = useMemo(() => {
+    const source = lapsLedData?.length ? lapsLedData : derivedLapsLed;
+    return new Map(source.map((row) => [row.car_number, row]));
+  }, [derivedLapsLed, lapsLedData]);
 
   useMemo(() => {
     if (drivers.length >= 2 && !drivers.find(d => d.num === car1)) {
@@ -40,13 +46,13 @@ const HeadToHeadTab = () => {
   const getStats = (carNum: string) => {
     const r = results?.find(r => r.car_number === carNum);
     const fl = fastestLapsData?.find(f => f.car_number === carNum);
-    const ll = lapsLedData?.find(l => l.car_number === carNum);
+    const ll = lapsLedLookup.get(carNum);
     if (!r) return null;
     return {
       pos: r.finish_position, sp: r.start_position, posGained: r.start_position - r.finish_position,
       laps: r.laps_completed, lapsLed: ll?.laps_led || 0, pits: r.pit_stops,
-      avgSpeed: Number(r.avg_speed), bestLapTime: fl?.section_time || 'N/A',
-      bestLapSpeed: Number(fl?.section_speed) || 0, bestLapNum: fl?.lap_number || 0,
+      avgSpeed: Number(r.avg_speed), bestLapTime: fl?.section_time || fl?.time || 'N/A',
+      bestLapSpeed: Number(fl?.section_speed ?? fl?.speed) || 0, bestLapNum: fl?.lap_number || 0,
       racePts: r.race_points, champRank: r.championship_rank, engine: r.engine,
     };
   };

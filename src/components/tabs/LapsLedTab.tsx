@@ -1,30 +1,38 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useRaceContext } from '@/contexts/RaceContext';
-import { useLapsLed, useRaceDetails, DRIVER_COLORS } from '@/hooks/useRaceData';
+import { useLapsLed, useRaceDetails, useRacePositions, useRaceResults, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { buildLapsLedStats } from '@/lib/raceStats';
 
 const LapsLedTab = () => {
   const { raceId } = useRaceContext();
   const { data: lapsLedData } = useLapsLed(raceId);
   const { data: race } = useRaceDetails(raceId);
+  const { data: positions } = useRacePositions(raceId);
+  const { data: results } = useRaceResults(raceId);
   const isMobile = useIsMobile();
 
+  const resolvedLapsLed = useMemo(() => {
+    if (lapsLedData?.length) return lapsLedData;
+    return buildLapsLedStats(positions, results);
+  }, [lapsLedData, positions, results]);
+
   const barData = useMemo(() =>
-    (lapsLedData || []).map(d => ({
+    resolvedLapsLed.map(d => ({
       name: `#${d.car_number} ${formatDriverName(d.driver_name).split(' ')[0] || ''}`,
       car: d.car_number,
       lapsLed: d.laps_led,
     })),
-  [lapsLedData]);
+  [resolvedLapsLed]);
 
-  if (!lapsLedData?.length) return <p className="text-racing-muted font-body">Loading…</p>;
+  if (!resolvedLapsLed.length) return <p className="text-racing-muted font-body">Loading…</p>;
 
   const totalLaps = race?.total_laps || 250;
-  const mostLaps = lapsLedData.reduce((a, b) => a.laps_led > b.laps_led ? a : b);
-  const mostStints = lapsLedData.reduce((a, b) => a.stints > b.stints ? a : b);
-  const longestConsec = lapsLedData.reduce((a, b) => a.longest_consecutive > b.longest_consecutive ? a : b);
+  const mostLaps = resolvedLapsLed.reduce((a, b) => a.laps_led > b.laps_led ? a : b);
+  const mostStints = resolvedLapsLed.reduce((a, b) => a.stints > b.stints ? a : b);
+  const longestConsec = resolvedLapsLed.reduce((a, b) => a.longest_consecutive > b.longest_consecutive ? a : b);
 
   return (
     <div className="space-y-6">
@@ -66,7 +74,7 @@ const LapsLedTab = () => {
         </div>
         <div className="bg-racing-surface rounded p-4 border-t-2 border-racing-yellow">
           <p className="font-condensed text-xs text-racing-muted uppercase">Total Drivers Who Led</p>
-          <p className="font-heading text-3xl text-racing-yellow">{lapsLedData.length}</p>
+          <p className="font-heading text-3xl text-racing-yellow">{resolvedLapsLed.length}</p>
           <p className="font-mono text-[10px] text-racing-muted">drivers</p>
         </div>
       </div>

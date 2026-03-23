@@ -1,5 +1,5 @@
 import { useRaceContext } from '@/contexts/RaceContext';
-import { useRaceResults, usePitStops, usePitExecution } from '@/hooks/useRaceData';
+import { useRaceResults, usePitStops, usePitExecution, useRaceDetails } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -10,6 +10,7 @@ const CarBadge = ({ num }: { num: string }) => (
 const PitStrategyTab = () => {
   const { raceId } = useRaceContext();
   const { data: results } = useRaceResults(raceId);
+  const { data: race } = useRaceDetails(raceId);
   const { data: pitStops } = usePitStops(raceId);
   const { data: pitExec } = usePitExecution(raceId);
   const isMobile = useIsMobile();
@@ -21,7 +22,7 @@ const PitStrategyTab = () => {
     return { car: r.car_number, driver: formatDriverName(r.driver_name), pos: r.finish_position, stops };
   });
 
-  const totalLaps = 250;
+  const totalLaps = race?.total_laps || 250;
 
   return (
     <div className="space-y-6">

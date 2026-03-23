@@ -3,6 +3,7 @@ import { useRaceContext } from '@/contexts/RaceContext';
 import { useFastestLaps, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
+import { aggregateFastestLapRows } from '@/lib/raceStats';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const CarBadge = ({ num }: { num: string }) => (
@@ -39,10 +40,25 @@ const FastestLapsTab = () => {
   const { data: qualSectors } = useQualifyingSectors(raceId);
   const { data: qualResults } = useQualifyingResults(raceId);
 
-  const sectionOptions = sections?.map(s => ({
-    name: s.section_name,
-    distance: s.section_length_miles ? `${Number(s.section_length_miles).toFixed(3)} mi` : '',
-  })) || [];
+  const sectionOptions = useMemo(() => {
+    const unique = new Map<string, { name: string; distance: string }>();
+
+    for (const section of sections || []) {
+      if (!unique.has(section.section_name)) {
+        unique.set(section.section_name, {
+          name: section.section_name,
+          distance: section.section_length_miles ? `${Number(section.section_length_miles).toFixed(3)} mi` : '',
+        });
+      }
+    }
+
+    return Array.from(unique.values());
+  }, [sections]);
+
+  const displayLaps = useMemo(
+    () => sessionType === 'Qualifying' ? aggregateFastestLapRows(laps) : (laps || []),
+    [laps, sessionType],
+  );
 
   const sectorComparison = useMemo(() => {
     if (!qualSectors || !qualResults) return [];
@@ -120,15 +136,15 @@ const FastestLapsTab = () => {
       {/* Rankings — cards on mobile, table on desktop */}
       {isMobile ? (
         <div className="space-y-1.5">
-          {laps?.map(f => (
+          {displayLaps.map(f => (
             <div key={f.id} className="bg-racing-surface rounded p-3 flex items-center gap-2.5">
               <span className="font-heading text-sm text-racing-muted w-5 shrink-0">{f.rank}</span>
               <CarBadge num={f.car_number} />
               <div className="min-w-0 flex-1">
                 <p className="font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</p>
                 <div className="flex gap-3 mt-0.5">
-                  <span className="font-mono text-[10px] text-racing-text">{f.section_time}{selectedSection !== 'Lap' ? 's' : ''}</span>
-                  <span className="font-mono text-[10px] text-racing-yellow">{Number(f.section_speed)?.toFixed(3)} mph</span>
+                  <span className="font-mono text-[10px] text-racing-text">{f.section_time || f.time}{selectedSection !== 'Lap' ? 's' : ''}</span>
+                  <span className="font-mono text-[10px] text-racing-yellow">{Number(f.section_speed ?? f.speed)?.toFixed(3)} mph</span>
                   <span className="font-mono text-[10px] text-racing-muted">L{f.lap_number}</span>
                 </div>
               </div>
@@ -146,13 +162,13 @@ const FastestLapsTab = () => {
               </tr>
             </thead>
             <tbody>
-              {laps?.map(f => (
+              {displayLaps.map(f => (
                 <tr key={f.id} className="border-b border-racing-border/50">
                   <td className="px-3 py-2 font-heading text-sm text-racing-muted">{f.rank}</td>
                   <td className="px-3 py-2"><CarBadge num={f.car_number} /></td>
                   <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time}{selectedSection !== 'Lap' ? 's' : ''}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(f.section_speed)?.toFixed(3)}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time || f.time}{selectedSection !== 'Lap' ? 's' : ''}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(f.section_speed ?? f.speed)?.toFixed(3)}</td>
                   <td className="px-3 py-2 font-mono text-xs text-racing-muted">L{f.lap_number}</td>
                 </tr>
               ))}
