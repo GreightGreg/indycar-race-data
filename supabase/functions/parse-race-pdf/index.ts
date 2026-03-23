@@ -272,8 +272,19 @@ function parseEventInfo(lines: string[]) {
 
   // Format: "March 7, 2026 Session: Race" — date is BEFORE "Session:"
   const dateMatch = normalizedLines.join(" ").match(/(\w+ \d+,\s*\d{4})/);
-  const sessionDate = dateMatch ? dateMatch[1] : "";
+  const rawDate = dateMatch ? dateMatch[1] : "";
   const year = dateMatch ? parseInt(dateMatch[1].split(",")[1].trim()) : new Date().getFullYear();
+
+  // Convert "March 13, 2026" → "2026-03-13" ISO format for PostgreSQL
+  let sessionDate = rawDate;
+  if (rawDate) {
+    try {
+      const d = new Date(rawDate);
+      if (!isNaN(d.getTime())) {
+        sessionDate = d.toISOString().split("T")[0];
+      }
+    } catch { /* keep raw string */ }
+  }
 
   console.log("Parsed event info:", JSON.stringify({ eventName, roundNumber, trackName, trackLengthMiles, sessionDate, year }));
   return { eventName, roundNumber, trackName, trackLengthMiles, sessionDate, year };
