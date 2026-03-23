@@ -530,30 +530,67 @@ async function parsePitStops(supabase: any, pdf: any, raceId: string) {
   const stops: any[] = [];
   let currentCar = "";
   let currentDriver = "";
+  let pendingStop: any = null;
 
   for (let p = 1; p <= pdf.numPages; p++) {
     const lines = await getPageLines(pdf, p);
     for (const line of lines) {
-      const driverM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+(\d+)\s+Pit Stop/);
-      if (driverM) { currentCar = driverM[2]; currentDriver = driverM[3].trim(); continue; }
-      if (currentCar) {
-        const stopM = line.match(/^(\d+)\s+(\d+)\s+(\d+)\s+([\d:\.]+)/);
-        if (stopM) {
-          stops.push({
-            race_id: raceId,
-            car_number: currentCar,
-            driver_name: currentDriver,
-            stop_number: parseInt(stopM[1]),
-            lap_number: parseInt(stopM[2]),
-            race_lap: parseInt(stopM[3]),
-            time_of_race: stopM[4]
-          });
-        }
+      // Driver header: "{totalStops} Pit Stop(s) {driverName} {CET} {carNum} {rank}"
+      // May be prefixed with sub-header text on same line
+      const driverM = line.match(/(\d+)\s+Pit\s+Stops?\s+(.+?)\s+(D\/[CH]\/F)\s+(\d+)\s+(\d+)/);
+      if (driverM) {
+        if (pendingStop) { stops.push(pendingStop); pendingStop = null; }
+        currentCar = driverM[4];
+        currentDriver = driverM[2].trim();
+        continue;
+      }
+
+      if (!currentCar) continue;
+
+      // Stop data: "lap raceLap time" (stop number on next line)
+      const dataM = line.match(/^(\d+)\s+(\d+)\s+([\d:\.]+)$/);
+      if (dataM) {
+        if (pendingStop) stops.push(pendingStop);
+        pendingStop = {
+          race_id: raceId,
+          car_number: currentCar,
+          driver_name: currentDriver,
+          lap_number: parseInt(dataM[1]),
+          race_lap: parseInt(dataM[2]),
+          time_of_race: dataM[3],
+          stop_number: 0
+        };
+        continue;
+      }
+
+      // Stop number on its own line
+      const stopNumM = line.match(/^(\d+)$/);
+      if (stopNumM && pendingStop && parseInt(stopNumM[1]) <= 20) {
+        pendingStop.stop_number = parseInt(stopNumM[1]);
+        stops.push(pendingStop);
+        pendingStop = null;
+        continue;
+      }
+
+      // Also try combined format: "stopNum lap raceLap time"
+      const combinedM = line.match(/^(\d+)\s+(\d+)\s+(\d+)\s+([\d:\.]+)$/);
+      if (combinedM && parseInt(combinedM[1]) <= 20) {
+        stops.push({
+          race_id: raceId,
+          car_number: currentCar,
+          driver_name: currentDriver,
+          stop_number: parseInt(combinedM[1]),
+          lap_number: parseInt(combinedM[2]),
+          race_lap: parseInt(combinedM[3]),
+          time_of_race: combinedM[4]
+        });
       }
     }
   }
+  if (pendingStop) stops.push(pendingStop);
   if (stops.length > 0) await supabase.from("pit_stops").insert(stops);
   await markFileReceived(supabase, raceId, "pit_stops");
+  console.log(`Parsed pit stops: ${stops.length} stops`);
   return { stops: stops.length };
 }
 
