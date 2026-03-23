@@ -429,15 +429,19 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
     }
     if (section === "cautions") {
-      // Format: "cautionNum startLap to endLap totalLaps reason" or "cautionNum startLap endLap totalLaps reason"
+      // Format variations: "# Start End Laps Reason" or "# Start to End TotalLaps Reason"
       const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
-      if (m && parseInt(m[1]) <= 20 && parseInt(m[2]) > 0) {
+      if (m && parseInt(m[1]) <= 30 && parseInt(m[2]) > 0) {
+        const startLap = parseInt(m[2]);
+        const endLap = parseInt(m[3]);
+        const lapsVal = parseInt(m[4]);
         cautions.push({
           race_id: raceId,
           caution_number: parseInt(m[1]),
-          start_lap: parseInt(m[2]),
-          end_lap: parseInt(m[3]),
-          total_laps: parseInt(m[4]),
+          start_lap: startLap,
+          end_lap: endLap,
+          laps: endLap - startLap + 1,
+          total_laps: lapsVal,
           reason: m[5].trim()
         });
       }
