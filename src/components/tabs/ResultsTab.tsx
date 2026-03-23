@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useRaceContext } from '@/pages/Index';
 import { useRaceResults, useRaceDetails, useCautions, usePenalties } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
+import EngineIcon from '@/components/racing/EngineIcon';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
@@ -16,10 +17,6 @@ const StatusBadge = ({ status }: { status: string }) => {
   const color = status === 'Running' ? 'text-racing-green' : status === 'Contact' ? 'text-racing-red' : 'text-racing-amber';
   return <span className={`font-mono text-xs ${color}`}>{status}</span>;
 };
-
-const EngineText = ({ engine }: { engine: string }) => (
-  <span className={`font-mono text-xs ${engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{engine}</span>
-);
 
 
 const ResultsTab = () => {
