@@ -712,8 +712,10 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     console.warn(`Caution section detected in summary but no caution rows parsed for race ${raceId}; preserving existing cautions`);
   }
 
-  if (sawPenaltySection) {
-    await replaceRows(supabase, "penalties", { race_id: raceId }, penalties, { allowEmpty: true });
+  if (sawPenaltySection && penalties.length > 0) {
+    await replaceRows(supabase, "penalties", { race_id: raceId }, penalties);
+  } else if (sawPenaltySection && penalties.length === 0) {
+    console.warn(`Penalty section detected but no penalty rows parsed for race ${raceId}; preserving existing penalties`);
   }
 
   await markFileReceived(supabase, raceId, "race_results");
