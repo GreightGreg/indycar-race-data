@@ -23,6 +23,10 @@ const Header = ({ races, selectedRaceId, onRaceChange, isLoading }: HeaderProps)
   for (const r of races) {
     (grouped[r.year] ||= []).push(r);
   }
+  // Sort races within each year by round_number ascending
+  for (const year of Object.keys(grouped)) {
+    grouped[Number(year)].sort((a, b) => a.round_number - b.round_number);
+  }
   const years = Object.keys(grouped).map(Number).sort((a, b) => b - a);
 
   return (
