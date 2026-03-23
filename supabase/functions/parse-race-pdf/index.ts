@@ -415,7 +415,7 @@ async function parseEventSummary(supabase: any, lines: string[], raceId: string)
   return { stats };
 }
 
-async function parseLeaderLaps(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {
   await supabase.from("race_laps").delete().eq("race_id", raceId);
   const laps = [];
   for (let p = 1; p <= pdf.numPages; p++) {
