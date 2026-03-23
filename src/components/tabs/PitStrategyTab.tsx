@@ -3,9 +3,7 @@ import { useRaceResults, usePitStops, usePitExecution, useRaceDetails } from '@/
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const CarBadge = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm shrink-0">{num}</span>
-);
+import CarBadge from '@/components/racing/CarBadge';
 
 const PitStrategyTab = () => {
   const { raceId } = useRaceContext();

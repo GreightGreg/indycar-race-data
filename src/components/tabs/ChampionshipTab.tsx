@@ -3,9 +3,7 @@ import { useChampionshipStandings } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';
 
-const CarBadge = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
-);
+import CarBadge from '@/components/racing/CarBadge';
 
 const MedalBadge = ({ rank }: { rank: number }) => {
   if (rank === 1) return <span className="inline-flex items-center justify-center bg-racing-gold text-black font-heading text-sm w-8 h-6 rounded-sm">P1</span>;

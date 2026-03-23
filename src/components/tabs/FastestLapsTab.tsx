@@ -6,13 +6,7 @@ import { formatDriverName } from '@/lib/formatName';
 import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar, parseLapTimeToSeconds } from '@/lib/raceStats';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const CarBadge = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
-);
-
-const CarBadgeSm = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-[10px] w-6 h-5 rounded-sm">{num}</span>
-);
+import CarBadge from '@/components/racing/CarBadge';
 
 const SECTOR_KEYS = [
   { key: 'dogleg_time', label: 'Dogleg' },
