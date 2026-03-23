@@ -203,7 +203,7 @@ const WeekendTab = () => {
                         <td className="px-3 py-2 font-heading text-sm text-racing-muted">P{q.qual_position}</td>
                         <td className="px-3 py-2"><CarBadge num={q.car_number} /></td>
                         <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(q.driver_name)}</td>
-                        <td className="px-3 py-2"><EngineText engine={q.engine || ''} /></td>
+                        <td className="px-3 py-2"><EngineIcon engine={q.engine || ''} /></td>
                         <td className={`px-3 py-2 font-mono text-xs ${fasterLap === 1 ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
                           {q.lap1_time ? `${q.lap1_time}s` : 'No Time'}
                         </td>
