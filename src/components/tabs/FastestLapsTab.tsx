@@ -3,7 +3,7 @@ import { useRaceContext } from '@/contexts/RaceContext';
 import { useFastestLaps, useFastestLapRowsForSession, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
-import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar } from '@/lib/raceStats';
+import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar, parseLapTimeToSeconds } from '@/lib/raceStats';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const CarBadge = ({ num }: { num: string }) => (
@@ -13,7 +13,6 @@ const CarBadge = ({ num }: { num: string }) => (
 const CarBadgeSm = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-[10px] w-6 h-5 rounded-sm">{num}</span>
 );
-
 
 const SECTOR_KEYS = [
   { key: 'dogleg_time', label: 'Dogleg' },
@@ -26,6 +25,10 @@ const SECTOR_KEYS = [
   { key: 'turn3_exit_time', label: 'T3 Exit' },
   { key: 'turn4_time', label: 'Turn 4' },
 ] as const;
+
+const getRoadCourseSectionDisplay = (value?: string | null) => value || '—';
+
+const getRoadCourseSectionValue = (value?: string | null) => parseLapTimeToSeconds(value);
 
 const FastestLapsTab = () => {
   const { raceId } = useRaceContext();
@@ -137,8 +140,8 @@ const FastestLapsTab = () => {
       let min = Infinity;
       for (const row of sessionFastestRows || []) {
         if (row.section_name !== sectionName) continue;
-        const val = Number(row.section_time || row.time);
-        if (Number.isFinite(val) && val > 0 && val < min) min = val;
+        const val = getRoadCourseSectionValue(row.section_time || row.time);
+        if (val !== null && val > 0 && val < min) min = val;
       }
       bests[sectionName] = min;
     }
@@ -160,7 +163,6 @@ const FastestLapsTab = () => {
     <div className="space-y-6">
       <h2 className="font-heading text-2xl text-racing-text">Fastest Laps</h2>
 
-      {/* Session selector */}
       <div className="flex flex-wrap gap-2">
         {(availableSessions || []).map(opt => (
           <button
@@ -177,7 +179,6 @@ const FastestLapsTab = () => {
         ))}
       </div>
 
-      {/* Section dropdown */}
       <div>
         <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">Track Section Breakdown</h3>
         <select
@@ -191,7 +192,6 @@ const FastestLapsTab = () => {
         </select>
       </div>
 
-      {/* Rankings — cards on mobile, table on desktop */}
       {isMobile ? (
         <div className="space-y-1.5">
           {displayLaps.map(f => (
@@ -235,7 +235,6 @@ const FastestLapsTab = () => {
         </div>
       )}
 
-      {/* Qualifying Sector Comparison */}
       {sessionType === 'Qualifying' && (ovalSectorComparison.length > 0 || roadCourseSectorComparison.length > 0) && (
         <div className="space-y-6">
           <div>
@@ -348,13 +347,14 @@ const FastestLapsTab = () => {
                     <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
                       {roadCourseSectionNames.map((sectionName) => {
                         const row = driver.sections[sectionName];
-                        const value = Number(row?.section_time || row?.time || null);
-                        const isFastest = Number.isFinite(value) && Math.abs(value - bestSectorTimes[sectionName]) < 0.0001;
+                        const displayValue = getRoadCourseSectionDisplay(row?.section_time || row?.time);
+                        const numericValue = getRoadCourseSectionValue(row?.section_time || row?.time);
+                        const isFastest = numericValue !== null && Math.abs(numericValue - bestSectorTimes[sectionName]) < 0.0001;
                         return (
                           <div key={sectionName} className="flex justify-between gap-2">
                             <span className="text-[9px] text-racing-muted truncate">{sectionName}</span>
                             <span className={`text-[9px] font-mono ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
-                              {Number.isFinite(value) ? value.toFixed(4) : '—'}
+                              {displayValue}
                             </span>
                           </div>
                         );
@@ -386,11 +386,12 @@ const FastestLapsTab = () => {
                         <td className="px-2 py-1.5 font-mono text-[10px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</td>
                         {roadCourseSectionNames.map((sectionName) => {
                           const row = driver.sections[sectionName];
-                          const value = Number(row?.section_time || row?.time || null);
-                          const isFastest = Number.isFinite(value) && Math.abs(value - bestSectorTimes[sectionName]) < 0.0001;
+                          const displayValue = getRoadCourseSectionDisplay(row?.section_time || row?.time);
+                          const numericValue = getRoadCourseSectionValue(row?.section_time || row?.time);
+                          const isFastest = numericValue !== null && Math.abs(numericValue - bestSectorTimes[sectionName]) < 0.0001;
                           return (
                             <td key={sectionName} className={`px-1 py-1.5 font-mono text-[10px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
-                              {Number.isFinite(value) ? value.toFixed(4) : '—'}
+                              {displayValue}
                             </td>
                           );
                         })}
@@ -402,7 +403,6 @@ const FastestLapsTab = () => {
             ))}
           </div>
 
-          {/* Driver Lap-by-Lap Sector Comparison */}
           {hasCompleteOvalSectorData && <div>
             <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">Driver Qualifying Lap Comparison</h3>
             <select
@@ -436,7 +436,6 @@ const FastestLapsTab = () => {
                       </div>
                     );
                   })}
-                  {/* Full Lap row */}
                   {(() => {
                     const v1 = driverLapComparison.lap1 ? Number(driverLapComparison.lap1.full_lap_time) : null;
                     const v2 = driverLapComparison.lap2 ? Number(driverLapComparison.lap2.full_lap_time) : null;
