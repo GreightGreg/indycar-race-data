@@ -339,6 +339,17 @@ const SORT_OPTIONS = [
   { key: 'netPos', label: 'Net Positions' },
 ];
 
+const getCardHighlightValue = (s: any, sortKey: string) => {
+  switch (sortKey) {
+    case 'wins': return s.wins;
+    case 'podiums': return s.podiums;
+    case 'avgFinish': return s.avgFinish;
+    case 'lapsLed': return s.lapsLed;
+    case 'netPos': return s.netPos > 0 ? `+${s.netPos}` : s.netPos;
+    default: return s.totalPts;
+  }
+};
+
 const MobileStandings = ({ standings, rounds, sortKey, sortDir, onSort }: {
   standings: any[];
   rounds: number[];
@@ -374,7 +385,7 @@ const MobileStandings = ({ standings, rounds, sortKey, sortDir, onSort }: {
           <CarBadge num={s.car} />
           <span className="font-body text-[15px] text-racing-text flex-1 truncate">{formatDriverName(s.driver_name)}</span>
           <EngineIcon engine={s.engine} />
-          <span className="font-mono text-base font-bold text-racing-yellow">{s.totalPts}</span>
+          <span className="font-mono text-base font-bold text-racing-yellow">{getCardHighlightValue(s, sortKey)}</span>
         </div>
 
         {/* Stats grid */}
@@ -389,15 +400,15 @@ const MobileStandings = ({ standings, rounds, sortKey, sortDir, onSort }: {
           <MiniStat label="DNFs" value={s.dnfs} highlight={s.dnfs > 0} />
         </div>
 
-        {/* Round-by-round points */}
+        {/* Round-by-round finish positions */}
         <div className="flex gap-1 flex-wrap">
           {rounds.map(rn => (
             <span key={rn} className={`font-mono text-[12px] px-1.5 py-0.5 rounded ${
-              s.roundPoints[rn] !== undefined
+              s.roundFinishes[rn] !== undefined
                 ? 'bg-racing-surface2 text-racing-text'
                 : 'text-racing-muted'
             }`}>
-              R{rn}: {s.roundPoints[rn] !== undefined ? s.roundPoints[rn] : '—'}
+              R{rn}: {s.roundFinishes[rn] !== undefined ? `P${s.roundFinishes[rn]}` : '—'}
             </span>
           ))}
         </div>
