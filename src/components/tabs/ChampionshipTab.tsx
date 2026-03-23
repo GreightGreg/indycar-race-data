@@ -1,5 +1,6 @@
 import { useRaceContext } from '@/pages/Index';
 import { useChampionshipStandings } from '@/hooks/useRaceData';
+import { formatDriverName } from '@/lib/formatName';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
@@ -41,7 +42,7 @@ const ChampionshipTab = () => {
               <tr key={s.car} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
                 <td className="px-3 py-2"><MedalBadge rank={s.rank} /></td>
                 <td className="px-3 py-2"><CarBadge num={s.car} /></td>
-                <td className="px-3 py-2 font-body text-sm text-racing-text">{s.driver_name}</td>
+                <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(s.driver_name)}</td>
                 <td className="px-3 py-2"><EngineText engine={s.engine} /></td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-muted">{s.r1}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-text">{s.r2}</td>

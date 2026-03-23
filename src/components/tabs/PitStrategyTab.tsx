@@ -1,5 +1,6 @@
 import { useRaceContext } from '@/pages/Index';
 import { useRaceResults, usePitStops, usePitExecution } from '@/hooks/useRaceData';
+import { formatDriverName } from '@/lib/formatName';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm shrink-0">{num}</span>
@@ -16,7 +17,7 @@ const PitStrategyTab = () => {
   // Group pit stops by car, sorted by finish position
   const byDriver = results.map(r => {
     const stops = pitStops.filter(ps => ps.car_number === r.car_number).sort((a, b) => a.stop_number - b.stop_number);
-    return { car: r.car_number, driver: r.driver_name, pos: r.finish_position, stops };
+    return { car: r.car_number, driver: formatDriverName(r.driver_name), pos: r.finish_position, stops };
   });
 
   const totalLaps = 250;
@@ -31,7 +32,7 @@ const PitStrategyTab = () => {
           <div key={d.car} className="flex items-center gap-2 py-1">
             <div className="flex items-center gap-1.5 w-44 shrink-0">
               <CarBadge num={d.car} />
-              <span className="font-body text-xs text-racing-text truncate">{d.driver?.split(' ')[0]}</span>
+              <span className="font-body text-xs text-racing-text truncate">{d.driver.split(' ')[0]}</span>
               <span className="font-mono text-[10px] text-racing-muted">{d.stops.length}s</span>
             </div>
             <div className="flex-1 relative h-6 bg-racing-surface rounded">
@@ -93,7 +94,7 @@ const PitStrategyTab = () => {
                 <tr key={pt.id} className="border-b border-racing-border/50">
                   <td className="px-3 py-2 font-heading text-sm text-racing-muted">{i + 1}</td>
                   <td className="px-3 py-2"><CarBadge num={pt.car_number} /></td>
-                  <td className="px-3 py-2 font-body text-sm text-racing-text">{pt.driver_name}</td>
+                  <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(pt.driver_name)}</td>
                   <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(pt.best_transit_time).toFixed(4)}s</td>
                   <td className="px-3 py-2 font-mono text-xs text-racing-text">{Number(pt.pit_lane_speed).toFixed(3)} mph</td>
                 </tr>

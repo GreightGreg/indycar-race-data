@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useRaceContext } from '@/pages/Index';
 import { useFastestLaps, useFastestLapSections } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
+import { formatDriverName } from '@/lib/formatName';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
@@ -55,7 +56,7 @@ const FastestLapsTab = () => {
         const qr = qualResults.find(q => q.car_number === qs.car_number);
         driverMap.set(qs.car_number, {
           car: qs.car_number,
-          name: qs.driver_name || '',
+          name: formatDriverName(qs.driver_name),
           qualPos: qr?.qual_position || 99,
           laps: [],
         });
@@ -143,7 +144,7 @@ const FastestLapsTab = () => {
               <tr key={f.id} className="border-b border-racing-border/50">
                 <td className="px-3 py-2 font-heading text-sm text-racing-muted">{f.rank}</td>
                 <td className="px-3 py-2"><CarBadge num={f.car_number} /></td>
-                <td className="px-3 py-2 font-body text-sm text-racing-text">{f.driver_name}</td>
+                <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time}{selectedSection !== 'Full Lap' ? 's' : ''}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(f.section_speed)?.toFixed(3)}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-muted">L{f.lap_number}</td>
@@ -187,7 +188,7 @@ const FastestLapsTab = () => {
                       <tr key={d.car} className="border-b border-racing-border/50">
                         <td className="px-2 py-1.5 font-heading text-xs text-racing-muted">P{d.qualPos}</td>
                         <td className="px-2 py-1.5"><span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-[10px] w-6 h-5 rounded-sm">{d.car}</span></td>
-                        <td className="px-2 py-1.5 font-body text-xs text-racing-text">{d.name?.split(' ')[0]}</td>
+                        <td className="px-2 py-1.5 font-body text-xs text-racing-text">{d.name.split(' ')[0]}</td>
                         <td className="px-2 py-1.5 font-mono text-[10px] text-racing-text">{l1Time ? Number(l1Time).toFixed(4) : '—'}</td>
                         <td className="px-2 py-1.5 font-mono text-[10px] text-racing-text">{l2Time ? Number(l2Time).toFixed(4) : '—'}</td>
                         <td className="px-2 py-1.5 font-mono text-[10px] text-racing-yellow font-bold">{bestTime}</td>
