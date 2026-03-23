@@ -391,6 +391,20 @@ function parseRacePointColumns(pointTokens: string[], roundNumber: number) {
 
   if (
     roundNumber === 1 &&
+    pointTokens.length % 2 === 0 &&
+    pointTokens.every(token => /^\d$/.test(token))
+  ) {
+    const mid = pointTokens.length / 2;
+    const left = pointTokens.slice(0, mid).join("");
+    const right = pointTokens.slice(mid).join("");
+    if (left === right) {
+      const combined = parseInt(left, 10) || 0;
+      return { racePoints: combined, totalPoints: combined };
+    }
+  }
+
+  if (
+    roundNumber === 1 &&
     pointTokens.length === 2 &&
     pointTokens.every(token => /^\d$/.test(token)) &&
     parseInt(pointTokens[1], 10) < parseInt(pointTokens[0], 10)
@@ -446,8 +460,21 @@ function isRaceResultRowStart(line: string): boolean {
   return /^\d+\s+\d+\s+\d+\s+/.test(line.trim());
 }
 
+function trimEmbeddedRaceResultRow(line: string): string {
+  const normalized = line.replace(/\s+/g, " ").trim();
+  const matches = Array.from(normalized.matchAll(/\b\d+\s+\d+\s+\d+\s+[A-Za-z]/g));
+
+  if (matches.length > 1) {
+    const secondMatchIndex = matches[1].index ?? normalized.length;
+    return normalized.slice(0, secondMatchIndex).trim();
+  }
+
+  return normalized;
+}
+
 function parseRaceResultLine(line: string, roundNumber: number) {
-  const tokens = line.trim().split(/\s+/);
+  const normalizedLine = trimEmbeddedRaceResultRow(line);
+  const tokens = normalizedLine.split(/\s+/);
   if (tokens.length < 15) return null;
 
   const engineIndex = tokens.findIndex((token, index) => index >= 3 && /^D\/[CH]\/F$/.test(token));
@@ -477,7 +504,7 @@ function parseRaceResultLine(line: string, roundNumber: number) {
   const tailTokens = baseTokens.slice(elapsedIndex + 2);
   if (!tailTokens.length || !/^\d+$/.test(tailTokens[tailTokens.length - 1])) return null;
 
-  const championshipRank = parseInt(tailTokens[tailTokens.length - 1], 10);
+  let championshipRank = parseInt(tailTokens[tailTokens.length - 1], 10);
   const tailWithoutRank = tailTokens.slice(0, -1);
 
   let pointsStartIndex = tailWithoutRank.length;
@@ -488,6 +515,17 @@ function parseRaceResultLine(line: string, roundNumber: number) {
   const statusTokens = tailWithoutRank.slice(0, pointsStartIndex);
   const pointTokens = tailWithoutRank.slice(pointsStartIndex);
   if (!pointTokens.length) return null;
+
+  if (
+    roundNumber === 1 &&
+    pointTokens.length === 3 &&
+    pointTokens.every(token => /^\d+$/.test(token)) &&
+    pointTokens[0] === pointTokens[1] &&
+    parseInt(pointTokens[2], 10) === finishPosition
+  ) {
+    championshipRank = finishPosition;
+    pointTokens.pop();
+  }
 
   const { racePoints, totalPoints } = parseRacePointColumns(pointTokens, roundNumber);
 
