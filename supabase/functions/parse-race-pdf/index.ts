@@ -730,8 +730,18 @@ async function parseSectionTimes(supabase: any, pdf: any, raceId: string, sessio
       await supabase.from("fastest_laps").insert(rows.slice(i, i + 500));
     }
   }
-  const fileKey = sessionType === "Race" ? "section_times_race" : `section_times_${sessionType.toLowerCase().replace(" ", "_")}`;
-  await markFileReceived(supabase, raceId, fileKey);
+  const sessionKeyMap: Record<string, string> = {
+    "Race": "section_times_race",
+    "Practice 1": "section_times_practice_1",
+    "Practice 2": "section_times_practice_2",
+    "Practice Final": "section_times_practice_final",
+    "Qualifying": "section_times_qualifying",
+    "Qualifying Group 1": "section_times_qualifying_group_1",
+    "Qualifying Group 2": "section_times_qualifying_group_2",
+    "Qualifying Round 2 (Fast 12)": "section_times_qualifying_round_2",
+    "Qualifying Round 3 (Fast 6)": "section_times_qualifying_round_3",
+  };
+  await markFileReceived(supabase, raceId, sessionKeyMap[sessionType] || `section_times_${sessionType.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`);
   return { rows: rows.length, sections: pdf.numPages };
 }
 
