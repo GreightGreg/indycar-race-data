@@ -62,7 +62,7 @@ serve(async (req) => {
     let result;
     switch (reportType) {
       case "race_results":
-        result = await parseRaceResults(supabase, page1Lines, raceId, eventInfo);
+        result = await parseRaceResults(supabase, pdf, raceId, eventInfo);
         break;
       case "event_summary":
         result = await parseEventSummary(supabase, page1Lines, raceId);
@@ -309,19 +309,30 @@ function parseEngine(cet: string): string {
   return parts.length >= 2 ? (parts[1] === "C" ? "Chevy" : parts[1] === "H" ? "Honda" : "Unknown") : "Unknown";
 }
 
-async function parseRaceResults(supabase: any, lines: string[], raceId: string, eventInfo: any) {
+async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventInfo: any) {
+  // Read ALL pages (cautions/penalties are on page 2+)
+  const allLines: string[] = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const pageLines = await getPageLines(pdf, p);
+    allLines.push(...pageLines);
+  }
+
   await supabase.from("race_results").delete().eq("race_id", raceId);
-  const headerLine = lines.find(l => l.includes("Time of Race:")) || "";
+  const headerLine = allLines.find(l => l.includes("Time of Race:")) || "";
   const totalLapsMatch = headerLine.match(/End of Lap (\d+)/);
   const timeMatch = headerLine.match(/Time of Race:\s+([\d:\.]+)/);
   const avgSpdMatch = headerLine.match(/Avg Speed:\s+([\d\.]+)/);
   const leadChangesMatch = headerLine.match(/Lead Changes:\s+(\d+)/);
   const cautionLapsMatch = headerLine.match(/Caution Laps:\s+(\d+)/);
-  const fastestLapLine = lines.find(l => l.includes("Fastest Lap:")) || "";
+  const fastestLapLine = allLines.find(l => l.includes("Fastest Lap:")) || "";
   const fastestSpdMatch = fastestLapLine.match(/Fastest Lap:\s+([\d\.]+)\s+mph/);
   const fastestTimeMatch = fastestLapLine.match(/\(\s*([\d\.]+)\s+sec\)/);
   const fastestLapNumMatch = fastestLapLine.match(/on lap\s+(\d+)/);
   const fastestCarMatch = fastestLapLine.match(/by\s+(\d+)\s+-\s+(.+)/);
+  const bestLeadLine = allLines.find(l => l.includes("Fastest Leader Lap:")) || "";
+  const bestLeadSpdMatch = bestLeadLine.match(/Fastest Leader Lap:\s+([\d\.]+)\s+mph/);
+  const bestLeadTimeMatch = bestLeadLine.match(/\(\s*([\d\.]+)\s+sec\)/);
+  const bestLeadDriverMatch = bestLeadLine.match(/by\s+(\d+)\s+-\s+(.+)/);
   await supabase.from("races").update({
     total_laps: totalLapsMatch ? parseInt(totalLapsMatch[1]) : null,
     race_time: timeMatch ? timeMatch[1] : null,
@@ -333,21 +344,25 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
     fastest_lap_number: fastestLapNumMatch ? parseInt(fastestLapNumMatch[1]) : null,
     fastest_lap_car: fastestCarMatch ? fastestCarMatch[1] : null,
     fastest_lap_driver: fastestCarMatch ? fastestCarMatch[2].trim() : null,
+    best_lead_lap_speed: bestLeadSpdMatch ? parseFloat(bestLeadSpdMatch[1]) : null,
+    best_lead_lap_time: bestLeadTimeMatch ? bestLeadTimeMatch[1] : null,
+    best_lead_lap_driver: bestLeadDriverMatch ? bestLeadDriverMatch[2].trim() : null,
   }).eq("id", raceId);
 
   const results = [];
   const cautions = [];
   const penalties = [];
-  let inResults = false;
-  let inCautions = false;
-  let inPenalties = false;
+  let section = "header"; // header | results | leadchanges | cautions | penalties
 
-  for (const line of lines) {
-    if (line.includes("Pos SP Car Driver")) { inResults = true; continue; }
-    if (line.includes("Lead Change Summary")) { inResults = false; inCautions = true; continue; }
-    if (line.includes("Penalty Summary")) { inCautions = false; inPenalties = true; continue; }
-    if (line.includes("(C)hassis:")) break;
-    if (inResults) {
+  for (const line of allLines) {
+    if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { section = "results"; continue; }
+    if (line.includes("Lead Change Summary")) { section = "leadchanges"; continue; }
+    if (line.includes("Caution Flag") || line.includes("Caution Summary") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; continue; }
+    if (line.includes("Penalty Summary")) { section = "penalties"; continue; }
+    if (line.includes("(C)hassis:") || line.includes("Legend:")) { section = "done"; continue; }
+    if (section === "done") break;
+
+    if (section === "results") {
       const m = line.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+(\d+)\s+(\d+)\s+([\d\-\.]+)\s+(\d+)\s+([\d:\.]+)\s+([\d\.]+)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\d+)/);
       if (m) {
         results.push({
@@ -370,9 +385,10 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
         });
       }
     }
-    if (inCautions) {
-      const m = line.match(/^(\d+)\s+(\d+)\s+to\s+(\d+)\s+(\d+)\s+(.+)/);
-      if (m) {
+    if (section === "cautions") {
+      // Format: "cautionNum startLap to endLap totalLaps reason" or "cautionNum startLap endLap totalLaps reason"
+      const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
+      if (m && parseInt(m[1]) <= 20 && parseInt(m[2]) > 0) {
         cautions.push({
           race_id: raceId,
           caution_number: parseInt(m[1]),
@@ -383,7 +399,7 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
         });
       }
     }
-    if (inPenalties) {
+    if (section === "penalties") {
       const m = line.match(/^(\d+)\s+(.+?)\s+(\d+)\s+(.+)/);
       if (m) {
         penalties.push({
@@ -407,6 +423,7 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
     await supabase.from("penalties").insert(penalties);
   }
   await markFileReceived(supabase, raceId, "race_results");
+  console.log(`Parsed race results: ${results.length} drivers, ${cautions.length} cautions, ${penalties.length} penalties`);
   return { drivers: results.length, cautions: cautions.length, penalties: penalties.length };
 }
 
@@ -461,17 +478,33 @@ async function parseLapChart(supabase: any, pdf: any, raceId: string) {
 
   for (let p = 1; p <= pdf.numPages; p++) {
     const lines = await getPageLines(pdf, p);
-    const lapHeaderLine = lines.find(l => l.includes("Lap->"));
-    if (!lapHeaderLine) continue;
-    const lapNumbers = lapHeaderLine.replace(/.*Lap->\s*/, "").trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+    
+    // Find lap numbers: look for lines of purely sequential ascending numbers
+    let lapNumbers: number[] = [];
+    const numberOnlyLines = lines.filter(l => /^[\d\s]+$/.test(l.trim()) && l.trim().split(/\s+/).length > 5);
+    for (const nl of numberOnlyLines) {
+      const nums = nl.trim().split(/\s+/).map(Number);
+      let isSequential = true;
+      for (let i = 1; i < Math.min(nums.length, 10); i++) {
+        if (nums[i] <= nums[i - 1]) { isSequential = false; break; }
+      }
+      if (isSequential && nums.length > 5) { lapNumbers = nums; break; }
+    }
+    if (lapNumbers.length === 0) continue;
+
     for (const line of lines) {
-      const m = line.match(/^(\d+)\s+-\s+.+?\s+\(\d+\)\s+\d+\s+(.+)/);
+      // Format: "12 - Malukas, David (1) 1 12 12 12 12..."
+      // carNum - driverName (startPos) rowPosition cellValues...
+      const m = line.match(/^(\d+)\s+-\s+.+?\s+\(\d+\)\s+(\d+)\s+(.+)/);
       if (!m) continue;
-      const carNumber = m[1];
-      if (!carPositions[carNumber]) carPositions[carNumber] = {};
-      const posValues = m[2].trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+      const rowPosition = parseInt(m[2]); // chart row = position
+      const cellValues = m[3].trim().split(/\s+/);
       lapNumbers.forEach((lap, idx) => {
-        if (posValues[idx] !== undefined) carPositions[carNumber][lap] = idx + 1;
+        const carNum = cellValues[idx];
+        if (carNum && !isNaN(parseInt(carNum))) {
+          if (!carPositions[carNum]) carPositions[carNum] = {};
+          carPositions[carNum][lap] = rowPosition;
+        }
       });
     }
   }
@@ -488,6 +521,7 @@ async function parseLapChart(supabase: any, pdf: any, raceId: string) {
     }
   }
   await markFileReceived(supabase, raceId, "lap_chart");
+  console.log(`Parsed lap chart: ${insertRows.length} position records`);
   return { positions: insertRows.length };
 }
 
@@ -496,30 +530,67 @@ async function parsePitStops(supabase: any, pdf: any, raceId: string) {
   const stops: any[] = [];
   let currentCar = "";
   let currentDriver = "";
+  let pendingStop: any = null;
 
   for (let p = 1; p <= pdf.numPages; p++) {
     const lines = await getPageLines(pdf, p);
     for (const line of lines) {
-      const driverM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+(\d+)\s+Pit Stop/);
-      if (driverM) { currentCar = driverM[2]; currentDriver = driverM[3].trim(); continue; }
-      if (currentCar) {
-        const stopM = line.match(/^(\d+)\s+(\d+)\s+(\d+)\s+([\d:\.]+)/);
-        if (stopM) {
-          stops.push({
-            race_id: raceId,
-            car_number: currentCar,
-            driver_name: currentDriver,
-            stop_number: parseInt(stopM[1]),
-            lap_number: parseInt(stopM[2]),
-            race_lap: parseInt(stopM[3]),
-            time_of_race: stopM[4]
-          });
-        }
+      // Driver header: "{totalStops} Pit Stop(s) {driverName} {CET} {carNum} {rank}"
+      // May be prefixed with sub-header text on same line
+      const driverM = line.match(/(\d+)\s+Pit\s+Stops?\s+(.+?)\s+(D\/[CH]\/F)\s+(\d+)\s+(\d+)/);
+      if (driverM) {
+        if (pendingStop) { stops.push(pendingStop); pendingStop = null; }
+        currentCar = driverM[4];
+        currentDriver = driverM[2].trim();
+        continue;
+      }
+
+      if (!currentCar) continue;
+
+      // Stop data: "lap raceLap time" (stop number on next line)
+      const dataM = line.match(/^(\d+)\s+(\d+)\s+([\d:\.]+)$/);
+      if (dataM) {
+        if (pendingStop) stops.push(pendingStop);
+        pendingStop = {
+          race_id: raceId,
+          car_number: currentCar,
+          driver_name: currentDriver,
+          lap_number: parseInt(dataM[1]),
+          race_lap: parseInt(dataM[2]),
+          time_of_race: dataM[3],
+          stop_number: 0
+        };
+        continue;
+      }
+
+      // Stop number on its own line
+      const stopNumM = line.match(/^(\d+)$/);
+      if (stopNumM && pendingStop && parseInt(stopNumM[1]) <= 20) {
+        pendingStop.stop_number = parseInt(stopNumM[1]);
+        stops.push(pendingStop);
+        pendingStop = null;
+        continue;
+      }
+
+      // Also try combined format: "stopNum lap raceLap time"
+      const combinedM = line.match(/^(\d+)\s+(\d+)\s+(\d+)\s+([\d:\.]+)$/);
+      if (combinedM && parseInt(combinedM[1]) <= 20) {
+        stops.push({
+          race_id: raceId,
+          car_number: currentCar,
+          driver_name: currentDriver,
+          stop_number: parseInt(combinedM[1]),
+          lap_number: parseInt(combinedM[2]),
+          race_lap: parseInt(combinedM[3]),
+          time_of_race: combinedM[4]
+        });
       }
     }
   }
+  if (pendingStop) stops.push(pendingStop);
   if (stops.length > 0) await supabase.from("pit_stops").insert(stops);
   await markFileReceived(supabase, raceId, "pit_stops");
+  console.log(`Parsed pit stops: ${stops.length} stops`);
   return { stops: stops.length };
 }
 
@@ -599,29 +670,54 @@ async function parseQualifyingResults(supabase: any, lines: string[], raceId: st
   await supabase.from("qualifying_results").delete().eq("race_id", raceId);
   const results: any[] = [];
   let inData = false;
+  let pendingSpeed: number | null = null;
 
   for (const line of lines) {
     if (line.includes("Rank Car Driver")) { inData = true; continue; }
     if (line.includes("(C)hassis:")) break;
     if (!inData) continue;
+
+    // Standalone avg_speed on its own line (appears before or after the data line)
+    const speedOnly = line.match(/^([\d\.]+)$/);
+    if (speedOnly && parseFloat(speedOnly[1]) > 100 && parseFloat(speedOnly[1]) < 300) {
+      pendingSpeed = parseFloat(speedOnly[1]);
+      continue;
+    }
+
+    // Full match with avg_speed on same line
     const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+([\d\.]+)\s+([\d:\.]+)\s+([\d\.]+)/);
     if (m) {
       const l1 = parseFloat(m[5]);
       const l2 = parseFloat(m[6]);
       results.push({ race_id: raceId, qual_position: parseInt(m[1]), car_number: m[2], driver_name: m[3].trim(), engine: parseEngine(m[4]), lap1_time: m[5], lap2_time: m[6], total_time: m[7], avg_speed: parseFloat(m[8]), best_lap_time: String(Math.min(l1, l2)), comment: null });
+      pendingSpeed = null;
       continue;
     }
+
+    // Match WITHOUT avg_speed (it's on a separate line)
+    const m2 = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+([\d\.]+)\s+([\d:\.]+)$/);
+    if (m2) {
+      const l1 = parseFloat(m2[5]);
+      const l2 = parseFloat(m2[6]);
+      results.push({ race_id: raceId, qual_position: parseInt(m2[1]), car_number: m2[2], driver_name: m2[3].trim(), engine: parseEngine(m2[4]), lap1_time: m2[5], lap2_time: m2[6], total_time: m2[7], avg_speed: pendingSpeed, best_lap_time: String(Math.min(l1, l2)), comment: null });
+      pendingSpeed = null;
+      continue;
+    }
+
     const dnqM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+DNQ/);
     if (dnqM) {
       results.push({ race_id: raceId, qual_position: parseInt(dnqM[1]), car_number: dnqM[2], driver_name: dnqM[3].trim(), engine: parseEngine(dnqM[4]), lap1_time: dnqM[5], lap2_time: null, total_time: null, avg_speed: null, best_lap_time: dnqM[5], comment: "DNQ" });
+      pendingSpeed = null;
       continue;
     }
     const noTimeM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+No Time/);
     if (noTimeM) {
       results.push({ race_id: raceId, qual_position: parseInt(noTimeM[1]), car_number: noTimeM[2], driver_name: noTimeM[3].trim(), engine: parseEngine(noTimeM[4]), lap1_time: null, lap2_time: null, total_time: null, avg_speed: null, best_lap_time: null, comment: "DNQ" });
+      pendingSpeed = null;
     }
   }
   if (results.length > 0) await supabase.from("qualifying_results").insert(results);
+  console.log(`Parsed qualifying: ${results.length} drivers`);
   return { drivers: results.length };
 }
 

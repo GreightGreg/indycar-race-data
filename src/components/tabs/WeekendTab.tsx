@@ -237,7 +237,7 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
     <div>
       <h4 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">{title}</h4>
       {isMobile ? (
-        <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
+        <div className="space-y-1.5">
           {data.map(d => (
             <div key={d.id} className="bg-racing-surface rounded p-2.5 flex items-center gap-2">
               <span className="font-heading text-sm text-racing-muted w-5 shrink-0">{d.rank}</span>
@@ -254,7 +254,7 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[600px] text-left">
             <thead className="sticky top-0 bg-racing-bg">
               <tr className="border-b border-racing-border">

@@ -35,7 +35,7 @@ const SECTOR_KEYS = [
 const FastestLapsTab = () => {
   const { raceId } = useRaceContext();
   const [sessionType, setSessionType] = useState('Race');
-  const [selectedSection, setSelectedSection] = useState('Full Lap');
+  const [selectedSection, setSelectedSection] = useState('Lap');
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
@@ -96,7 +96,7 @@ const FastestLapsTab = () => {
         {SESSION_OPTIONS.map(opt => (
           <button
             key={opt.value}
-            onClick={() => { setSessionType(opt.value); setSelectedSection('Full Lap'); }}
+            onClick={() => { setSessionType(opt.value); setSelectedSection('Lap'); }}
             className={`px-3 py-1.5 rounded text-xs font-condensed font-semibold uppercase transition-all ${
               sessionType === opt.value
                 ? 'bg-racing-yellow/10 text-racing-yellow border border-racing-yellow/30'
@@ -132,7 +132,7 @@ const FastestLapsTab = () => {
               <div className="min-w-0 flex-1">
                 <p className="font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</p>
                 <div className="flex gap-3 mt-0.5">
-                  <span className="font-mono text-[10px] text-racing-text">{f.section_time}{selectedSection !== 'Full Lap' ? 's' : ''}</span>
+                  <span className="font-mono text-[10px] text-racing-text">{f.section_time}{selectedSection !== 'Lap' ? 's' : ''}</span>
                   <span className="font-mono text-[10px] text-racing-yellow">{Number(f.section_speed)?.toFixed(3)} mph</span>
                   <span className="font-mono text-[10px] text-racing-muted">L{f.lap_number}</span>
                 </div>
@@ -156,7 +156,7 @@ const FastestLapsTab = () => {
                   <td className="px-3 py-2 font-heading text-sm text-racing-muted">{f.rank}</td>
                   <td className="px-3 py-2"><CarBadge num={f.car_number} /></td>
                   <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time}{selectedSection !== 'Full Lap' ? 's' : ''}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time}{selectedSection !== 'Lap' ? 's' : ''}</td>
                   <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(f.section_speed)?.toFixed(3)}</td>
                   <td className="px-3 py-2 font-mono text-xs text-racing-muted">L{f.lap_number}</td>
                 </tr>
