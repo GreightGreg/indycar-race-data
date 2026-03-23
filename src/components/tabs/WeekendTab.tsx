@@ -1,5 +1,5 @@
 import { useRaceContext } from '@/pages/Index';
-import { useRaceDetails, useSessionStats, useRaceResults } from '@/hooks/useRaceData';
+import { useRaceDetails, useSessionStats } from '@/hooks/useRaceData';
 import { useSessionFullResults, useQualifyingResults, useCombinedPracticeResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -16,7 +16,7 @@ const WeekendTab = () => {
   const { raceId } = useRaceContext();
   const { data: race } = useRaceDetails(raceId);
   const { data: sessionStats } = useSessionStats(raceId);
-  const { data: results } = useRaceResults(raceId);
+  
   const { data: p1Results } = useSessionFullResults(raceId, 'Practice 1');
   const { data: pfResults } = useSessionFullResults(raceId, 'Practice Final');
   const { data: qualResults } = useQualifyingResults(raceId);
@@ -25,13 +25,6 @@ const WeekendTab = () => {
 
   if (!race) return <p className="text-racing-muted font-body">Loading…</p>;
 
-  const weekendStory = results?.map(r => ({
-    car: r.car_number,
-    driver: formatDriverName(r.driver_name),
-    qualPos: r.start_position,
-    finishPos: r.finish_position,
-    change: r.start_position - r.finish_position,
-  })) || [];
 
   return (
     <div className="space-y-8">
@@ -235,54 +228,8 @@ const WeekendTab = () => {
         </div>
       )}
 
-      {/* Weekend Story */}
-      <div>
-        <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-3">Weekend Story</h3>
-        {isMobile ? (
-          <div className="space-y-1.5">
-            {weekendStory.map(w => (
-              <div key={w.car} className="bg-racing-surface rounded p-3 flex items-center gap-2.5">
-                <CarBadge num={w.car} />
-                <div className="min-w-0 flex-1">
-                  <p className="font-body text-sm text-racing-text">{w.driver}</p>
-                  <div className="flex gap-3 mt-0.5 font-mono text-[10px]">
-                    <span className="text-racing-muted">Q: P{w.qualPos}</span>
-                    <span className="text-racing-text">F: P{w.finishPos}</span>
-                    <span className={`font-bold ${w.change > 0 ? 'text-racing-green' : w.change < 0 ? 'text-racing-red' : 'text-racing-muted'}`}>
-                      {w.change > 0 ? `+${w.change}` : w.change}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px] text-left">
-              <thead>
-                <tr className="border-b border-racing-border">
-                  {['Car','Driver','Qual Pos','Race Finish','Change'].map(h => (
-                    <th key={h} className="font-condensed font-semibold text-xs text-racing-muted uppercase px-3 py-2">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {weekendStory.map(w => (
-                  <tr key={w.car} className="border-b border-racing-border/50">
-                    <td className="px-3 py-2"><CarBadge num={w.car} /></td>
-                    <td className="px-3 py-2 font-body text-sm text-racing-text">{w.driver}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-racing-muted">P{w.qualPos}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-racing-text">P{w.finishPos}</td>
-                    <td className={`px-3 py-2 font-mono text-xs font-bold ${w.change > 0 ? 'text-racing-green' : w.change < 0 ? 'text-racing-red' : 'text-racing-muted'}`}>
-                      {w.change > 0 ? `+${w.change}` : w.change === 0 ? '0' : w.change}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+
+
     </div>
   );
 };
