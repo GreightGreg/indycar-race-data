@@ -1,7 +1,7 @@
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useState, useRef, useEffect } from 'react';
 
-const TABS = ['Race Results','Session Results','Position Chart','Laps Led','Head to Head','Pit Strategy','Fastest Laps','Championship'];
+const TABS = ['Race Results','Session Results','Position Chart','Laps Led','Head to Head','Pit Strategy','Season Stats','Fastest Laps','Championship'];
 
 interface TabNavProps {
   activeTab: string;
