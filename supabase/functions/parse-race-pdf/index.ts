@@ -309,19 +309,30 @@ function parseEngine(cet: string): string {
   return parts.length >= 2 ? (parts[1] === "C" ? "Chevy" : parts[1] === "H" ? "Honda" : "Unknown") : "Unknown";
 }
 
-async function parseRaceResults(supabase: any, lines: string[], raceId: string, eventInfo: any) {
+async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventInfo: any) {
+  // Read ALL pages (cautions/penalties are on page 2+)
+  const allLines: string[] = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const pageLines = await getPageLines(pdf, p);
+    allLines.push(...pageLines);
+  }
+
   await supabase.from("race_results").delete().eq("race_id", raceId);
-  const headerLine = lines.find(l => l.includes("Time of Race:")) || "";
+  const headerLine = allLines.find(l => l.includes("Time of Race:")) || "";
   const totalLapsMatch = headerLine.match(/End of Lap (\d+)/);
   const timeMatch = headerLine.match(/Time of Race:\s+([\d:\.]+)/);
   const avgSpdMatch = headerLine.match(/Avg Speed:\s+([\d\.]+)/);
   const leadChangesMatch = headerLine.match(/Lead Changes:\s+(\d+)/);
   const cautionLapsMatch = headerLine.match(/Caution Laps:\s+(\d+)/);
-  const fastestLapLine = lines.find(l => l.includes("Fastest Lap:")) || "";
+  const fastestLapLine = allLines.find(l => l.includes("Fastest Lap:")) || "";
   const fastestSpdMatch = fastestLapLine.match(/Fastest Lap:\s+([\d\.]+)\s+mph/);
   const fastestTimeMatch = fastestLapLine.match(/\(\s*([\d\.]+)\s+sec\)/);
   const fastestLapNumMatch = fastestLapLine.match(/on lap\s+(\d+)/);
   const fastestCarMatch = fastestLapLine.match(/by\s+(\d+)\s+-\s+(.+)/);
+  const bestLeadLine = allLines.find(l => l.includes("Fastest Leader Lap:")) || "";
+  const bestLeadSpdMatch = bestLeadLine.match(/Fastest Leader Lap:\s+([\d\.]+)\s+mph/);
+  const bestLeadTimeMatch = bestLeadLine.match(/\(\s*([\d\.]+)\s+sec\)/);
+  const bestLeadDriverMatch = bestLeadLine.match(/by\s+(\d+)\s+-\s+(.+)/);
   await supabase.from("races").update({
     total_laps: totalLapsMatch ? parseInt(totalLapsMatch[1]) : null,
     race_time: timeMatch ? timeMatch[1] : null,
@@ -333,21 +344,25 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
     fastest_lap_number: fastestLapNumMatch ? parseInt(fastestLapNumMatch[1]) : null,
     fastest_lap_car: fastestCarMatch ? fastestCarMatch[1] : null,
     fastest_lap_driver: fastestCarMatch ? fastestCarMatch[2].trim() : null,
+    best_lead_lap_speed: bestLeadSpdMatch ? parseFloat(bestLeadSpdMatch[1]) : null,
+    best_lead_lap_time: bestLeadTimeMatch ? bestLeadTimeMatch[1] : null,
+    best_lead_lap_driver: bestLeadDriverMatch ? bestLeadDriverMatch[2].trim() : null,
   }).eq("id", raceId);
 
   const results = [];
   const cautions = [];
   const penalties = [];
-  let inResults = false;
-  let inCautions = false;
-  let inPenalties = false;
+  let section = "header"; // header | results | leadchanges | cautions | penalties
 
-  for (const line of lines) {
-    if (line.includes("Pos SP Car Driver")) { inResults = true; continue; }
-    if (line.includes("Lead Change Summary")) { inResults = false; inCautions = true; continue; }
-    if (line.includes("Penalty Summary")) { inCautions = false; inPenalties = true; continue; }
-    if (line.includes("(C)hassis:")) break;
-    if (inResults) {
+  for (const line of allLines) {
+    if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { section = "results"; continue; }
+    if (line.includes("Lead Change Summary")) { section = "leadchanges"; continue; }
+    if (line.includes("Caution Flag") || line.includes("Caution Summary") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; continue; }
+    if (line.includes("Penalty Summary")) { section = "penalties"; continue; }
+    if (line.includes("(C)hassis:") || line.includes("Legend:")) { section = "done"; continue; }
+    if (section === "done") break;
+
+    if (section === "results") {
       const m = line.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+(\d+)\s+(\d+)\s+([\d\-\.]+)\s+(\d+)\s+([\d:\.]+)\s+([\d\.]+)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\d+)/);
       if (m) {
         results.push({
@@ -370,9 +385,10 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
         });
       }
     }
-    if (inCautions) {
-      const m = line.match(/^(\d+)\s+(\d+)\s+to\s+(\d+)\s+(\d+)\s+(.+)/);
-      if (m) {
+    if (section === "cautions") {
+      // Format: "cautionNum startLap to endLap totalLaps reason" or "cautionNum startLap endLap totalLaps reason"
+      const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
+      if (m && parseInt(m[1]) <= 20 && parseInt(m[2]) > 0) {
         cautions.push({
           race_id: raceId,
           caution_number: parseInt(m[1]),
@@ -383,7 +399,7 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
         });
       }
     }
-    if (inPenalties) {
+    if (section === "penalties") {
       const m = line.match(/^(\d+)\s+(.+?)\s+(\d+)\s+(.+)/);
       if (m) {
         penalties.push({
@@ -407,6 +423,7 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: string, 
     await supabase.from("penalties").insert(penalties);
   }
   await markFileReceived(supabase, raceId, "race_results");
+  console.log(`Parsed race results: ${results.length} drivers, ${cautions.length} cautions, ${penalties.length} penalties`);
   return { drivers: results.length, cautions: cautions.length, penalties: penalties.length };
 }
 
