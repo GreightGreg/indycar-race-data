@@ -63,7 +63,7 @@ const TabNav = ({ activeTab, onTabChange }: TabNavProps) => {
   }
 
   return (
-    <nav className="bg-racing-bg border-b border-racing-border overflow-x-auto scrollbar-none">
+    <nav className="sticky top-0 z-40 bg-racing-bg border-b border-racing-border overflow-x-auto scrollbar-none">
       <div className="max-w-[1400px] mx-auto px-4 flex gap-0 min-w-max">
         {TABS.map(tab => (
           <button
