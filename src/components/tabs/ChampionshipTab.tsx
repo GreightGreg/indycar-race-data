@@ -50,6 +50,7 @@ const ChampionshipTab = () => {
           </tbody>
         </table>
       </div>
+      <p className="font-mono text-[10px] text-racing-muted italic mt-2">Championship standings reflect the selected race weekend only.</p>
     </div>
   );
 };

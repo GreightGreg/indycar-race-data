@@ -152,9 +152,13 @@ const AdminPage = () => {
             {uploading ? 'Parsing…' : 'Upload & Parse'}
           </button>
           {uploadResult.length > 0 && (
-            <div className="mt-3 space-y-1">{uploadResult.map((r, i) => <p key={i} className="font-mono text-xs text-racing-green">{r}</p>)}</div>
+            <div className="mt-3 space-y-1">{uploadResult.map((r, i) => (
+              <p key={i} className={`font-mono text-xs ${r.startsWith('⊘') ? 'text-racing-muted' : 'text-racing-green'}`}>{r}</p>
+            ))}</div>
           )}
-          {uploadError && <p className="mt-3 font-mono text-xs text-racing-red">{uploadError}</p>}
+          {uploadError && (
+            <div className="mt-3 space-y-1">{uploadError.split('\n').map((e, i) => <p key={i} className="font-mono text-xs text-racing-red">{e}</p>)}</div>
+          )}
         </section>
 
         {/* Pending Races */}
