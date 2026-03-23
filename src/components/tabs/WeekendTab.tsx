@@ -249,8 +249,8 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
               <div className="min-w-0 flex-1">
                 <p className="font-body text-xs text-racing-text truncate">{formatDriverName(d.driver_name)}</p>
                 <div className="flex gap-2 mt-0.5">
-                  <span className="font-mono text-[10px] text-racing-yellow">{d.best_time}s</span>
-                  <span className="font-mono text-[10px] text-racing-text">{Number(d.best_speed).toFixed(3)} mph</span>
+                  <span className="font-mono text-[10px] text-racing-yellow">{d.best_time ? `${d.best_time}s` : 'DNP'}</span>
+                  <span className="font-mono text-[10px] text-racing-text">{d.best_speed ? `${Number(d.best_speed).toFixed(3)} mph` : '—'}</span>
                   <span className="font-mono text-[10px] text-racing-muted">{d.total_laps} laps</span>
                 </div>
               </div>
@@ -274,11 +274,11 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
                   <td className="px-2 py-1.5"><span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-xs w-7 h-5 rounded-sm">{d.car_number}</span></td>
                   <td className="px-2 py-1.5 font-body text-xs text-racing-text">{formatDriverName(d.driver_name)}</td>
                   <td className="px-2 py-1.5"><EngineIcon engine={d.engine || ''} /></td>
-                  <td className="px-2 py-1.5 font-mono text-xs text-racing-yellow">{d.best_time}s</td>
-                  <td className="px-2 py-1.5 font-mono text-xs text-racing-text">{Number(d.best_speed).toFixed(3)} mph</td>
+                  <td className="px-2 py-1.5 font-mono text-xs text-racing-yellow">{d.best_time ? `${d.best_time}s` : <span className="text-racing-orange">DNP</span>}</td>
+                  <td className="px-2 py-1.5 font-mono text-xs text-racing-text">{d.best_speed ? `${Number(d.best_speed).toFixed(3)} mph` : '—'}</td>
                   <td className="px-2 py-1.5 font-mono text-[10px] text-racing-muted">{d.diff_to_leader || '—'}</td>
                   <td className="px-2 py-1.5 font-mono text-[10px] text-racing-muted">{d.gap_to_ahead || '—'}</td>
-                  <td className="px-2 py-1.5 font-mono text-[10px] text-racing-muted">L{d.best_lap_number}</td>
+                  <td className="px-2 py-1.5 font-mono text-[10px] text-racing-muted">{d.best_lap_number ? `L${d.best_lap_number}` : '—'}</td>
                   <td className="px-2 py-1.5 font-mono text-[10px] text-racing-muted">{d.total_laps}</td>
                 </tr>
               ))}
