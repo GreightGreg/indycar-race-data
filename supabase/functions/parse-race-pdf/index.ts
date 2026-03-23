@@ -168,6 +168,15 @@ function normalizeHeaderLine(line: string): string {
     .replace(/\b([A-Za-z])\s+([A-Za-z]{2,})\b/g, "$1$2")
     .replace(/\s+/g, " ")
     .trim();
+
+function getQualifyingSectionSessionType(lines: string[]): string {
+  const normalizedLines = lines.map(normalizeHeaderLine);
+  const sessionLine = normalizedLines.find(l => l.includes("Session:")) || "";
+  if (sessionLine.includes("Group 1")) return "Qualifying Group 1";
+  if (sessionLine.includes("Group 2")) return "Qualifying Group 2";
+  if (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12") || sessionLine.includes("Segment 2") || sessionLine.includes("Top 12")) return "Qualifying Round 2 (Fast 12)";
+  if (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6") || sessionLine.includes("Segment 3")) return "Qualifying Round 3 (Fast 6)";
+  return "Qualifying";
 }
 
 function identifyReport(lines: string[]): string | null {
