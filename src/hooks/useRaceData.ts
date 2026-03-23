@@ -108,14 +108,24 @@ export const useRacePositions = (raceId: string | null) =>
   useQuery({
     queryKey: ['race_positions', raceId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('race_positions')
-        .select('*')
-        .eq('race_id', raceId!)
-        .order('lap_number')
-        .order('position');
-      if (error) throw error;
-      return data;
+      // 250 laps × 25 cars = 6250 rows, need to exceed default 1000 limit
+      const allRows: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from('race_positions')
+          .select('*')
+          .eq('race_id', raceId!)
+          .order('lap_number')
+          .order('position')
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        allRows.push(...(data || []));
+        if (!data || data.length < pageSize) break;
+        from += pageSize;
+      }
+      return allRows;
     },
     enabled: !!raceId,
   });

@@ -254,7 +254,7 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
           ))}
         </div>
       ) : (
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[600px] text-left">
             <thead className="sticky top-0 bg-racing-bg">
               <tr className="border-b border-racing-border">
