@@ -658,7 +658,8 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       continue;
     }
     // Penalty: "carNum reason lap penalty"
-    const penaltyM = line.match(/\b(\d{1,3})\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+(?:Violation|Speed)|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|Speeding)[^\d]*?(\d+)\s+(Stop\s+&\s+Hold[^$]*|Drive\s+Through[^$]*|Penalty[^$]*|Warning[^$]*|\$[\d,]+[^$]*)/i);
+    // Try strict pattern first
+    const penaltyM = line.match(/\b(\d{1,3})\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+(?:Violation|Speed)|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|Speeding|Contact)[^\d]*?(\d+)\s+(Stop\s+&\s+Hold[^$]*|Drive\s+Through[^$]*|Penalty[^$]*|Warning[^$]*|\$[\d,]+[^$]*)/i);
     if (penaltyM) {
       sawPenaltySection = true;
       penalties.push({
@@ -667,6 +668,18 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
         reason: penaltyM[2].trim(),
         lap_number: parseInt(penaltyM[3]),
         penalty: penaltyM[4].trim()
+      });
+      continue;
+    }
+    // Fallback: broad pattern — car_number, any text reason, a lap number, then penalty action
+    const penaltyBroad = line.match(/^\s*(\d{1,3})\s+(.+?)\s+(\d{1,3})\s+(Stop\s+&\s+Hold.*|Drive\s+Through.*|Penalty.*|Warning.*|\$[\d,]+.*)/i);
+    if (penaltyBroad && sawPenaltySection) {
+      penalties.push({
+        race_id: raceId,
+        car_number: penaltyBroad[1],
+        reason: penaltyBroad[2].trim(),
+        lap_number: parseInt(penaltyBroad[3]),
+        penalty: penaltyBroad[4].trim()
       });
     }
   }
@@ -699,8 +712,10 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     console.warn(`Caution section detected in summary but no caution rows parsed for race ${raceId}; preserving existing cautions`);
   }
 
-  if (sawPenaltySection) {
-    await replaceRows(supabase, "penalties", { race_id: raceId }, penalties, { allowEmpty: true });
+  if (sawPenaltySection && penalties.length > 0) {
+    await replaceRows(supabase, "penalties", { race_id: raceId }, penalties);
+  } else if (sawPenaltySection && penalties.length === 0) {
+    console.warn(`Penalty section detected but no penalty rows parsed for race ${raceId}; preserving existing penalties`);
   }
 
   await markFileReceived(supabase, raceId, "race_results");
