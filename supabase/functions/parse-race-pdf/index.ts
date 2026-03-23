@@ -45,6 +45,17 @@ serve(async (req) => {
       });
     }
 
+    if (reportType === "unsupported_section_data") {
+      return new Response(JSON.stringify({
+        success: true,
+        skipped: true,
+        reportType,
+        message: "Section Data Report for non-qualifying session skipped intentionally"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     const eventInfo = parseEventInfo(page1Lines);
     const raceId = await getOrCreateRace(supabase, eventInfo);
 
