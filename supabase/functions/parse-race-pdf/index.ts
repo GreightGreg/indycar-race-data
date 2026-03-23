@@ -57,10 +57,10 @@ serve(async (req) => {
         result = await parseEventSummary(supabase, page1Lines, raceId);
         break;
       case "leader_laps":
-        result = await parseLeaderLaps(supabase, pages, pdf, raceId);
+        result = await parseLeaderLaps(supabase, pdf, raceId);
         break;
       case "lap_chart":
-        result = await parseLapChart(supabase, pages, pdf, raceId);
+        result = await parseLapChart(supabase, pdf, raceId);
         break;
       case "pit_stops":
         result = await parsePitStops(supabase, pages, pdf, raceId);
