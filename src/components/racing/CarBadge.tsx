@@ -62,7 +62,7 @@ const CarBadge = ({ num, size = 'md' }: CarBadgeProps) => {
           const parent = target.parentElement;
           if (parent && !parent.querySelector('.car-badge-fallback')) {
             const span = document.createElement('span');
-            span.className = `car-badge-fallback font-heading text-white ${size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-2xl' : 'text-xs'}`;
+            span.className = `car-badge-fallback font-heading text-white ${size === 'sm' ? 'text-[12px]' : size === 'lg' ? 'text-2xl' : 'text-sm'}`;
             span.textContent = num;
             parent.appendChild(span);
           }

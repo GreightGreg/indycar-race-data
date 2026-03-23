@@ -49,7 +49,7 @@ export default {
           yellow: '#e8ff00',
           orange: '#ff4e1a',
           text: '#dce8f0',
-          muted: '#5a7a94',
+          muted: '#8fafc7',
           green: '#22c55e',
           red: '#ef4444',
           amber: '#f59e0b',

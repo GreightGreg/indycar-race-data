@@ -30,11 +30,11 @@ const TabNav = ({ activeTab, onTabChange }: TabNavProps) => {
           className="w-full flex items-center justify-between px-4 py-3 bg-racing-surface border border-racing-border rounded mx-0 active:scale-[0.98] transition-transform"
         >
           <div className="flex items-center gap-2">
-            <span className="font-condensed text-[10px] text-racing-muted uppercase tracking-wider">Section</span>
-            <span className="font-condensed font-semibold text-sm text-racing-yellow">{activeTab}</span>
+            <span className="font-condensed text-[12px] text-racing-muted uppercase tracking-wider">Section</span>
+            <span className="font-condensed font-semibold text-[15px] text-racing-yellow">{activeTab}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="font-mono text-[9px] text-racing-muted">{TABS.indexOf(activeTab) + 1}/{TABS.length}</span>
+            <span className="font-mono text-[11px] text-racing-muted">{TABS.indexOf(activeTab) + 1}/{TABS.length}</span>
             <svg className={`w-4 h-4 text-racing-yellow transition-transform ${menuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
@@ -46,13 +46,13 @@ const TabNav = ({ activeTab, onTabChange }: TabNavProps) => {
               <button
                 key={tab}
                 onClick={() => { onTabChange(tab); setMenuOpen(false); }}
-                className={`w-full text-left font-condensed font-semibold text-sm px-4 py-3 transition-colors flex items-center gap-3 ${
+                className={`w-full text-left font-condensed font-semibold text-[15px] px-4 py-3 transition-colors flex items-center gap-3 ${
                   activeTab === tab
                     ? 'text-racing-yellow bg-racing-surface2'
                     : 'text-racing-muted hover:text-racing-text'
                 } ${i < TABS.length - 1 ? 'border-b border-racing-border/30' : ''}`}
               >
-                <span className="font-mono text-[10px] text-racing-muted w-4">{i + 1}</span>
+                <span className="font-mono text-[12px] text-racing-muted w-4">{i + 1}</span>
                 {tab}
               </button>
             ))}
@@ -69,7 +69,7 @@ const TabNav = ({ activeTab, onTabChange }: TabNavProps) => {
           <button
             key={tab}
             onClick={() => onTabChange(tab)}
-            className={`font-condensed font-semibold text-sm px-4 py-3 whitespace-nowrap border-b-2 transition-colors ${
+            className={`font-condensed font-semibold text-[15px] px-4 py-3 whitespace-nowrap border-b-2 transition-colors ${
               activeTab === tab
                 ? 'text-racing-yellow border-racing-yellow'
                 : 'text-racing-muted border-transparent hover:text-racing-text'
