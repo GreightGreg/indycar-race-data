@@ -173,8 +173,14 @@ function identifyReport(lines: string[]): string | null {
     if (sessionLine.includes("Practice 1")) return "results_p1";
     if (sessionLine.includes("Practice 2")) return "results_p2";
     if (sessionLine.includes("Practice Final")) return "results_pf";
+    // Road/street course qualifying rounds
+    if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 1")) return "results_quals_group1";
+    if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 2")) return "results_quals_group2";
+    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12"))) return "results_quals_round2";
+    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6"))) return "results_quals_round3";
   }
   if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
+  if (reportLine.includes("Combined Qualifying Results") || reportLine.includes("Starting Line-Up")) return "results_quals_combined";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
   if (reportLine.includes("Section Data Report")) {
     if (sessionLine.includes("Qualifications")) return "quals_sectors";
