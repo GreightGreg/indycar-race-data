@@ -8,9 +8,9 @@ interface EngineIconProps {
 }
 
 const sizeMap = {
-  sm: 'h-3',
-  md: 'h-4',
-  lg: 'h-5',
+  sm: 'w-5 h-3',
+  md: 'w-6 h-4',
+  lg: 'w-7 h-5',
 };
 
 const EngineIcon = ({ engine, size = 'sm', className = '' }: EngineIconProps) => {
