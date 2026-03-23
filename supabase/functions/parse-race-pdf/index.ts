@@ -678,6 +678,9 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
 
   await replaceRows(supabase, "race_results", { race_id: raceId }, results);
 
+  console.log("Post-results lines for caution/penalty debug:", JSON.stringify(postResultsLines));
+  console.log("Saw caution section:", sawCautionSection, "cautions parsed:", cautions.length, "caution laps from header:", cautionLapCount);
+
   if (sawCautionSection && (cautions.length > 0 || cautionLapCount === 0)) {
     await replaceRows(supabase, "cautions", { race_id: raceId }, cautions, { allowEmpty: true });
   } else if (cautionLapCount && cautionLapCount > 0 && cautions.length === 0) {
