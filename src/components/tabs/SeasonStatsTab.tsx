@@ -54,8 +54,14 @@ const SeasonStatsTab = () => {
     const { results, racesMap } = seasonData;
 
     const lapsLedByCar: Record<string, number> = {};
+    const lapsLedByCarRound: Record<string, Record<number, number>> = {};
     (lapsLedData || []).forEach(l => {
       lapsLedByCar[l.car_number] = (lapsLedByCar[l.car_number] || 0) + l.laps_led;
+      const round = racesMap[l.race_id];
+      if (round) {
+        if (!lapsLedByCarRound[l.car_number]) lapsLedByCarRound[l.car_number] = {};
+        lapsLedByCarRound[l.car_number][round] = (lapsLedByCarRound[l.car_number][round] || 0) + l.laps_led;
+      }
     });
 
     const driverMap: Record<string, any> = {};
