@@ -5,9 +5,7 @@ import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
 import EngineIcon from '@/components/racing/EngineIcon';
 
-const CarBadge = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
-);
+import CarBadge from '@/components/racing/CarBadge';
 
 const WeekendTab = () => {
   const { raceId } = useRaceContext();

@@ -6,13 +6,7 @@ import { formatDriverName } from '@/lib/formatName';
 import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar, parseLapTimeToSeconds } from '@/lib/raceStats';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const CarBadge = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
-);
-
-const CarBadgeSm = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-[10px] w-6 h-5 rounded-sm">{num}</span>
-);
+import CarBadge from '@/components/racing/CarBadge';
 
 const SECTOR_KEYS = [
   { key: 'dogleg_time', label: 'Dogleg' },
@@ -257,7 +251,7 @@ const FastestLapsTab = () => {
                     <div key={d.car} className="bg-racing-surface rounded p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="font-heading text-xs text-racing-muted">P{d.qualPos}</span>
-                        <CarBadgeSm num={d.car} />
+                        <CarBadge size="sm" num={d.car} />
                         <span className="font-body text-xs text-racing-text flex-1">{d.name}</span>
                         <span className="font-mono text-[10px] text-racing-yellow font-bold">{bestTime}</span>
                       </div>
@@ -312,7 +306,7 @@ const FastestLapsTab = () => {
                       return (
                         <tr key={d.car} className="border-b border-racing-border/50">
                           <td className="px-2 py-1.5 font-heading text-xs text-racing-muted">P{d.qualPos}</td>
-                          <td className="px-2 py-1.5"><CarBadgeSm num={d.car} /></td>
+                          <td className="px-2 py-1.5"><CarBadge size="sm" num={d.car} /></td>
                           <td className="px-2 py-1.5 font-body text-xs text-racing-text">{d.name.split(' ')[0]}</td>
                           <td className="px-2 py-1.5 font-mono text-[10px] text-racing-text">{l1Time ? Number(l1Time).toFixed(4) : '—'}</td>
                           <td className="px-2 py-1.5 font-mono text-[10px] text-racing-text">{l2Time ? Number(l2Time).toFixed(4) : '—'}</td>
@@ -340,7 +334,7 @@ const FastestLapsTab = () => {
                   <div key={driver.car} className="bg-racing-surface rounded p-3">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-heading text-xs text-racing-muted">P{driver.qualPos}</span>
-                      <CarBadgeSm num={driver.car} />
+                      <CarBadge size="sm" num={driver.car} />
                       <span className="font-body text-xs text-racing-text flex-1">{driver.name}</span>
                       <span className="font-mono text-[10px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</span>
                     </div>
@@ -381,7 +375,7 @@ const FastestLapsTab = () => {
                     {roadCourseSectorComparison.map((driver) => (
                       <tr key={driver.car} className="border-b border-racing-border/50">
                         <td className="px-2 py-1.5 font-heading text-xs text-racing-muted">P{driver.qualPos}</td>
-                        <td className="px-2 py-1.5"><CarBadgeSm num={driver.car} /></td>
+                        <td className="px-2 py-1.5"><CarBadge size="sm" num={driver.car} /></td>
                         <td className="px-2 py-1.5 font-body text-xs text-racing-text">{driver.name}</td>
                         <td className="px-2 py-1.5 font-mono text-[10px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</td>
                         {roadCourseSectionNames.map((sectionName) => {

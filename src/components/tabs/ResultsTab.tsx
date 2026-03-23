@@ -5,9 +5,7 @@ import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';
 import { useIsMobile } from '@/hooks/use-mobile';
 
-const CarBadge = ({ num }: { num: string }) => (
-  <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
-);
+import CarBadge from '@/components/racing/CarBadge';
 
 const PosBadge = ({ pos }: { pos: number }) => {
   const bg = pos === 1 ? 'bg-racing-gold text-black' : pos === 2 ? 'bg-racing-silver text-black' : pos === 3 ? 'bg-racing-bronze text-white' : 'bg-racing-surface text-racing-muted';
