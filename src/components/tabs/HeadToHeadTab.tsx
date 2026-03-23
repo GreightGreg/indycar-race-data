@@ -103,15 +103,15 @@ const HeadToHeadTab = () => {
         </select>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-start">
-        <div className="bg-racing-surface rounded p-4 text-center">
-          <span className="font-heading text-5xl" style={{ color: DRIVER_COLORS[car1] }}>#{car1}</span>
-          <p className="font-body text-sm text-racing-text mt-2">{drivers.find(d => d.num === car1)?.name}</p>
+      <div className="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 items-center">
+        <div className="bg-racing-surface rounded p-3 sm:p-4 text-center">
+          <span className="font-heading text-3xl sm:text-5xl" style={{ color: DRIVER_COLORS[car1] }}>#{car1}</span>
+          <p className="font-body text-xs sm:text-sm text-racing-text mt-1 sm:mt-2">{drivers.find(d => d.num === car1)?.name}</p>
         </div>
-        <div className="hidden md:flex items-center justify-center"><span className="font-heading text-3xl text-racing-muted">VS</span></div>
-        <div className="bg-racing-surface rounded p-4 text-center">
-          <span className="font-heading text-5xl" style={{ color: DRIVER_COLORS[car2] }}>#{car2}</span>
-          <p className="font-body text-sm text-racing-text mt-2">{drivers.find(d => d.num === car2)?.name}</p>
+        <div className="flex items-center justify-center"><span className="font-heading text-xl sm:text-3xl text-racing-muted">VS</span></div>
+        <div className="bg-racing-surface rounded p-3 sm:p-4 text-center">
+          <span className="font-heading text-3xl sm:text-5xl" style={{ color: DRIVER_COLORS[car2] }}>#{car2}</span>
+          <p className="font-body text-xs sm:text-sm text-racing-text mt-1 sm:mt-2">{drivers.find(d => d.num === car2)?.name}</p>
         </div>
       </div>
 
