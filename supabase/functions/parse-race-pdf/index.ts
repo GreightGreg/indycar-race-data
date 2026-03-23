@@ -45,6 +45,17 @@ serve(async (req) => {
       });
     }
 
+    if (reportType === "unsupported_section_data") {
+      return new Response(JSON.stringify({
+        success: true,
+        skipped: true,
+        reportType,
+        message: "Section Data Report for non-qualifying session skipped intentionally"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     const eventInfo = parseEventInfo(page1Lines);
     const raceId = await getOrCreateRace(supabase, eventInfo);
 
@@ -165,7 +176,10 @@ function identifyReport(lines: string[]): string | null {
   }
   if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
-  if (reportLine.includes("Section Data Report") && sessionLine.includes("Qualifications")) return "quals_sectors";
+  if (reportLine.includes("Section Data Report")) {
+    if (sessionLine.includes("Qualifications")) return "quals_sectors";
+    return "unsupported_section_data";
+  }
   return null;
 }
 
