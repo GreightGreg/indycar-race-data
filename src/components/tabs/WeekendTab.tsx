@@ -18,11 +18,23 @@ const WeekendTab = () => {
   const { data: p2Results } = useSessionFullResults(raceId, 'Practice 2');
   const { data: pfResults } = useSessionFullResults(raceId, 'Practice Final');
   const { data: qualResults } = useQualifyingResults(raceId);
+  const { data: qualGroup1Results } = useSessionFullResults(raceId, 'Qualifying Group 1');
+  const { data: qualGroup2Results } = useSessionFullResults(raceId, 'Qualifying Group 2');
+  const { data: qualRound2Results } = useSessionFullResults(raceId, 'Qualifying Round 2 (Fast 12)');
+  const { data: qualRound3Results } = useSessionFullResults(raceId, 'Qualifying Round 3 (Fast 6)');
+  const { data: qualCombinedResults } = useSessionFullResults(raceId, 'Qualifying Combined');
   const { data: combinedPractice } = useCombinedPracticeResults(raceId);
   const isMobile = useIsMobile();
 
-  if (!race) return <p className="text-racing-muted font-body">Loading…</p>;
+  const roadCourseQualifyingSessions = [
+    { title: 'Qualifying Group 1', data: qualGroup1Results || [] },
+    { title: 'Qualifying Group 2', data: qualGroup2Results || [] },
+    { title: 'Qualifying Round 2 (Fast 12)', data: qualRound2Results || [] },
+    { title: 'Qualifying Round 3 (Fast 6)', data: qualRound3Results || [] },
+    { title: 'Qualifying Combined', data: qualCombinedResults || [] },
+  ].filter(session => session.data.length > 0);
 
+  if (!race) return <p className="text-racing-muted font-body">Loading…</p>;
 
   return (
     <div className="space-y-8">
@@ -157,6 +169,18 @@ const WeekendTab = () => {
       )}
 
       {/* Qualifying Results */}
+      {!!roadCourseQualifyingSessions.length && (
+        <div>
+          <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-1">Qualifying Session Results</h3>
+          <p className="font-mono text-[10px] text-racing-muted mb-3">Road and street course qualifying is shown by session: groups, Fast 12, Fast 6, and combined order when available.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {roadCourseQualifyingSessions.map(session => (
+              <SessionResultsView key={session.title} title={session.title} data={session.data} isMobile={isMobile} />
+            ))}
+          </div>
+        </div>
+      )}
+
       {qualResults && qualResults.length > 0 && (
         <div>
           <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-1">Qualifying Results</h3>

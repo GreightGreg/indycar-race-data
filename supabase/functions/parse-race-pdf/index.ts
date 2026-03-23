@@ -779,14 +779,12 @@ async function parseQualifyingResults(supabase: any, lines: string[], raceId: st
     if (line.includes("(C)hassis:")) break;
     if (!inData) continue;
 
-    // Standalone avg_speed on its own line (appears before or after the data line)
     const speedOnly = line.match(/^([\d\.]+)$/);
     if (speedOnly && parseFloat(speedOnly[1]) > 100 && parseFloat(speedOnly[1]) < 300) {
       pendingSpeed = parseFloat(speedOnly[1]);
       continue;
     }
 
-    // Full match with avg_speed on same line
     const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+([\d\.]+)\s+([\d:\.]+)\s+([\d\.]+)/);
     if (m) {
       const l1 = parseFloat(m[5]);
@@ -796,7 +794,6 @@ async function parseQualifyingResults(supabase: any, lines: string[], raceId: st
       continue;
     }
 
-    // Match WITHOUT avg_speed (it's on a separate line)
     const m2 = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+([\d\.]+)\s+([\d:\.]+)$/);
     if (m2) {
       const l1 = parseFloat(m2[5]);
@@ -812,12 +809,21 @@ async function parseQualifyingResults(supabase: any, lines: string[], raceId: st
       pendingSpeed = null;
       continue;
     }
+
     const noTimeM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+No Time/);
     if (noTimeM) {
       results.push({ race_id: raceId, qual_position: parseInt(noTimeM[1]), car_number: noTimeM[2], driver_name: noTimeM[3].trim(), engine: parseEngine(noTimeM[4]), lap1_time: null, lap2_time: null, total_time: null, avg_speed: null, best_lap_time: null, comment: "DNQ" });
       pendingSpeed = null;
+      continue;
+    }
+
+    const bareDnpM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)$/);
+    if (bareDnpM) {
+      results.push({ race_id: raceId, qual_position: parseInt(bareDnpM[1]), car_number: bareDnpM[2], driver_name: bareDnpM[3].trim(), engine: parseEngine(bareDnpM[4]), lap1_time: null, lap2_time: null, total_time: null, avg_speed: null, best_lap_time: null, comment: "DNQ" });
+      pendingSpeed = null;
     }
   }
+
   if (results.length > 0) await supabase.from("qualifying_results").insert(results);
   console.log(`Parsed qualifying: ${results.length} drivers`);
   return { drivers: results.length };
