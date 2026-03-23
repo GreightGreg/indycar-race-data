@@ -22,12 +22,14 @@ const EngineIcon = ({ engine, size = 'sm', className = '' }: EngineIconProps) =>
   }
 
   return (
-    <img
-      src={isHonda ? hondaLogo : chevyLogo}
-      alt={isHonda ? 'Honda' : 'Chevrolet'}
-      title={isHonda ? 'Honda' : 'Chevrolet'}
-      className={`${sizeMap[size]} w-auto inline-block ${className}`}
-    />
+    <span className={`${sizeMap[size]} inline-flex items-center justify-center ${className}`}>
+      <img
+        src={isHonda ? hondaLogo : chevyLogo}
+        alt={isHonda ? 'Honda' : 'Chevrolet'}
+        title={isHonda ? 'Honda' : 'Chevrolet'}
+        className="max-h-full max-w-full object-contain"
+      />
+    </span>
   );
 };
 
