@@ -383,8 +383,96 @@ function parseEngine(cet: string): string {
   return parts.length >= 2 ? (parts[1] === "C" ? "Chevy" : parts[1] === "H" ? "Honda" : "Unknown") : "Unknown";
 }
 
+function parseRacePointColumns(pointTokens: string[], roundNumber: number) {
+  if (pointTokens.length < 2) {
+    const value = pointTokens.length === 1 ? parseInt(pointTokens[0], 10) || 0 : 0;
+    return { racePoints: value, totalPoints: value };
+  }
+
+  let best: { racePoints: number; totalPoints: number; score: number } | null = null;
+
+  for (let split = 1; split < pointTokens.length; split++) {
+    const racePoints = parseInt(pointTokens.slice(0, split).join(""), 10);
+    const totalPoints = parseInt(pointTokens.slice(split).join(""), 10);
+    if (!Number.isFinite(racePoints) || !Number.isFinite(totalPoints)) continue;
+
+    let score = 0;
+    if (racePoints > 100) score += 1000;
+    if (totalPoints > 500) score += 1000;
+    if (totalPoints < racePoints) score += 250;
+    if (roundNumber === 1) score += Math.abs(totalPoints - racePoints) * 20;
+    score += Math.abs(split - pointTokens.length / 2);
+
+    if (!best || score < best.score) best = { racePoints, totalPoints, score };
+  }
+
+  return best
+    ? { racePoints: best.racePoints, totalPoints: best.totalPoints }
+    : {
+        racePoints: parseInt(pointTokens[0], 10) || 0,
+        totalPoints: parseInt(pointTokens.slice(1).join(""), 10) || 0,
+      };
+}
+
+function parseRaceResultLine(line: string, roundNumber: number) {
+  const tokens = line.trim().split(/\s+/);
+  if (tokens.length < 15) return null;
+
+  const engineIndex = tokens.findIndex((token, index) => index >= 3 && /^D\/[CH]\/F$/.test(token));
+  if (engineIndex === -1) return null;
+
+  const finishPosition = parseInt(tokens[0], 10);
+  const startPosition = parseInt(tokens[1], 10);
+  const carNumber = tokens[2];
+  const driverName = tokens.slice(3, engineIndex).join(" ").trim();
+  const engine = parseEngine(tokens[engineIndex]);
+
+  const baseIndex = engineIndex + 1;
+  if (tokens.length < baseIndex + 7) return null;
+
+  const lapsCompleted = parseInt(tokens[baseIndex], 10);
+  const lapsDown = parseInt(tokens[baseIndex + 1], 10);
+  const timeGap = tokens[baseIndex + 2];
+  const pitStops = parseInt(tokens[baseIndex + 3], 10);
+  const elapsedTime = tokens[baseIndex + 4];
+  const avgSpeed = parseFloat(tokens[baseIndex + 5]);
+  const tailTokens = tokens.slice(baseIndex + 6);
+  if (!tailTokens.length || !/^\d+$/.test(tailTokens[tailTokens.length - 1])) return null;
+
+  const championshipRank = parseInt(tailTokens[tailTokens.length - 1], 10);
+  const tailWithoutRank = tailTokens.slice(0, -1);
+
+  let pointsStartIndex = tailWithoutRank.length;
+  while (pointsStartIndex > 0 && /^\d+$/.test(tailWithoutRank[pointsStartIndex - 1])) {
+    pointsStartIndex -= 1;
+  }
+
+  const statusTokens = tailWithoutRank.slice(0, pointsStartIndex);
+  const pointTokens = tailWithoutRank.slice(pointsStartIndex);
+  if (!pointTokens.length) return null;
+
+  const { racePoints, totalPoints } = parseRacePointColumns(pointTokens, roundNumber);
+
+  return {
+    finish_position: finishPosition,
+    start_position: startPosition,
+    car_number: carNumber,
+    driver_name: driverName,
+    engine,
+    laps_completed: Number.isFinite(lapsCompleted) ? lapsCompleted : 0,
+    laps_down: Number.isFinite(lapsDown) ? lapsDown : 0,
+    time_gap: timeGap,
+    pit_stops: Number.isFinite(pitStops) ? pitStops : 0,
+    elapsed_time: elapsedTime,
+    avg_speed: Number.isFinite(avgSpeed) ? avgSpeed : 0,
+    status: statusTokens.join(" ").trim() || "Running",
+    race_points: racePoints,
+    total_points: totalPoints,
+    championship_rank: championshipRank,
+  };
+}
+
 async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventInfo: any) {
-  // Read ALL pages (cautions/penalties are on page 2+)
   const allLines: string[] = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const pageLines = await getPageLines(pdf, p);
@@ -425,7 +513,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   const results = [];
   const cautions = [];
   const penalties = [];
-  let section = "header"; // header | results | leadchanges | cautions | penalties
+  let section = "header";
   let sawCautionSection = false;
   let sawPenaltySection = false;
   const cautionLapCount = cautionLapsMatch ? parseInt(cautionLapsMatch[1]) : null;
@@ -439,30 +527,12 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     if (section === "done") break;
 
     if (section === "results") {
-      const m = line.match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+(\d+)\s+(\d+)\s+([\d\-\.]+)\s+(\d+)\s+([\d:\.]+)\s+([\d\.]+)\s+(\w+)\s+(\d+)\s+(\d+)\s+(\d+)/);
-      if (m) {
-        results.push({
-          race_id: raceId,
-          finish_position: parseInt(m[1]),
-          start_position: parseInt(m[2]),
-          car_number: m[3],
-          driver_name: m[4].trim(),
-          engine: parseEngine(m[5]),
-          laps_completed: parseInt(m[6]),
-          laps_down: parseInt(m[7]),
-          time_gap: m[8],
-          pit_stops: parseInt(m[9]),
-          elapsed_time: m[10],
-          avg_speed: parseFloat(m[11]),
-          status: m[12],
-          race_points: parseInt(m[13]),
-          total_points: parseInt(m[14]),
-          championship_rank: parseInt(m[15])
-        });
+      const parsedRow = parseRaceResultLine(line, eventInfo?.roundNumber || 0);
+      if (parsedRow) {
+        results.push({ race_id: raceId, ...parsedRow });
       }
     }
     if (section === "cautions") {
-      // Format variations: "# Start End Laps Reason" or "# Start to End TotalLaps Reason"
       const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
       if (m && parseInt(m[1]) <= 30 && parseInt(m[2]) > 0) {
         const startLap = parseInt(m[2]);
