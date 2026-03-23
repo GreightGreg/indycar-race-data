@@ -26,6 +26,10 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('Race Results');
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
   const { data: races, isLoading } = useRaces();
   const [selectedRaceId, setSelectedRaceId] = useState<string | null>(null);
 
