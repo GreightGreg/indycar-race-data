@@ -292,43 +292,57 @@ function parseEventInfo(lines: string[]) {
   return { eventName, roundNumber, trackName, trackLengthMiles, sessionDate, year };
 }
 
-async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
-  console.log("getOrCreateRace called with:", JSON.stringify({ round: eventInfo.roundNumber, year: eventInfo.year, track: eventInfo.trackName }));
+function normalizeLookupValue(value: string | null | undefined): string {
+  return (value || "")
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(grand prix|raceway|streets?|speedway|track|mile|miles|of|the|at)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  // Try matching on round_number + year first (skip if round is 0)
+async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
+  console.log("getOrCreateRace called with:", JSON.stringify({
+    round: eventInfo.roundNumber, year: eventInfo.year,
+    track: eventInfo.trackName, event: eventInfo.eventName, date: eventInfo.sessionDate
+  }));
+
+  // 1) Exact round + year match
   if (eventInfo.roundNumber > 0) {
-    const { data: existing, error: e1 } = await supabase
-      .from("races")
-      .select("id")
+    const { data: existing } = await supabase
+      .from("races").select("id")
       .eq("round_number", eventInfo.roundNumber)
       .eq("year", eventInfo.year)
       .maybeSingle();
-    if (e1) console.error("Lookup error (round+year):", e1.message);
-    if (existing) { console.log("Found existing race by round+year:", existing.id); return existing.id; }
+    if (existing) { console.log("Found race by round+year:", existing.id); return existing.id; }
 
-    const { data: existing2, error: e2 } = await supabase
-      .from("races")
-      .select("id")
+    const { data: existing2 } = await supabase
+      .from("races").select("id")
       .eq("round_number", eventInfo.roundNumber)
       .eq("season_year", eventInfo.year)
       .maybeSingle();
-    if (e2) console.error("Lookup error (round+season_year):", e2.message);
-    if (existing2) { console.log("Found existing race by round+season_year:", existing2.id); return existing2.id; }
+    if (existing2) { console.log("Found race by round+season_year:", existing2.id); return existing2.id; }
   }
 
-  // Try matching by track name + year (for event summary where round may be 0)
-  if (eventInfo.trackName) {
-    const { data: byTrack, error: e3 } = await supabase
-      .from("races")
-      .select("id")
-      .eq("year", eventInfo.year)
-      .ilike("track_name", `%${eventInfo.trackName.split(' ')[0]}%`)
-      .maybeSingle();
-    if (e3) console.error("Lookup error (track):", e3.message);
-    if (byTrack) { console.log("Found existing race by track:", byTrack.id); return byTrack.id; }
+  // 2) Fuzzy match against all races for the year
+  const { data: candidates } = await supabase
+    .from("races")
+    .select("id, event_name, track_name, round_number")
+    .or(`year.eq.${eventInfo.year},season_year.eq.${eventInfo.year}`);
+
+  if (candidates && candidates.length > 0) {
+    const normEvent = normalizeLookupValue(eventInfo.eventName);
+    const normTrack = normalizeLookupValue(eventInfo.trackName);
+    const match = candidates.find((c: any) =>
+      normalizeLookupValue(c.event_name) === normEvent ||
+      normalizeLookupValue(c.track_name) === normTrack
+    );
+    if (match) { console.log("Found race by fuzzy name/track:", match.id); return match.id; }
   }
 
-  console.log("Creating new race for round", eventInfo.roundNumber, "date:", eventInfo.sessionDate);
+  // 3) Create new race
+  console.log("Creating new race — round:", eventInfo.roundNumber, "date:", eventInfo.sessionDate);
   const { data: newRace, error } = await supabase
     .from("races")
     .insert({
