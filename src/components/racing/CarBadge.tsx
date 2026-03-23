@@ -1,4 +1,4 @@
-const CAR_COLORS: Record<string, string> = {
+export const CAR_COLORS: Record<string, string> = {
   '2':  '#FFFFFF',
   '3':  '#FFFFFF',
   '4':  '#FFFFFF',

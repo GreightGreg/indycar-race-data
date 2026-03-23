@@ -1,12 +1,13 @@
 import { useState, useMemo } from 'react';
 import { useRaceContext } from '@/contexts/RaceContext';
-import { useFastestLaps, useFastestLapRowsForSession, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
+import { useRaceDetails, useFastestLapRowsForSession, useFastestLapSessionTypes } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
 import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar, parseLapTimeToSeconds } from '@/lib/raceStats';
 import { useIsMobile } from '@/hooks/use-mobile';
-
 import CarBadge from '@/components/racing/CarBadge';
+import { CAR_COLORS } from '@/components/racing/CarBadge';
+import { ChevronDown } from 'lucide-react';
 
 const SECTOR_KEYS = [
   { key: 'dogleg_time', label: 'Dogleg' },
@@ -21,43 +22,42 @@ const SECTOR_KEYS = [
 ] as const;
 
 const getRoadCourseSectionDisplay = (value?: string | null) => value || '—';
-
 const getRoadCourseSectionValue = (value?: string | null) => parseLapTimeToSeconds(value);
 
-const FastestLapsTab = () => {
+const PIT_SECTION_PATTERNS = ['PI to', 'SFP to', 'PIC to', 'PO to', 'SF to', 'T1T to', 'T3T to', 'T4T to', 'I9ET', 'I13AT', 'I14 to'];
+
+const TrackDominanceTab = () => {
   const { raceId } = useRaceContext();
   const [sessionType, setSessionType] = useState('Race');
-  const [selectedSection, setSelectedSection] = useState('Lap');
+  const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
+  const { data: race } = useRaceDetails(raceId);
   const { data: availableSessions } = useFastestLapSessionTypes(raceId);
-  const { data: sections } = useFastestLapSections(raceId, sessionType);
-  const { data: laps } = useFastestLaps(raceId, selectedSection, sessionType);
   const { data: sessionFastestRows } = useFastestLapRowsForSession(raceId, sessionType);
   const { data: qualSectors } = useQualifyingSectors(raceId);
   const { data: qualResults } = useQualifyingResults(raceId);
 
-  const sectionOptions = useMemo(() => {
-    const unique = new Map<string, { name: string; distance: string }>();
-
-    for (const section of sections || []) {
-      if (!unique.has(section.section_name)) {
-        unique.set(section.section_name, {
-          name: section.section_name,
-          distance: section.section_length_miles ? `${Number(section.section_length_miles).toFixed(3)} mi` : '',
-        });
-      }
+  // Section dominance: group by section, take P1 for summary
+  const sectionMap = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const row of sessionFastestRows || []) {
+      if (!map.has(row.section_name)) map.set(row.section_name, []);
+      map.get(row.section_name)!.push(row);
     }
+    for (const [, rows] of map) rows.sort((a: any, b: any) => a.rank - b.rank);
+    return map;
+  }, [sessionFastestRows]);
 
-    return Array.from(unique.values());
-  }, [sections]);
+  const racingSections = useMemo(() => {
+    const sections = Array.from(sectionMap.keys()).filter(name =>
+      !PIT_SECTION_PATTERNS.some(p => name.includes(p))
+    );
+    return ['Lap', ...sections.filter(s => s !== 'Lap')].filter(s => sectionMap.has(s));
+  }, [sectionMap]);
 
-  const displayLaps = useMemo(
-    () => sessionType === 'Qualifying' ? aggregateFastestLapRows(laps) : (laps || []),
-    [laps, sessionType],
-  );
-
+  // ---- Qualifying sector comparison (copied from FastestLapsTab) ----
   const qualifyingSectorDriverCount = useMemo(
     () => new Set((qualSectors || []).map((row) => row.car_number)).size,
     [qualSectors],
@@ -70,7 +70,6 @@ const FastestLapsTab = () => {
 
   const roadCourseSectionNames = useMemo(() => {
     if (sessionType !== 'Qualifying') return [] as string[];
-
     return Array.from(new Set(
       (sessionFastestRows || [])
         .map((row) => row.section_name)
@@ -80,7 +79,6 @@ const FastestLapsTab = () => {
 
   const ovalSectorComparison = useMemo(() => {
     if (!hasCompleteOvalSectorData || !qualSectors || !qualResults) return [];
-
     const driverMap = new Map<string, { car: string; name: string; qualPos: number; laps: any[] }>();
     for (const qs of qualSectors) {
       if (!driverMap.has(qs.car_number)) {
@@ -89,16 +87,13 @@ const FastestLapsTab = () => {
       }
       driverMap.get(qs.car_number)!.laps.push(qs);
     }
-
     return Array.from(driverMap.values()).sort((a, b) => a.qualPos - b.qualPos);
   }, [hasCompleteOvalSectorData, qualResults, qualSectors]);
 
   const roadCourseSectorComparison = useMemo(() => {
     if (sessionType !== 'Qualifying' || hasCompleteOvalSectorData) return [];
-
     const qualifyingFastestRows = (sessionFastestRows || []).filter((row) => row.section_name !== 'Lap');
     if (!qualifyingFastestRows.length) return [];
-
     return aggregateFastestLapSectionsByCar(sessionFastestRows)
       .map((driver) => {
         const qr = (qualResults || []).find((q) => q.car_number === driver.car_number);
@@ -116,7 +111,6 @@ const FastestLapsTab = () => {
   const bestSectorTimes = useMemo(() => {
     if (hasCompleteOvalSectorData) {
       if (!qualSectors) return {} as Record<string, number>;
-
       const bests: Record<string, number> = {};
       for (const key of SECTOR_KEYS) {
         let min = Infinity;
@@ -128,7 +122,6 @@ const FastestLapsTab = () => {
       }
       return bests;
     }
-
     const bests: Record<string, number> = {};
     for (const sectionName of roadCourseSectionNames) {
       let min = Infinity;
@@ -155,13 +148,14 @@ const FastestLapsTab = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="font-heading text-2xl text-racing-text">Fastest Laps</h2>
+      <h2 className="font-heading text-2xl text-racing-text">Track Dominance</h2>
 
+      {/* Session selector */}
       <div className="flex flex-wrap gap-2">
         {(availableSessions || []).map(opt => (
           <button
             key={opt}
-            onClick={() => { setSessionType(opt); setSelectedSection('Lap'); }}
+            onClick={() => { setSessionType(opt); setExpandedSection(null); }}
             className={`px-3 py-1.5 rounded text-xs font-condensed font-semibold uppercase transition-all ${
               sessionType === opt
                 ? 'bg-racing-yellow/10 text-racing-yellow border border-racing-yellow/30'
@@ -173,62 +167,158 @@ const FastestLapsTab = () => {
         ))}
       </div>
 
-      <div>
-        <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">Track Section Breakdown</h3>
-        <select
-          value={selectedSection}
-          onChange={e => setSelectedSection(e.target.value)}
-          className="bg-racing-surface border border-racing-border text-racing-text font-body text-sm px-3 py-2 rounded mb-4 w-full sm:w-auto"
-        >
-          {sectionOptions.map(s => (
-            <option key={s.name} value={s.name}>{s.name} {s.distance ? `(${s.distance})` : ''}</option>
-          ))}
-        </select>
+      {/* Main layout: Track map + Section dominance */}
+      <div className={`${isMobile ? 'flex flex-col gap-6' : 'grid grid-cols-[55%_45%] gap-6'}`}>
+        {/* Track Map - on desktop left, on mobile after table */}
+        {!isMobile && (
+          <div>
+            {race?.track_map_url ? (
+              <div className="bg-racing-surface rounded-lg border border-racing-border p-4">
+                <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-3">
+                  {race.track_name} — Track Map
+                </h3>
+                <img src={race.track_map_url} alt={`${race.track_name} track map`} className="w-full rounded" />
+                <p className="font-mono text-[10px] text-racing-muted mt-2">
+                  Section labels correspond to timing zones in the dominance table →
+                </p>
+              </div>
+            ) : (
+              <div className="bg-racing-surface rounded-lg border border-racing-border p-8 flex items-center justify-center min-h-[300px]">
+                <p className="font-condensed text-sm text-racing-muted text-center">
+                  Track map available after event summary PDF is uploaded
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Section Dominance Table */}
+        <div>
+          <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">Section Dominance</h3>
+          <div className="space-y-px">
+            {/* Header */}
+            {!isMobile && (
+              <div className="grid grid-cols-[1fr_60px_auto_90px_70px_40px_24px] gap-1 px-2 py-1.5 border-b border-racing-border">
+                <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase">Section</span>
+                <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase">Length</span>
+                <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase">P1 Driver</span>
+                <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase text-right">Time</span>
+                <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase text-right">Speed</span>
+                <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase text-right">Lap</span>
+                <span />
+              </div>
+            )}
+
+            {racingSections.map(sectionName => {
+              const rows = sectionMap.get(sectionName) || [];
+              const p1 = rows[0];
+              if (!p1) return null;
+              const isExpanded = expandedSection === sectionName;
+              const borderColor = CAR_COLORS[p1.car_number] || 'hsl(var(--racing-blue))';
+              const sectionLength = p1.section_length_miles ? `${Number(p1.section_length_miles).toFixed(3)}` : '—';
+
+              return (
+                <div key={sectionName}>
+                  {/* Summary row */}
+                  <button
+                    onClick={() => setExpandedSection(isExpanded ? null : sectionName)}
+                    className="w-full text-left bg-racing-surface hover:bg-racing-surface2/50 transition-colors rounded-sm"
+                    style={{ borderLeft: `3px solid ${borderColor}` }}
+                  >
+                    {isMobile ? (
+                      <div className="px-3 py-2.5 flex items-center gap-2">
+                        <CarBadge num={p1.car_number} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-condensed text-xs text-racing-text font-semibold">{sectionName}</span>
+                            <span className="font-mono text-[9px] text-racing-muted">{sectionLength} mi</span>
+                          </div>
+                          <div className="flex gap-3 mt-0.5">
+                            <span className="font-body text-[11px] text-racing-text">{formatDriverName(p1.driver_name)}</span>
+                            <span className="font-mono text-[10px] text-racing-yellow">{p1.section_time || p1.time}</span>
+                            <span className="font-mono text-[10px] text-racing-muted">{Number(p1.section_speed ?? p1.speed)?.toFixed(3)} mph</span>
+                          </div>
+                        </div>
+                        <ChevronDown className={`w-3.5 h-3.5 text-racing-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-[1fr_60px_auto_90px_70px_40px_24px] gap-1 items-center px-2 py-2">
+                        <span className="font-condensed text-xs text-racing-text">{sectionName}</span>
+                        <span className="font-mono text-[10px] text-racing-muted">{sectionLength}</span>
+                        <div className="flex items-center gap-1.5">
+                          <CarBadge num={p1.car_number} size="sm" />
+                          <span className="font-body text-xs text-racing-text">{formatDriverName(p1.driver_name)}</span>
+                        </div>
+                        <span className="font-mono text-xs text-racing-yellow text-right">{p1.section_time || p1.time}</span>
+                        <span className="font-mono text-[10px] text-racing-text text-right">{Number(p1.section_speed ?? p1.speed)?.toFixed(3)}</span>
+                        <span className="font-mono text-[10px] text-racing-muted text-right">L{p1.lap_number}</span>
+                        <ChevronDown className={`w-3.5 h-3.5 text-racing-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Expanded rankings */}
+                  {isExpanded && (
+                    <div className="bg-racing-bg border-l-[3px] border-racing-border/30 ml-[3px]">
+                      {rows.map((row: any, idx: number) => (
+                        <div
+                          key={row.id}
+                          className={`${idx === 0 ? 'bg-racing-surface2/40' : idx % 2 === 0 ? 'bg-racing-surface/30' : ''}`}
+                        >
+                          {isMobile ? (
+                            <div className="px-3 py-1.5 flex items-center gap-2">
+                              <span className="font-heading text-[10px] text-racing-muted w-5">{row.rank}</span>
+                              <CarBadge num={row.car_number} size="sm" />
+                              <span className="font-body text-[11px] text-racing-text flex-1">{formatDriverName(row.driver_name)}</span>
+                              <span className="font-mono text-[10px] text-racing-yellow">{row.section_time || row.time}</span>
+                              <span className="font-mono text-[9px] text-racing-muted">L{row.lap_number}</span>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-[1fr_60px_auto_90px_70px_40px_24px] gap-1 items-center px-2 py-1">
+                              <span className="font-heading text-[10px] text-racing-muted">P{row.rank}</span>
+                              <span />
+                              <div className="flex items-center gap-1.5">
+                                <CarBadge num={row.car_number} size="sm" />
+                                <span className="font-body text-xs text-racing-text">{formatDriverName(row.driver_name)}</span>
+                              </div>
+                              <span className="font-mono text-[10px] text-racing-text text-right">{row.section_time || row.time}</span>
+                              <span className="font-mono text-[10px] text-racing-text text-right">{Number(row.section_speed ?? row.speed)?.toFixed(3)}</span>
+                              <span className="font-mono text-[10px] text-racing-muted text-right">L{row.lap_number}</span>
+                              <span />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Track map on mobile (after table) */}
+        {isMobile && (
+          <div>
+            {race?.track_map_url ? (
+              <div className="bg-racing-surface rounded-lg border border-racing-border p-4">
+                <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-3">
+                  {race.track_name} — Track Map
+                </h3>
+                <img src={race.track_map_url} alt={`${race.track_name} track map`} className="w-full rounded" />
+              </div>
+            ) : (
+              <div className="bg-racing-surface rounded-lg border border-racing-border p-6 flex items-center justify-center">
+                <p className="font-condensed text-sm text-racing-muted text-center">
+                  Track map available after event summary PDF is uploaded
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {isMobile ? (
-        <div className="space-y-1.5">
-          {displayLaps.map(f => (
-            <div key={f.id} className="bg-racing-surface rounded p-3 flex items-center gap-2.5">
-              <span className="font-heading text-sm text-racing-muted w-5 shrink-0">{f.rank}</span>
-              <CarBadge num={f.car_number} />
-              <div className="min-w-0 flex-1">
-                <p className="font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</p>
-                <div className="flex gap-3 mt-0.5">
-                  <span className="font-mono text-[10px] text-racing-text">{f.section_time || f.time}{selectedSection !== 'Lap' ? 's' : ''}</span>
-                  <span className="font-mono text-[10px] text-racing-yellow">{Number(f.section_speed ?? f.speed)?.toFixed(3)} mph</span>
-                  <span className="font-mono text-[10px] text-racing-muted">L{f.lap_number}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-left">
-            <thead>
-              <tr className="border-b border-racing-border">
-                {['Rank','Car','Driver','Time','Speed','Lap'].map(h => (
-                  <th key={h} className="font-condensed font-semibold text-xs text-racing-muted uppercase px-3 py-2">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {displayLaps.map(f => (
-                <tr key={f.id} className="border-b border-racing-border/50">
-                  <td className="px-3 py-2 font-heading text-sm text-racing-muted">{f.rank}</td>
-                  <td className="px-3 py-2"><CarBadge num={f.car_number} /></td>
-                  <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-racing-text">{f.section_time || f.time}{selectedSection !== 'Lap' ? 's' : ''}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{Number(f.section_speed ?? f.speed)?.toFixed(3)}</td>
-                  <td className="px-3 py-2 font-mono text-xs text-racing-muted">L{f.lap_number}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
+      {/* Qualifying Sector Comparison — copied verbatim from FastestLapsTab */}
       {sessionType === 'Qualifying' && (ovalSectorComparison.length > 0 || roadCourseSectorComparison.length > 0) && (
         <div className="space-y-6">
           <div>
@@ -512,4 +602,4 @@ const FastestLapsTab = () => {
   );
 };
 
-export default FastestLapsTab;
+export default TrackDominanceTab;

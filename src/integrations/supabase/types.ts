@@ -672,6 +672,7 @@ export type Database = {
           total_passes: number | null
           total_race_time: string | null
           track_length_miles: number | null
+          track_map_url: string | null
           track_name: string
           year: number
         }
@@ -708,6 +709,7 @@ export type Database = {
           total_passes?: number | null
           total_race_time?: string | null
           track_length_miles?: number | null
+          track_map_url?: string | null
           track_name: string
           year: number
         }
@@ -744,6 +746,7 @@ export type Database = {
           total_passes?: number | null
           total_race_time?: string | null
           track_length_miles?: number | null
+          track_map_url?: string | null
           track_name?: string
           year?: number
         }
