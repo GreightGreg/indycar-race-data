@@ -32,13 +32,13 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 interface CarBadgeProps {
   num: string;
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const CarBadge = ({ num, size = 'md' }: CarBadgeProps) => {
   const bg = CAR_COLORS[num];
-  const dim = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  const imgSize = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
+  const dim = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-16 h-16' : 'w-8 h-8';
+  const imgSize = size === 'sm' ? 'w-5 h-5' : size === 'lg' ? 'w-12 h-12' : 'w-6 h-6';
   const isDark = !bg || DARK_COLORS.has(bg);
 
   const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/car-numbers/${num}.webp`;
@@ -62,7 +62,7 @@ const CarBadge = ({ num, size = 'md' }: CarBadgeProps) => {
           const parent = target.parentElement;
           if (parent && !parent.querySelector('.car-badge-fallback')) {
             const span = document.createElement('span');
-            span.className = `car-badge-fallback font-heading text-white ${size === 'sm' ? 'text-[10px]' : 'text-xs'}`;
+            span.className = `car-badge-fallback font-heading text-white ${size === 'sm' ? 'text-[10px]' : size === 'lg' ? 'text-2xl' : 'text-xs'}`;
             span.textContent = num;
             parent.appendChild(span);
           }
