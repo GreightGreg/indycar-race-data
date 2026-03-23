@@ -1,40 +1,41 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export const useSeasonRaces = (year: number | null) =>
+export const useSeasonRaces = (year: number | null, throughRound?: number | null) =>
   useQuery({
-    queryKey: ['season_races', year],
+    queryKey: ['season_races', year, throughRound],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('races')
         .select('*')
         .eq('year', year!)
         .eq('status', 'complete')
         .order('round_number');
+      if (throughRound) query = query.lte('round_number', throughRound);
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
     enabled: !!year,
   });
 
-export const useSeasonResults = (year: number | null) =>
+export const useSeasonResults = (year: number | null, throughRound?: number | null) =>
   useQuery({
-    queryKey: ['season_results', year],
+    queryKey: ['season_results', year, throughRound],
     queryFn: async () => {
-      // Get all race_ids for this season year
-      const { data: races, error: racesErr } = await supabase
+      let racesQuery = supabase
         .from('races')
         .select('id, round_number')
         .eq('year', year!)
         .eq('status', 'complete')
         .order('round_number');
+      if (throughRound) racesQuery = racesQuery.lte('round_number', throughRound);
+      const { data: races, error: racesErr } = await racesQuery;
       if (racesErr) throw racesErr;
-      if (!races?.length) return { results: [], raceIds: [], rounds: [] };
+      if (!races?.length) return { results: [], raceIds: [], rounds: [], racesMap: {} };
 
       const raceIds = races.map(r => r.id);
-      const rounds = races.map(r => r.round_number);
 
-      // Paginate results since many races × many drivers can exceed 1000
       const allResults: any[] = [];
       let from = 0;
       const pageSize = 1000;
@@ -50,20 +51,27 @@ export const useSeasonResults = (year: number | null) =>
         from += pageSize;
       }
 
-      return { results: allResults, raceIds, rounds, racesMap: Object.fromEntries(races.map(r => [r.id, r.round_number])) };
+      return {
+        results: allResults,
+        raceIds,
+        rounds: races.map(r => r.round_number),
+        racesMap: Object.fromEntries(races.map(r => [r.id, r.round_number])),
+      };
     },
     enabled: !!year,
   });
 
-export const useSeasonLapsLed = (year: number | null) =>
+export const useSeasonLapsLed = (year: number | null, throughRound?: number | null) =>
   useQuery({
-    queryKey: ['season_laps_led', year],
+    queryKey: ['season_laps_led', year, throughRound],
     queryFn: async () => {
-      const { data: races } = await supabase
+      let racesQuery = supabase
         .from('races')
         .select('id')
         .eq('year', year!)
         .eq('status', 'complete');
+      if (throughRound) racesQuery = racesQuery.lte('round_number', throughRound);
+      const { data: races } = await racesQuery;
       if (!races?.length) return [];
 
       const raceIds = races.map(r => r.id);
@@ -77,15 +85,17 @@ export const useSeasonLapsLed = (year: number | null) =>
     enabled: !!year,
   });
 
-export const useSeasonFastestPitTransit = (year: number | null) =>
+export const useSeasonFastestPitTransit = (year: number | null, throughRound?: number | null) =>
   useQuery({
-    queryKey: ['season_fastest_pit_transit', year],
+    queryKey: ['season_fastest_pit_transit', year, throughRound],
     queryFn: async () => {
-      const { data: races } = await supabase
+      let racesQuery = supabase
         .from('races')
         .select('id, event_name, round_number')
         .eq('year', year!)
         .eq('status', 'complete');
+      if (throughRound) racesQuery = racesQuery.lte('round_number', throughRound);
+      const { data: races } = await racesQuery;
       if (!races?.length) return [];
 
       const raceIds = races.map(r => r.id);
