@@ -441,7 +441,7 @@ async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {
   return { laps: laps.length };
 }
 
-async function parseLapChart(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parseLapChart(supabase: any, pdf: any, raceId: string) {
   await supabase.from("race_positions").delete().eq("race_id", raceId);
   const carPositions: Record<string, Record<number, number>> = {};
 
