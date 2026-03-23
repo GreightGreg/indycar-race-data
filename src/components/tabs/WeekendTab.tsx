@@ -269,7 +269,7 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
                   <td className="px-2 py-1.5 font-heading text-sm text-racing-muted">{d.rank}</td>
                   <td className="px-2 py-1.5"><span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-xs w-7 h-5 rounded-sm">{d.car_number}</span></td>
                   <td className="px-2 py-1.5 font-body text-xs text-racing-text">{formatDriverName(d.driver_name)}</td>
-                  <td className="px-2 py-1.5"><span className={`font-mono text-[10px] ${d.engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{d.engine}</span></td>
+                  <td className="px-2 py-1.5"><EngineIcon engine={d.engine || ''} /></td>
                   <td className="px-2 py-1.5 font-mono text-xs text-racing-yellow">{d.best_time}s</td>
                   <td className="px-2 py-1.5 font-mono text-xs text-racing-text">{Number(d.best_speed).toFixed(3)} mph</td>
                   <td className="px-2 py-1.5 font-mono text-[10px] text-racing-muted">{d.diff_to_leader || '—'}</td>
