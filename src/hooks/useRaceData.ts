@@ -8,7 +8,6 @@ export const useRaces = () =>
       const { data, error } = await supabase
         .from('races')
         .select('*, seasons(*)')
-        .eq('status', 'complete')
         .order('year', { ascending: false })
         .order('round_number', { ascending: false });
       if (error) throw error;
