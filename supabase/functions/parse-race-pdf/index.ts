@@ -57,7 +57,9 @@ serve(async (req) => {
     }
 
     const eventInfo = parseEventInfo(page1Lines);
+    console.log("Calling getOrCreateRace...");
     const raceId = await getOrCreateRace(supabase, eventInfo);
+    console.log("Got raceId:", raceId, "— now parsing", reportType);
 
     let result;
     switch (reportType) {
