@@ -28,7 +28,7 @@ serve(async (req) => {
 
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    const pdf = await getDocument(uint8Array);
+    const pdf = await getDocumentProxy(uint8Array);
 
     const pages: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
