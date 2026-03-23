@@ -32,9 +32,9 @@ const LapsLedTab = () => {
 
       <div style={{ height: isMobile ? 350 : 400 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={barData} layout="vertical" margin={{ left: isMobile ? 10 : 100, right: 20, top: 10, bottom: 10 }}>
-            <XAxis type="number" domain={[0, totalLaps]} tick={{ fill: '#5a7a94', fontSize: 11, fontFamily: 'DM Mono' }} tickCount={isMobile ? 5 : undefined} />
-            <YAxis type="category" dataKey="name" tick={{ fill: '#dce8f0', fontSize: isMobile ? 10 : 12, fontFamily: 'Barlow' }} width={isMobile ? 110 : 100} />
+          <BarChart data={barData} layout="vertical" margin={{ left: 0, right: 20, top: 10, bottom: 10 }}>
+            <XAxis type="number" domain={[0, totalLaps]} tick={{ fill: '#5a7a94', fontSize: 11, fontFamily: 'DM Mono' }} tickCount={isMobile ? 4 : undefined} />
+            <YAxis type="category" dataKey="name" tick={{ fill: '#dce8f0', fontSize: isMobile ? 9 : 12, fontFamily: 'Barlow' }} width={isMobile ? 85 : 100} />
             <Tooltip
               contentStyle={{ backgroundColor: '#0d1620', border: '1px solid #1e2e40', borderRadius: 4 }}
               formatter={(v: number) => [`${v} laps`, 'Laps Led']}
