@@ -184,6 +184,8 @@ function identifyReport(lines: string[]): string | null {
     if (sessionLine.includes("Qualifications")) return "section_times_quals";
     if (sessionLine.includes("Race")) return "section_times_race";
   }
+  // Must check "Official Results of Session" BEFORE generic "Results of Session"
+  if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
   if (reportLine.includes("Results of Session")) {
     if (sessionLine.includes("Practice 1")) return "results_p1";
     if (sessionLine.includes("Practice 2")) return "results_p2";
@@ -193,8 +195,9 @@ function identifyReport(lines: string[]): string | null {
     if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 2")) return "results_quals_group2";
     if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12") || sessionLine.includes("Segment 2") || sessionLine.includes("Top 12"))) return "results_quals_round2";
     if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6") || sessionLine.includes("Segment 3"))) return "results_quals_round3";
+    // Generic qualifying session results (e.g. combined starting order)
+    if (sessionLine.includes("Qualifications")) return "results_quals_combined";
   }
-  if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
   if (reportLine.includes("Combined Qualifying Results") || reportLine.includes("Starting Line-Up")) return "results_quals_combined";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
   if (reportLine.includes("Section Data Report")) {
@@ -744,23 +747,42 @@ async function parseSessionResults(supabase: any, lines: string[], raceId: strin
         total_laps: parseInt(m[10])
       });
     } else {
-      // DNP driver — has rank, car, name, engine but no times
-      const dnp = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s*(\d+)?$/);
-      if (dnp) {
+      // Combined qualifying format: rank car driver engine time speed sessionName
+      const mCombined = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d:\.]+)\s+([\d\.]+)\s+(.+)$/);
+      if (mCombined && !mCombined[7].match(/^\d/)) {
         results.push({
           race_id: raceId,
           session_type: sessionType,
-          rank: parseInt(dnp[1]),
-          car_number: dnp[2],
-          driver_name: dnp[3].trim(),
-          engine: parseEngine(dnp[4]),
-          best_time: null,
-          best_speed: null,
+          rank: parseInt(mCombined[1]),
+          car_number: mCombined[2],
+          driver_name: mCombined[3].trim(),
+          engine: parseEngine(mCombined[4]),
+          best_time: mCombined[5],
+          best_speed: parseFloat(mCombined[6]),
           diff_to_leader: null,
           gap_to_ahead: null,
           best_lap_number: null,
-          total_laps: dnp[5] ? parseInt(dnp[5]) : 0
+          total_laps: null
         });
+      } else {
+        // DNP driver — has rank, car, name, engine but no times
+        const dnp = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s*(\d+)?$/);
+        if (dnp) {
+          results.push({
+            race_id: raceId,
+            session_type: sessionType,
+            rank: parseInt(dnp[1]),
+            car_number: dnp[2],
+            driver_name: dnp[3].trim(),
+            engine: parseEngine(dnp[4]),
+            best_time: null,
+            best_speed: null,
+            diff_to_leader: null,
+            gap_to_ahead: null,
+            best_lap_number: null,
+            total_laps: dnp[5] ? parseInt(dnp[5]) : 0
+          });
+        }
       }
     }
   }
