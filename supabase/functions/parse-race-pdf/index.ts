@@ -229,18 +229,30 @@ function parseEventInfo(lines: string[]) {
 }
 
 async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
+  // Try matching on round_number + year first
   const { data: existing } = await supabase
     .from("races")
     .select("id")
     .eq("round_number", eventInfo.roundNumber)
-    .eq("season_year", eventInfo.year)
-    .single();
+    .eq("year", eventInfo.year)
+    .maybeSingle();
   if (existing) return existing.id;
+
+  // Also try season_year
+  const { data: existing2 } = await supabase
+    .from("races")
+    .select("id")
+    .eq("round_number", eventInfo.roundNumber)
+    .eq("season_year", eventInfo.year)
+    .maybeSingle();
+  if (existing2) return existing2.id;
+
   const { data: newRace, error } = await supabase
     .from("races")
     .insert({
       event_name: eventInfo.eventName,
       track_name: eventInfo.trackName,
+      track_length_miles: eventInfo.trackLengthMiles,
       round_number: eventInfo.roundNumber,
       season_year: eventInfo.year,
       year: eventInfo.year,
