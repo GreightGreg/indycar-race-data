@@ -8,9 +8,9 @@ interface EngineIconProps {
 }
 
 const sizeMap = {
-  sm: 'h-3',
-  md: 'h-4',
-  lg: 'h-5',
+  sm: 'w-5 h-3',
+  md: 'w-6 h-4',
+  lg: 'w-7 h-5',
 };
 
 const EngineIcon = ({ engine, size = 'sm', className = '' }: EngineIconProps) => {
@@ -22,12 +22,14 @@ const EngineIcon = ({ engine, size = 'sm', className = '' }: EngineIconProps) =>
   }
 
   return (
-    <img
-      src={isHonda ? hondaLogo : chevyLogo}
-      alt={isHonda ? 'Honda' : 'Chevrolet'}
-      title={isHonda ? 'Honda' : 'Chevrolet'}
-      className={`${sizeMap[size]} w-auto inline-block ${className}`}
-    />
+    <span className={`${sizeMap[size]} inline-flex items-center justify-center ${className}`}>
+      <img
+        src={isHonda ? hondaLogo : chevyLogo}
+        alt={isHonda ? 'Honda' : 'Chevrolet'}
+        title={isHonda ? 'Honda' : 'Chevrolet'}
+        className="max-h-full max-w-full object-contain"
+      />
+    </span>
   );
 };
 
