@@ -88,9 +88,11 @@ serve(async (req) => {
       case "section_times_pf":
         result = await parseSectionTimes(supabase, pdf, raceId, "Practice Final");
         break;
-      case "section_times_quals":
-        result = await parseSectionTimes(supabase, pdf, raceId, "Qualifying");
+      case "section_times_quals": {
+        const qualSessionType = getQualifyingSectionSessionType(page1Lines);
+        result = await parseSectionTimes(supabase, pdf, raceId, qualSessionType);
         break;
+      }
       case "results_p1":
         result = await parseSessionResults(supabase, page1Lines, raceId, "Practice 1");
         break;
