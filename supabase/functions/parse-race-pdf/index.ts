@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import * as pdfjsLib from "https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js";
+import { getDocument } from "https://esm.sh/unpdf@0.12.1/pdfjs";
+import { extractText } from "https://esm.sh/unpdf@0.12.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +29,7 @@ serve(async (req) => {
 
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
-    const pdf = await pdfjsLib.getDocument({ data: uint8Array }).promise;
+    const pdf = await getDocument(uint8Array);
 
     const pages: string[] = [];
     for (let i = 1; i <= pdf.numPages; i++) {
@@ -179,7 +180,7 @@ function parseEventInfo(lines: string[]) {
   return { eventName, roundNumber, trackName, sessionDate, year };
 }
 
-async function getOrCreateRace(supabase: any, eventInfo: any): Promise<number> {
+async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
   const { data: existing } = await supabase
     .from("races")
     .select("id")
@@ -194,6 +195,7 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<number> {
       track_name: eventInfo.trackName,
       round_number: eventInfo.roundNumber,
       season_year: eventInfo.year,
+      year: eventInfo.year,
       race_date: eventInfo.sessionDate,
       status: "pending",
       files_received: []
@@ -204,7 +206,7 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<number> {
   return newRace.id;
 }
 
-async function updateRaceStatus(supabase: any, raceId: number) {
+async function updateRaceStatus(supabase: any, raceId: string) {
   const coreFiles = ["race_results", "event_summary", "leader_laps", "lap_chart", "pit_stops", "section_times_race"];
   const { data: race } = await supabase.from("races").select("files_received").eq("id", raceId).single();
   if (!race) return;
@@ -213,7 +215,7 @@ async function updateRaceStatus(supabase: any, raceId: number) {
   await supabase.from("races").update({ status: allCoreReceived ? "complete" : "pending" }).eq("id", raceId);
 }
 
-async function markFileReceived(supabase: any, raceId: number, fileType: string) {
+async function markFileReceived(supabase: any, raceId: string, fileType: string) {
   const { data: race } = await supabase.from("races").select("files_received").eq("id", raceId).single();
   const received = race?.files_received || [];
   if (!received.includes(fileType)) {
@@ -227,7 +229,7 @@ function parseEngine(cet: string): string {
   return parts.length >= 2 ? (parts[1] === "C" ? "Chevy" : parts[1] === "H" ? "Honda" : "Unknown") : "Unknown";
 }
 
-async function parseRaceResults(supabase: any, lines: string[], raceId: number, eventInfo: any) {
+async function parseRaceResults(supabase: any, lines: string[], raceId: string, eventInfo: any) {
   await supabase.from("race_results").delete().eq("race_id", raceId);
   const headerLine = lines.find(l => l.includes("Time of Race:")) || "";
   const totalLapsMatch = headerLine.match(/End of Lap (\d+)/);
@@ -296,7 +298,7 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: number, 
           caution_number: parseInt(m[1]),
           start_lap: parseInt(m[2]),
           end_lap: parseInt(m[3]),
-          laps: parseInt(m[4]),
+          total_laps: parseInt(m[4]),
           reason: m[5].trim()
         });
       }
@@ -307,8 +309,8 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: number, 
         penalties.push({
           race_id: raceId,
           car_number: m[1],
-          infraction: m[2].trim(),
-          lap: parseInt(m[3]),
+          reason: m[2].trim(),
+          lap_number: parseInt(m[3]),
           penalty: m[4].trim()
         });
       }
@@ -328,7 +330,7 @@ async function parseRaceResults(supabase: any, lines: string[], raceId: number, 
   return { drivers: results.length, cautions: cautions.length, penalties: penalties.length };
 }
 
-async function parseEventSummary(supabase: any, lines: string[], raceId: number) {
+async function parseEventSummary(supabase: any, lines: string[], raceId: string) {
   const stats: any = {};
   for (const line of lines) {
     const lapStats = line.match(/Total Laps:\s+(\d+)\s+Green Laps:\s+(\d+)\s+Caution Laps:\s+(\d+)/);
@@ -347,7 +349,7 @@ async function parseEventSummary(supabase: any, lines: string[], raceId: number)
   return { stats };
 }
 
-async function parseLeaderLaps(supabase: any, pages: string[], pdf: any, raceId: number) {
+async function parseLeaderLaps(supabase: any, pages: string[], pdf: any, raceId: string) {
   await supabase.from("race_laps").delete().eq("race_id", raceId);
   const laps = [];
   for (let p = 1; p <= pdf.numPages; p++) {
@@ -361,9 +363,9 @@ async function parseLeaderLaps(supabase: any, pages: string[], pdf: any, raceId:
           car_number: m[2],
           driver_name: m[3].trim(),
           lap_time: m[5],
-          speed: parseFloat(m[6]),
-          gap: m[7],
-          flag: m[8]
+          lap_speed: parseFloat(m[6]),
+          gap_to_leader: m[7],
+          flag_status: m[8]
         });
       }
     }
@@ -373,7 +375,7 @@ async function parseLeaderLaps(supabase: any, pages: string[], pdf: any, raceId:
   return { laps: laps.length };
 }
 
-async function parseLapChart(supabase: any, pages: string[], pdf: any, raceId: number) {
+async function parseLapChart(supabase: any, pages: string[], pdf: any, raceId: string) {
   await supabase.from("race_positions").delete().eq("race_id", raceId);
   const carPositions: Record<string, Record<number, number>> = {};
 
@@ -409,7 +411,7 @@ async function parseLapChart(supabase: any, pages: string[], pdf: any, raceId: n
   return { positions: insertRows.length };
 }
 
-async function parsePitStops(supabase: any, pages: string[], pdf: any, raceId: number) {
+async function parsePitStops(supabase: any, pages: string[], pdf: any, raceId: string) {
   await supabase.from("pit_stops").delete().eq("race_id", raceId);
   const stops: any[] = [];
   let currentCar = "";
@@ -428,7 +430,7 @@ async function parsePitStops(supabase: any, pages: string[], pdf: any, raceId: n
             car_number: currentCar,
             driver_name: currentDriver,
             stop_number: parseInt(stopM[1]),
-            lap: parseInt(stopM[2]),
+            lap_number: parseInt(stopM[2]),
             race_lap: parseInt(stopM[3]),
             time_of_race: stopM[4]
           });
@@ -441,7 +443,7 @@ async function parsePitStops(supabase: any, pages: string[], pdf: any, raceId: n
   return { stops: stops.length };
 }
 
-async function parseSectionTimes(supabase: any, pages: string[], pdf: any, raceId: number, sessionType: string) {
+async function parseSectionTimes(supabase: any, pages: string[], pdf: any, raceId: string, sessionType: string) {
   await supabase.from("fastest_laps").delete().eq("race_id", raceId).eq("session_type", sessionType);
   const rows: any[] = [];
 
@@ -460,13 +462,12 @@ async function parseSectionTimes(supabase: any, pages: string[], pdf: any, raceI
           race_id: raceId,
           session_type: sessionType,
           section_name: sectionName,
-          section_length: sectionLength,
+          section_length_miles: sectionLength,
           rank: parseInt(m[1]),
           car_number: m[2],
           driver_name: m[3].trim(),
-          engine: parseEngine(m[4]),
-          time: m[5],
-          speed: parseFloat(m[6]),
+          section_time: m[5],
+          section_speed: parseFloat(m[6]),
           lap_number: parseInt(m[7])
         });
       }
@@ -483,7 +484,7 @@ async function parseSectionTimes(supabase: any, pages: string[], pdf: any, raceI
   return { rows: rows.length, sections: pdf.numPages };
 }
 
-async function parseSessionResults(supabase: any, lines: string[], raceId: number, sessionType: string) {
+async function parseSessionResults(supabase: any, lines: string[], raceId: string, sessionType: string) {
   await supabase.from("session_full_results").delete().eq("race_id", raceId).eq("session_type", sessionType);
   const results: any[] = [];
   let inData = false;
@@ -514,7 +515,7 @@ async function parseSessionResults(supabase: any, lines: string[], raceId: numbe
   return { drivers: results.length };
 }
 
-async function parseQualifyingResults(supabase: any, lines: string[], raceId: number) {
+async function parseQualifyingResults(supabase: any, lines: string[], raceId: string) {
   await supabase.from("qualifying_results").delete().eq("race_id", raceId);
   const results: any[] = [];
   let inData = false;
@@ -544,7 +545,7 @@ async function parseQualifyingResults(supabase: any, lines: string[], raceId: nu
   return { drivers: results.length };
 }
 
-async function parseCombinedPractice(supabase: any, lines: string[], raceId: number) {
+async function parseCombinedPractice(supabase: any, lines: string[], raceId: string) {
   await supabase.from("combined_practice_results").delete().eq("race_id", raceId);
   const results: any[] = [];
   let inData = false;
@@ -562,7 +563,7 @@ async function parseCombinedPractice(supabase: any, lines: string[], raceId: num
   return { drivers: results.length };
 }
 
-async function parseQualifyingSectors(supabase: any, pages: string[], pdf: any, raceId: number) {
+async function parseQualifyingSectors(supabase: any, pages: string[], pdf: any, raceId: string) {
   await supabase.from("qualifying_sectors").delete().eq("race_id", raceId);
   const sectorNames = ["dogleg", "front_stretch", "turn1_entry", "turn1_exit", "turn2_entry", "turn2_exit", "turn3_entry", "turn3_exit", "turn4", "full_lap"];
   const rows: any[] = [];
