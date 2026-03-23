@@ -589,6 +589,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   const results = [];
   const cautions = [];
   const penalties = [];
+  const postResultsLines: string[] = [];
   let section = "header";
   let sawCautionSection = false;
   let sawPenaltySection = false;
@@ -608,9 +609,9 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
 
   for (const line of allLines) {
     if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { flushPendingResultLine(); section = "results"; continue; }
-    if (line.includes("Lead Change Summary") || line.includes("LeadChange")) { flushPendingResultLine(); section = "leadchanges"; continue; }
-    if (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line) || line.includes("# Start End") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { flushPendingResultLine(); section = "cautions"; sawCautionSection = true; continue; }
-    if (/penalty\s*summary/i.test(line)) { flushPendingResultLine(); section = "penalties"; sawPenaltySection = true; continue; }
+    if (line.includes("Lead Change Summary") || line.includes("LeadChange")) { flushPendingResultLine(); section = "postresults"; continue; }
+    if (section !== "postresults" && (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line))) { flushPendingResultLine(); section = "cautions"; sawCautionSection = true; continue; }
+    if (section !== "postresults" && /penalty\s*summary/i.test(line)) { flushPendingResultLine(); section = "penalties"; sawPenaltySection = true; continue; }
     if (line.includes("(C)hassis:") || line.includes("Legend:")) { flushPendingResultLine(); section = "done"; continue; }
     if (section === "done") break;
 
@@ -623,34 +624,50 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
       continue;
     }
-    if (section === "cautions") {
-      const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
-      if (m && parseInt(m[1]) <= 30 && parseInt(m[2]) > 0) {
-        const startLap = parseInt(m[2]);
-        const endLap = parseInt(m[3]);
-        const lapsVal = parseInt(m[4]);
-        cautions.push({
-          race_id: raceId,
-          caution_number: parseInt(m[1]),
-          start_lap: startLap,
-          end_lap: endLap,
-          laps: endLap - startLap + 1,
-          total_laps: lapsVal,
-          reason: m[5].trim()
-        });
-      }
+    // In postresults section, extract cautions and penalties from multi-column lines
+    if (section === "postresults") {
+      postResultsLines.push(line);
+      if (/Caution\s*Summary/i.test(line)) sawCautionSection = true;
+      if (/Penalty\s*Summary/i.test(line)) sawPenaltySection = true;
     }
-    if (section === "penalties") {
-      const m = line.match(/^(\d+)\s+(.+?)\s+(\d+)\s+(.+)/);
-      if (m) {
-        penalties.push({
-          race_id: raceId,
-          car_number: m[1],
-          reason: m[2].trim(),
-          lap_number: parseInt(m[3]),
-          penalty: m[4].trim()
-        });
-      }
+  }
+
+  // Parse cautions and penalties from collected post-results lines
+  // unpdf splits these across lines: reason on one line, numbers on the next
+  let pendingCautionReason = "";
+  for (const line of postResultsLines) {
+    // Caution reason line (starts with capital letter, no leading digits matching caution pattern)
+    if (/^[A-Z]/.test(line.trim()) && !line.includes("On Lap") && !line.includes("Penalty Summary") && !line.includes("Car Reason") && !line.includes("Caution Summary")) {
+      pendingCautionReason = line.trim();
+      continue;
+    }
+    // Caution numbers: "cautionNum startLap to endLap totalLaps"
+    const cautionM = line.match(/\b(\d{1,2})\s+(\d+)\s+to\s+(\d+)\s+(\d+)\b/);
+    if (cautionM && parseInt(cautionM[1]) <= 20 && parseInt(cautionM[2]) > 0) {
+      sawCautionSection = true;
+      cautions.push({
+        race_id: raceId,
+        caution_number: parseInt(cautionM[1]),
+        start_lap: parseInt(cautionM[2]),
+        end_lap: parseInt(cautionM[3]),
+        laps: parseInt(cautionM[3]) - parseInt(cautionM[2]) + 1,
+        total_laps: parseInt(cautionM[4]),
+        reason: pendingCautionReason || "Unknown"
+      });
+      pendingCautionReason = "";
+      continue;
+    }
+    // Penalty: "carNum reason lap penalty"
+    const penaltyM = line.match(/\b(\d{1,3})\s+(Avoidable\s+Contact|Unsafe\s+Release|Pit\s+(?:Violation|Speed)|Blocking|Improper\s+\w+|Equipment\s+\w+|Unapproved\s+\w+|Speeding)[^\d]*?(\d+)\s+(Stop\s+&\s+Hold[^$]*|Drive\s+Through[^$]*|Penalty[^$]*|Warning[^$]*|\$[\d,]+[^$]*)/i);
+    if (penaltyM) {
+      sawPenaltySection = true;
+      penalties.push({
+        race_id: raceId,
+        car_number: penaltyM[1],
+        reason: penaltyM[2].trim(),
+        lap_number: parseInt(penaltyM[3]),
+        penalty: penaltyM[4].trim()
+      });
     }
   }
 
@@ -660,7 +677,21 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     throw new Error("No race result rows parsed; existing race results were preserved");
   }
 
+  // Round 1 semantic fix: total_points must equal race_points (no prior races)
+  // and championship_rank is derived from race_points descending
+  const roundNumber = eventInfo?.roundNumber || 0;
+  if (roundNumber === 1) {
+    for (const r of results) {
+      r.total_points = r.race_points;
+    }
+    const sorted = [...results].sort((a, b) => b.race_points - a.race_points);
+    sorted.forEach((r, i) => { r.championship_rank = i + 1; });
+  }
+
   await replaceRows(supabase, "race_results", { race_id: raceId }, results);
+
+  console.log("Post-results lines for caution/penalty debug:", JSON.stringify(postResultsLines));
+  console.log("Saw caution section:", sawCautionSection, "cautions parsed:", cautions.length, "caution laps from header:", cautionLapCount);
 
   if (sawCautionSection && (cautions.length > 0 || cautionLapCount === 0)) {
     await replaceRows(supabase, "cautions", { race_id: raceId }, cautions, { allowEmpty: true });
