@@ -24,7 +24,7 @@ const TabNav = ({ activeTab, onTabChange }: TabNavProps) => {
 
   if (isMobile) {
     return (
-      <nav className="sticky top-0 z-40 bg-racing-bg border-b border-racing-border relative" ref={menuRef}>
+      <nav className="fixed top-0 left-0 right-0 z-40 bg-racing-bg border-b border-racing-border" ref={menuRef}>
         <button
           onClick={() => setMenuOpen(!menuOpen)}
           className="w-full flex items-center justify-between px-4 py-3 bg-racing-surface border border-racing-border rounded mx-0 active:scale-[0.98] transition-transform"
