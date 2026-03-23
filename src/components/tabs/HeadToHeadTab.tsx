@@ -78,7 +78,7 @@ const HeadToHeadTab = () => {
     { label: 'Best Lap Number', v1: `L${s1.bestLapNum}`, v2: `L${s2.bestLapNum}` },
     { label: 'Race Points', v1: `${s1.racePts} pts`, v2: `${s2.racePts} pts` },
     { label: 'Championship Rank', v1: `Rank ${s1.champRank}`, v2: `Rank ${s2.champRank}`, lowerWins: true },
-    { label: 'Engine', v1: s1.engine, v2: s2.engine },
+    { label: 'Engine', v1: s1.engine, v2: s2.engine, isEngine: true },
   ];
 
   const getHighlight = (c: typeof comparisons[0]): 'left' | 'right' | 'none' => {

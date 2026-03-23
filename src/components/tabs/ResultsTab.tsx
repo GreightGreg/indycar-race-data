@@ -84,7 +84,7 @@ const ResultsTab = () => {
                 <td className="px-2 py-2 font-mono text-xs text-racing-muted">P{r.start_position}</td>
                 <td className="px-2 py-2"><CarBadge num={r.car_number} /></td>
                 <td className="px-2 py-2 font-body text-sm text-racing-text">{formatDriverName(r.driver_name)}</td>
-                <td className="px-2 py-2"><EngineText engine={r.engine} /></td>
+                <td className="px-2 py-2"><EngineIcon engine={r.engine} /></td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.laps_completed}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.time_gap}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.pit_stops}</td>

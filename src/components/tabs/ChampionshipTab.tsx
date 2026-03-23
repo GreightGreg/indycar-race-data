@@ -40,7 +40,7 @@ const ChampionshipTab = () => {
                 <td className="px-3 py-2"><MedalBadge rank={s.rank} /></td>
                 <td className="px-3 py-2"><CarBadge num={s.car} /></td>
                 <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(s.driver_name)}</td>
-                <td className="px-3 py-2"><EngineText engine={s.engine} /></td>
+                <td className="px-3 py-2"><EngineIcon engine={s.engine} /></td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-muted">{s.r1}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-text">{s.r2}</td>
                 <td className="px-3 py-2 font-mono text-xs text-racing-yellow font-bold">{s.total}</td>
