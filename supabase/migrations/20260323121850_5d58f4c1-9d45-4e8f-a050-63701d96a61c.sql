@@ -1,0 +1,1 @@
+DELETE FROM races WHERE id = 'd692c150-2d41-4db3-a878-2f8c92453c86';
