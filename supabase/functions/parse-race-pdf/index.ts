@@ -165,7 +165,10 @@ function identifyReport(lines: string[]): string | null {
   }
   if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
-  if (reportLine.includes("Section Data Report") && sessionLine.includes("Qualifications")) return "quals_sectors";
+  if (reportLine.includes("Section Data Report")) {
+    if (sessionLine.includes("Qualifications")) return "quals_sectors";
+    return "unsupported_section_data";
+  }
   return null;
 }
 
