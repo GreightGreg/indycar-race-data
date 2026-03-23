@@ -65,7 +65,7 @@ serve(async (req) => {
         result = await parseRaceResults(supabase, pdf, raceId, eventInfo);
         break;
       case "event_summary":
-        result = await parseEventSummary(supabase, page1Lines, raceId);
+        result = await parseEventSummary(supabase, pdf, page1Lines, raceId);
         break;
       case "leader_laps":
         result = await parseLeaderLaps(supabase, pdf, raceId);
@@ -102,6 +102,21 @@ serve(async (req) => {
         break;
       case "results_quals":
         result = await parseQualifyingResults(supabase, page1Lines, raceId);
+        break;
+      case "results_quals_group1":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Group 1");
+        break;
+      case "results_quals_group2":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Group 2");
+        break;
+      case "results_quals_round2":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Round 2 (Fast 12)");
+        break;
+      case "results_quals_round3":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Round 3 (Fast 6)");
+        break;
+      case "results_quals_combined":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Combined");
         break;
       case "combined_practice":
         result = await parseCombinedPractice(supabase, page1Lines, raceId);
@@ -173,8 +188,14 @@ function identifyReport(lines: string[]): string | null {
     if (sessionLine.includes("Practice 1")) return "results_p1";
     if (sessionLine.includes("Practice 2")) return "results_p2";
     if (sessionLine.includes("Practice Final")) return "results_pf";
+    // Road/street course qualifying rounds
+    if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 1")) return "results_quals_group1";
+    if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 2")) return "results_quals_group2";
+    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12"))) return "results_quals_round2";
+    if (sessionLine.includes("Qualifications") && (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6"))) return "results_quals_round3";
   }
   if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
+  if (reportLine.includes("Combined Qualifying Results") || reportLine.includes("Starting Line-Up")) return "results_quals_combined";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
   if (reportLine.includes("Section Data Report")) {
     if (sessionLine.includes("Qualifications")) return "quals_sectors";
@@ -427,9 +448,16 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   return { drivers: results.length, cautions: cautions.length, penalties: penalties.length };
 }
 
-async function parseEventSummary(supabase: any, lines: string[], raceId: string) {
+async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], raceId: string) {
+  // Collect all lines from all pages
+  const allLines = [...page1Lines];
+  for (let p = 2; p <= pdf.numPages; p++) {
+    const pageLines = await getPageLines(pdf, p);
+    allLines.push(...pageLines);
+  }
+
   const stats: any = {};
-  for (const line of lines) {
+  for (const line of allLines) {
     const lapStats = line.match(/Total Laps:\s+(\d+)\s+Green Laps:\s+(\d+)\s+Caution Laps:\s+(\d+)/);
     if (lapStats) { stats.total_laps = parseInt(lapStats[1]); stats.green_laps = parseInt(lapStats[2]); stats.caution_laps = parseInt(lapStats[3]); }
     const raceStats = line.match(/Time:\s+([\d:]+)\s+Avg Spd:\s+([\d\.]+)/);
@@ -442,8 +470,59 @@ async function parseEventSummary(supabase: any, lines: string[], raceId: string)
     if (passes) { stats.total_passes = parseInt(passes[1]); stats.position_passes = parseInt(passes[2]); }
   }
   await supabase.from("races").update(stats).eq("id", raceId);
+
+  // Parse Laps Led section
+  // Format: "# Driver Laps Stints Start-End" e.g. "12 Malukas, David 45 3 1-20 50-60"
+  // Or: "Car # Driver # Laps Led # Times Led Longest Sequence Start End"
+  await supabase.from("laps_led").delete().eq("race_id", raceId);
+  const lapsLedEntries: any[] = [];
+  let inLapsLed = false;
+  for (const line of allLines) {
+    if (line.includes("Laps Led") && (line.includes("Times Led") || line.includes("Longest"))) {
+      inLapsLed = true;
+      continue;
+    }
+    // Stop if we hit a different section header
+    if (inLapsLed && (line.includes("Caution Flag Summary") || line.includes("Penalty Summary") || line.includes("Top Section") || line.includes("Event:"))) {
+      inLapsLed = false;
+      continue;
+    }
+    if (inLapsLed) {
+      // Try: car_number driver_name laps_led times_led longest_seq start_lap end_lap
+      const m = line.match(/^\s*(\d+)\s+(.+?)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s*$/);
+      if (m) {
+        lapsLedEntries.push({
+          race_id: raceId,
+          car_number: m[1],
+          driver_name: m[2].trim(),
+          laps_led: parseInt(m[3]),
+          stints: parseInt(m[4]),
+          longest_consecutive: parseInt(m[5]),
+          start_lap_of_longest: parseInt(m[6]),
+        });
+        continue;
+      }
+      // Simpler format: car_number driver_name laps_led times_led longest start end (may have extra cols)
+      const m2 = line.match(/^\s*(\d+)\s+(.+?)\s+(\d+)\s+(\d+)\s+(\d+)/);
+      if (m2 && parseInt(m2[3]) > 0) {
+        lapsLedEntries.push({
+          race_id: raceId,
+          car_number: m2[1],
+          driver_name: m2[2].trim(),
+          laps_led: parseInt(m2[3]),
+          stints: parseInt(m2[4]),
+          longest_consecutive: parseInt(m2[5]),
+        });
+      }
+    }
+  }
+  if (lapsLedEntries.length > 0) {
+    await supabase.from("laps_led").insert(lapsLedEntries);
+  }
+  console.log("Parsed laps led:", lapsLedEntries.length, "entries");
+
   await markFileReceived(supabase, raceId, "event_summary");
-  return { stats };
+  return { stats, lapsLed: lapsLedEntries.length };
 }
 
 async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {

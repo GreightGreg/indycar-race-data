@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useRaceResults, useLapsLed, useFastestLaps, useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';
