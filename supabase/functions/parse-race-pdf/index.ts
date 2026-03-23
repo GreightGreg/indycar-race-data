@@ -589,6 +589,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   const results = [];
   const cautions = [];
   const penalties = [];
+  const postResultsLines: string[] = [];
   let section = "header";
   let sawCautionSection = false;
   let sawPenaltySection = false;
@@ -625,6 +626,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     }
     // In postresults section, extract cautions and penalties from multi-column lines
     if (section === "postresults") {
+      postResultsLines.push(line);
       if (/Caution\s*Summary/i.test(line)) sawCautionSection = true;
       if (/Penalty\s*Summary/i.test(line)) sawPenaltySection = true;
 
