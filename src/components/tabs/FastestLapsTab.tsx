@@ -13,12 +13,6 @@ const CarBadgeSm = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-[10px] w-6 h-5 rounded-sm">{num}</span>
 );
 
-const SESSION_OPTIONS = [
-  { value: 'Race', label: 'Race' },
-  { value: 'Practice 1', label: 'Practice 1' },
-  { value: 'Practice Final', label: 'Practice Final' },
-  { value: 'Qualifying', label: 'Qualifying' },
-];
 
 const SECTOR_KEYS = [
   { key: 'dogleg_time', label: 'Dogleg' },
