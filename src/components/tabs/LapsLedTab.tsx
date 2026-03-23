@@ -9,6 +9,7 @@ const LapsLedTab = () => {
   const { raceId } = useRaceContext();
   const { data: lapsLedData } = useLapsLed(raceId);
   const { data: race } = useRaceDetails(raceId);
+  const isMobile = useIsMobile();
 
   const barData = useMemo(() =>
     (lapsLedData || []).map(d => ({
