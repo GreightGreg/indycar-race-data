@@ -56,6 +56,7 @@ const Header = ({ races, selectedRaceId, onRaceChange, isLoading }: HeaderProps)
               </optgroup>
             ))}
           </select>
+          </div>
         </div>
       </div>
     </header>
