@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useRaceContext } from '@/contexts/RaceContext';
-import { useFastestLaps, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
+import { useFastestLaps, useFastestLapRowsForSession, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
-import { aggregateFastestLapRows } from '@/lib/raceStats';
+import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar } from '@/lib/raceStats';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const CarBadge = ({ num }: { num: string }) => (
@@ -37,6 +37,7 @@ const FastestLapsTab = () => {
   const { data: availableSessions } = useFastestLapSessionTypes(raceId);
   const { data: sections } = useFastestLapSections(raceId, sessionType);
   const { data: laps } = useFastestLaps(raceId, selectedSection, sessionType);
+  const { data: sessionFastestRows } = useFastestLapRowsForSession(raceId, sessionType);
   const { data: qualSectors } = useQualifyingSectors(raceId);
   const { data: qualResults } = useQualifyingResults(raceId);
 
@@ -60,8 +61,29 @@ const FastestLapsTab = () => {
     [laps, sessionType],
   );
 
-  const sectorComparison = useMemo(() => {
-    if (!qualSectors || !qualResults) return [];
+  const qualifyingSectorDriverCount = useMemo(
+    () => new Set((qualSectors || []).map((row) => row.car_number)).size,
+    [qualSectors],
+  );
+
+  const hasCompleteOvalSectorData = useMemo(() => {
+    if (!qualResults?.length || !qualSectors?.length) return false;
+    return qualifyingSectorDriverCount / qualResults.length >= 0.8;
+  }, [qualResults, qualSectors, qualifyingSectorDriverCount]);
+
+  const roadCourseSectionNames = useMemo(() => {
+    if (sessionType !== 'Qualifying') return [] as string[];
+
+    return Array.from(new Set(
+      (sessionFastestRows || [])
+        .map((row) => row.section_name)
+        .filter((name) => name && name !== 'Lap'),
+    ));
+  }, [sessionFastestRows, sessionType]);
+
+  const ovalSectorComparison = useMemo(() => {
+    if (!hasCompleteOvalSectorData || !qualSectors || !qualResults) return [];
+
     const driverMap = new Map<string, { car: string; name: string; qualPos: number; laps: any[] }>();
     for (const qs of qualSectors) {
       if (!driverMap.has(qs.car_number)) {
@@ -70,33 +92,69 @@ const FastestLapsTab = () => {
       }
       driverMap.get(qs.car_number)!.laps.push(qs);
     }
+
     return Array.from(driverMap.values()).sort((a, b) => a.qualPos - b.qualPos);
-  }, [qualSectors, qualResults]);
+  }, [hasCompleteOvalSectorData, qualResults, qualSectors]);
+
+  const roadCourseSectorComparison = useMemo(() => {
+    if (sessionType !== 'Qualifying' || !qualResults?.length || hasCompleteOvalSectorData) return [];
+
+    const qualifyingFastestRows = (sessionFastestRows || []).filter((row) => row.section_name !== 'Lap');
+    if (!qualifyingFastestRows.length) return [];
+
+    return aggregateFastestLapSectionsByCar(sessionFastestRows)
+      .map((driver) => {
+        const qr = qualResults.find((q) => q.car_number === driver.car_number);
+        return {
+          car: driver.car_number,
+          name: formatDriverName(driver.driver_name),
+          qualPos: qr?.qual_position || 99,
+          bestLapTime: driver.sections.Lap?.section_time || driver.sections.Lap?.time || null,
+          sections: driver.sections,
+        };
+      })
+      .sort((a, b) => a.qualPos - b.qualPos);
+  }, [hasCompleteOvalSectorData, qualResults, sessionFastestRows, sessionType]);
 
   const bestSectorTimes = useMemo(() => {
-    if (!qualSectors) return {} as Record<string, number>;
-    const bests: Record<string, number> = {};
-    for (const key of SECTOR_KEYS) {
-      let min = Infinity;
-      for (const qs of qualSectors) {
-        const val = Number(qs[key.key as keyof typeof qs]);
-        if (val && val < min) min = val;
+    if (hasCompleteOvalSectorData) {
+      if (!qualSectors) return {} as Record<string, number>;
+
+      const bests: Record<string, number> = {};
+      for (const key of SECTOR_KEYS) {
+        let min = Infinity;
+        for (const qs of qualSectors) {
+          const val = Number(qs[key.key as keyof typeof qs]);
+          if (val && val < min) min = val;
+        }
+        bests[key.key] = min;
       }
-      bests[key.key] = min;
+      return bests;
+    }
+
+    const bests: Record<string, number> = {};
+    for (const sectionName of roadCourseSectionNames) {
+      let min = Infinity;
+      for (const row of sessionFastestRows || []) {
+        if (row.section_name !== sectionName) continue;
+        const val = Number(row.section_time || row.time);
+        if (Number.isFinite(val) && val > 0 && val < min) min = val;
+      }
+      bests[sectionName] = min;
     }
     return bests;
-  }, [qualSectors]);
+  }, [hasCompleteOvalSectorData, qualSectors, roadCourseSectionNames, sessionFastestRows]);
 
   const driverLapComparison = useMemo(() => {
-    if (!selectedDriver || !qualSectors) return null;
+    if (!hasCompleteOvalSectorData || !selectedDriver || !qualSectors) return null;
     const driverSectors = qualSectors.filter(s => s.car_number === selectedDriver);
     const lap1 = driverSectors.find(s => s.lap_number === 1);
     const lap2 = driverSectors.find(s => s.lap_number === 2);
     if (!lap1) return null;
     return { lap1, lap2 };
-  }, [selectedDriver, qualSectors]);
+  }, [hasCompleteOvalSectorData, selectedDriver, qualSectors]);
 
-  const driversForSelector = sectorComparison.map(d => ({ car: d.car, name: d.name }));
+  const driversForSelector = ovalSectorComparison.map(d => ({ car: d.car, name: d.name }));
 
   return (
     <div className="space-y-6">
@@ -178,14 +236,18 @@ const FastestLapsTab = () => {
       )}
 
       {/* Qualifying Sector Comparison */}
-      {sessionType === 'Qualifying' && sectorComparison.length > 0 && (
+      {sessionType === 'Qualifying' && (ovalSectorComparison.length > 0 || roadCourseSectorComparison.length > 0) && (
         <div className="space-y-6">
           <div>
             <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-1">Qualifying Sector Comparison</h3>
-            <p className="font-mono text-[10px] text-racing-muted mb-3">Best sector time across both laps per driver. Yellow = fastest in that sector across the field.</p>
-            {isMobile ? (
+            <p className="font-mono text-[10px] text-racing-muted mb-3">
+              {hasCompleteOvalSectorData
+                ? 'Best sector time across both laps per driver. Yellow = fastest in that sector across the field.'
+                : 'Best section time per driver across all qualifying rounds. Yellow = fastest in that section across the field.'}
+            </p>
+            {hasCompleteOvalSectorData ? (isMobile ? (
               <div className="space-y-2">
-                {sectorComparison.map(d => {
+                {ovalSectorComparison.map(d => {
                   const lap1 = d.laps.find((l: any) => l.lap_number === 1);
                   const lap2 = d.laps.find((l: any) => l.lap_number === 2);
                   const l1Time = lap1?.full_lap_time;
@@ -241,7 +303,7 @@ const FastestLapsTab = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {sectorComparison.map(d => {
+                    {ovalSectorComparison.map(d => {
                       const lap1 = d.laps.find((l: any) => l.lap_number === 1);
                       const lap2 = d.laps.find((l: any) => l.lap_number === 2);
                       const l1Time = lap1?.full_lap_time;
@@ -273,11 +335,75 @@ const FastestLapsTab = () => {
                   </tbody>
                 </table>
               </div>
-            )}
+            )) : (isMobile ? (
+              <div className="space-y-2">
+                {roadCourseSectorComparison.map((driver) => (
+                  <div key={driver.car} className="bg-racing-surface rounded p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-heading text-xs text-racing-muted">P{driver.qualPos}</span>
+                      <CarBadgeSm num={driver.car} />
+                      <span className="font-body text-xs text-racing-text flex-1">{driver.name}</span>
+                      <span className="font-mono text-[10px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+                      {roadCourseSectionNames.map((sectionName) => {
+                        const row = driver.sections[sectionName];
+                        const value = Number(row?.section_time || row?.time || null);
+                        const isFastest = Number.isFinite(value) && Math.abs(value - bestSectorTimes[sectionName]) < 0.0001;
+                        return (
+                          <div key={sectionName} className="flex justify-between gap-2">
+                            <span className="text-[9px] text-racing-muted truncate">{sectionName}</span>
+                            <span className={`text-[9px] font-mono ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+                              {Number.isFinite(value) ? value.toFixed(4) : '—'}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[1100px] text-left">
+                  <thead>
+                    <tr className="border-b border-racing-border">
+                      <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Pos</th>
+                      <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Car</th>
+                      <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Driver</th>
+                      <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Best</th>
+                      {roadCourseSectionNames.map((sectionName) => (
+                        <th key={sectionName} className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1 py-2">{sectionName}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {roadCourseSectorComparison.map((driver) => (
+                      <tr key={driver.car} className="border-b border-racing-border/50">
+                        <td className="px-2 py-1.5 font-heading text-xs text-racing-muted">P{driver.qualPos}</td>
+                        <td className="px-2 py-1.5"><CarBadgeSm num={driver.car} /></td>
+                        <td className="px-2 py-1.5 font-body text-xs text-racing-text">{driver.name}</td>
+                        <td className="px-2 py-1.5 font-mono text-[10px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</td>
+                        {roadCourseSectionNames.map((sectionName) => {
+                          const row = driver.sections[sectionName];
+                          const value = Number(row?.section_time || row?.time || null);
+                          const isFastest = Number.isFinite(value) && Math.abs(value - bestSectorTimes[sectionName]) < 0.0001;
+                          return (
+                            <td key={sectionName} className={`px-1 py-1.5 font-mono text-[10px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+                              {Number.isFinite(value) ? value.toFixed(4) : '—'}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
           </div>
 
           {/* Driver Lap-by-Lap Sector Comparison */}
-          <div>
+          {hasCompleteOvalSectorData && <div>
             <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">Driver Qualifying Lap Comparison</h3>
             <select
               value={selectedDriver || ''}
@@ -386,7 +512,7 @@ const FastestLapsTab = () => {
                 </div>
               )
             )}
-          </div>
+          </div>}
         </div>
       )}
     </div>

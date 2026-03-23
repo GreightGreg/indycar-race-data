@@ -4,6 +4,23 @@ type RacePositionRow = Tables<'race_positions'>;
 type RaceResultRow = Tables<'race_results'>;
 type FastestLapRow = Tables<'fastest_laps'>;
 
+const isBetterFastestLapRow = (candidate: FastestLapRow, current: FastestLapRow) => {
+  const candidateTime = parseLapTimeToSeconds(candidate.section_time || candidate.time);
+  const currentTime = parseLapTimeToSeconds(current.section_time || current.time);
+  const candidateSpeed = Number(candidate.section_speed ?? candidate.speed ?? 0);
+  const currentSpeed = Number(current.section_speed ?? current.speed ?? 0);
+
+  if (currentTime === null) {
+    return candidateTime !== null || candidateSpeed > currentSpeed;
+  }
+
+  if (candidateTime !== null) {
+    return candidateTime < currentTime || (candidateTime === currentTime && candidateSpeed > currentSpeed);
+  }
+
+  return candidateSpeed > currentSpeed;
+};
+
 export const parseLapTimeToSeconds = (value?: string | null): number | null => {
   if (!value) return null;
 
@@ -99,18 +116,7 @@ export const aggregateFastestLapRows = (rows: FastestLapRow[] | null | undefined
       continue;
     }
 
-    const rowTime = parseLapTimeToSeconds(row.section_time || row.time);
-    const currentTime = parseLapTimeToSeconds(current.section_time || current.time);
-    const rowSpeed = Number(row.section_speed ?? row.speed ?? 0);
-    const currentSpeed = Number(current.section_speed ?? current.speed ?? 0);
-
-    const shouldReplace = currentTime === null
-      ? rowTime !== null || rowSpeed > currentSpeed
-      : rowTime !== null
-        ? rowTime < currentTime || (rowTime === currentTime && rowSpeed > currentSpeed)
-        : rowSpeed > currentSpeed;
-
-    if (shouldReplace) {
+    if (isBetterFastestLapRow(row, current)) {
       bestByCar.set(row.car_number, row);
     }
   }
@@ -130,4 +136,39 @@ export const aggregateFastestLapRows = (rows: FastestLapRow[] | null | undefined
       return a.car_number.localeCompare(b.car_number);
     })
     .map((row, index) => ({ ...row, rank: index + 1 }));
+};
+
+export const aggregateFastestLapSectionsByCar = (rows: FastestLapRow[] | null | undefined) => {
+  if (!rows?.length) return [] as Array<{
+    car_number: string;
+    driver_name: string | null;
+    sections: Record<string, FastestLapRow>;
+  }>;
+
+  const grouped = new Map<string, {
+    car_number: string;
+    driver_name: string | null;
+    sections: Record<string, FastestLapRow>;
+  }>();
+
+  for (const row of rows) {
+    const entry = grouped.get(row.car_number) || {
+      car_number: row.car_number,
+      driver_name: row.driver_name,
+      sections: {},
+    };
+
+    const current = entry.sections[row.section_name];
+    if (!current || isBetterFastestLapRow(row, current)) {
+      entry.sections[row.section_name] = row;
+    }
+
+    if (!entry.driver_name && row.driver_name) {
+      entry.driver_name = row.driver_name;
+    }
+
+    grouped.set(row.car_number, entry);
+  }
+
+  return Array.from(grouped.values());
 };

@@ -239,6 +239,29 @@ export const useFastestLapSessionTypes = (raceId: string | null) =>
     enabled: !!raceId,
   });
 
+export const useFastestLapRowsForSession = (raceId: string | null, sessionType: string) =>
+  useQuery({
+    queryKey: ['fastest_lap_rows_for_session', raceId, sessionType],
+    queryFn: async () => {
+      let query = supabase
+        .from('fastest_laps')
+        .select('*')
+        .eq('race_id', raceId!);
+
+      query = sessionType === 'Qualifying'
+        ? query.ilike('session_type', 'Qualifying%')
+        : query.eq('session_type', sessionType);
+
+      const { data, error } = await query
+        .order('section_name')
+        .order('rank');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!raceId,
+  });
+
 export const useChampionshipStandings = (raceId: string | null) =>
   useQuery({
     queryKey: ['championship', raceId],
