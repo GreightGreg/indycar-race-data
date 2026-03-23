@@ -96,7 +96,7 @@ serve(async (req) => {
         result = await parseCombinedPractice(supabase, page1Lines, raceId);
         break;
       case "quals_sectors":
-        result = await parseQualifyingSectors(supabase, pages, pdf, raceId);
+        result = await parseQualifyingSectors(supabase, pdf, raceId);
         break;
       default:
         result = { message: "Report type recognized but not yet parsed", type: reportType };
