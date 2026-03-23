@@ -14,11 +14,12 @@ const SeasonStatsTab = () => {
   const { raceId } = useRaceContext();
   const { data: selectedRace } = useRaceDetails(raceId);
   const year = selectedRace?.year ?? null;
+  const throughRound = selectedRace?.round_number ?? null;
 
-  const { data: seasonRaces, isLoading: racesLoading } = useSeasonRaces(year);
-  const { data: seasonData, isLoading: resultsLoading } = useSeasonResults(year);
-  const { data: lapsLedData } = useSeasonLapsLed(year);
-  const { data: pitTransitData } = useSeasonFastestPitTransit(year);
+  const { data: seasonRaces, isLoading: racesLoading } = useSeasonRaces(year, throughRound);
+  const { data: seasonData, isLoading: resultsLoading } = useSeasonResults(year, throughRound);
+  const { data: lapsLedData } = useSeasonLapsLed(year, throughRound);
+  const { data: pitTransitData } = useSeasonFastestPitTransit(year, throughRound);
   const isMobile = useIsMobile();
 
   const [sortKey, setSortKey] = useState<SortKey>('totalPts');
@@ -38,7 +39,6 @@ const SeasonStatsTab = () => {
     </th>
   );
 
-  // Latest race for context header
   const latestRace = useMemo(() => {
     if (!seasonRaces?.length) return null;
     return seasonRaces[seasonRaces.length - 1];
@@ -51,13 +51,11 @@ const SeasonStatsTab = () => {
     if (!seasonData?.results?.length) return [];
     const { results, racesMap } = seasonData;
 
-    // Laps led lookup: car_number -> total
     const lapsLedByCar: Record<string, number> = {};
     (lapsLedData || []).forEach(l => {
       lapsLedByCar[l.car_number] = (lapsLedByCar[l.car_number] || 0) + l.laps_led;
     });
 
-    // Group by car_number (unique driver)
     const driverMap: Record<string, any> = {};
     results.forEach(r => {
       const key = r.car_number;
@@ -99,7 +97,6 @@ const SeasonStatsTab = () => {
       avgStart: +(d.startSum / d.raceCount).toFixed(1),
     }));
 
-    // Sort
     arr.sort((a: any, b: any) => {
       let aVal: any, bVal: any;
       if (sortKey.startsWith('r_')) {
@@ -173,7 +170,7 @@ const SeasonStatsTab = () => {
   }, [seasonData]);
 
   if (!year || racesLoading || resultsLoading) return <p className="text-racing-muted font-body text-center py-12">Loading season stats…</p>;
-  if (!seasonRaces || seasonRaces.length < 2) return <p className="text-racing-muted font-body text-center py-12">Season stats will appear once at least 2 races have been completed.</p>;
+  if (!seasonRaces || seasonRaces.length < 1) return <p className="text-racing-muted font-body text-center py-12">Season stats will appear once at least 1 race has been completed.</p>;
 
   return (
     <div className="space-y-10">
@@ -190,54 +187,58 @@ const SeasonStatsTab = () => {
       {/* SECTION 1 — Driver Season Standings */}
       <section>
         <h3 className="font-heading text-xl text-racing-text mb-4">Driver Season Standings</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left" style={{ minWidth: `${700 + rounds.length * 48}px` }}>
-            <thead>
-              <tr className="border-b border-racing-border">
-                <SortHeader k="totalPts" label="#" className="w-8" />
-                <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Car</th>
-                <SortHeader k="driver_name" label="Driver" />
-                <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Eng</th>
-                {rounds.map(rn => (
-                  <SortHeader key={rn} k={`r_${rn}`} label={`R${rn}`} />
-                ))}
-                <SortHeader k="totalPts" label="Total" />
-                <SortHeader k="wins" label="Wins" />
-                <SortHeader k="podiums" label="Pod" />
-                <SortHeader k="top5" label="T5" />
-                <SortHeader k="lapsLed" label="Led" />
-                <SortHeader k="avgFinish" label="Avg F" />
-                <SortHeader k="avgStart" label="Avg S" />
-                <SortHeader k="netPos" label="Net" />
-              </tr>
-            </thead>
-            <tbody>
-              {standings.map((s: any, i: number) => (
-                <tr key={s.car} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
-                  <td className="px-2 py-2 font-heading text-sm text-racing-muted">{i + 1}</td>
-                  <td className="px-2 py-2"><CarBadge num={s.car} /></td>
-                  <td className="px-2 py-2 font-body text-sm text-racing-text whitespace-nowrap">{formatDriverName(s.driver_name)}</td>
-                  <td className="px-2 py-2"><EngineIcon engine={s.engine} /></td>
+        {isMobile ? (
+          <MobileStandings standings={standings} rounds={rounds} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left" style={{ minWidth: `${700 + rounds.length * 48}px` }}>
+              <thead>
+                <tr className="border-b border-racing-border">
+                  <SortHeader k="totalPts" label="#" className="w-8" />
+                  <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Car</th>
+                  <SortHeader k="driver_name" label="Driver" />
+                  <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Eng</th>
                   {rounds.map(rn => (
-                    <td key={rn} className={`px-2 py-2 font-mono text-xs text-center ${sortKey === `r_${rn}` ? 'bg-racing-surface2/30' : ''} ${s.roundPoints[rn] !== undefined ? 'text-racing-text' : 'text-racing-muted'}`}>
-                      {s.roundPoints[rn] !== undefined ? s.roundPoints[rn] : '—'}
-                    </td>
+                    <SortHeader key={rn} k={`r_${rn}`} label={`R${rn}`} />
                   ))}
-                  <td className={`px-2 py-2 font-mono text-xs font-bold text-racing-yellow ${sortKey === 'totalPts' ? 'bg-racing-surface2/30' : ''}`}>{s.totalPts}</td>
-                  <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'wins' ? 'bg-racing-surface2/30' : ''} ${s.wins > 0 ? 'text-racing-yellow' : 'text-racing-muted'}`}>{s.wins}</td>
-                  <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'podiums' ? 'bg-racing-surface2/30' : ''} ${s.podiums > 0 ? 'text-racing-text' : 'text-racing-muted'}`}>{s.podiums}</td>
-                  <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'top5' ? 'bg-racing-surface2/30' : ''} ${s.top5 > 0 ? 'text-racing-text' : 'text-racing-muted'}`}>{s.top5}</td>
-                  <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'lapsLed' ? 'bg-racing-surface2/30' : ''} ${s.lapsLed > 0 ? 'text-racing-text' : 'text-racing-muted'}`}>{s.lapsLed}</td>
-                  <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'avgFinish' ? 'bg-racing-surface2/30' : ''} text-racing-text`}>{s.avgFinish}</td>
-                  <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'avgStart' ? 'bg-racing-surface2/30' : ''} text-racing-text`}>{s.avgStart}</td>
-                  <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'netPos' ? 'bg-racing-surface2/30' : ''} ${s.netPos > 0 ? 'text-racing-green' : s.netPos < 0 ? 'text-racing-red' : 'text-racing-muted'}`}>
-                    {s.netPos > 0 ? `+${s.netPos}` : s.netPos}
-                  </td>
+                  <SortHeader k="totalPts" label="Total" />
+                  <SortHeader k="wins" label="Wins" />
+                  <SortHeader k="podiums" label="Pod" />
+                  <SortHeader k="top5" label="T5" />
+                  <SortHeader k="lapsLed" label="Led" />
+                  <SortHeader k="avgFinish" label="Avg F" />
+                  <SortHeader k="avgStart" label="Avg S" />
+                  <SortHeader k="netPos" label="Net" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {standings.map((s: any, i: number) => (
+                  <tr key={s.car} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
+                    <td className="px-2 py-2 font-heading text-sm text-racing-muted">{i + 1}</td>
+                    <td className="px-2 py-2"><CarBadge num={s.car} /></td>
+                    <td className="px-2 py-2 font-body text-sm text-racing-text whitespace-nowrap">{formatDriverName(s.driver_name)}</td>
+                    <td className="px-2 py-2"><EngineIcon engine={s.engine} /></td>
+                    {rounds.map(rn => (
+                      <td key={rn} className={`px-2 py-2 font-mono text-xs text-center ${sortKey === `r_${rn}` ? 'bg-racing-surface2/30' : ''} ${s.roundPoints[rn] !== undefined ? 'text-racing-text' : 'text-racing-muted'}`}>
+                        {s.roundPoints[rn] !== undefined ? s.roundPoints[rn] : '—'}
+                      </td>
+                    ))}
+                    <td className={`px-2 py-2 font-mono text-xs font-bold text-racing-yellow ${sortKey === 'totalPts' ? 'bg-racing-surface2/30' : ''}`}>{s.totalPts}</td>
+                    <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'wins' ? 'bg-racing-surface2/30' : ''} ${s.wins > 0 ? 'text-racing-yellow' : 'text-racing-muted'}`}>{s.wins}</td>
+                    <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'podiums' ? 'bg-racing-surface2/30' : ''} ${s.podiums > 0 ? 'text-racing-text' : 'text-racing-muted'}`}>{s.podiums}</td>
+                    <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'top5' ? 'bg-racing-surface2/30' : ''} ${s.top5 > 0 ? 'text-racing-text' : 'text-racing-muted'}`}>{s.top5}</td>
+                    <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'lapsLed' ? 'bg-racing-surface2/30' : ''} ${s.lapsLed > 0 ? 'text-racing-text' : 'text-racing-muted'}`}>{s.lapsLed}</td>
+                    <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'avgFinish' ? 'bg-racing-surface2/30' : ''} text-racing-text`}>{s.avgFinish}</td>
+                    <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'avgStart' ? 'bg-racing-surface2/30' : ''} text-racing-text`}>{s.avgStart}</td>
+                    <td className={`px-2 py-2 font-mono text-xs text-center ${sortKey === 'netPos' ? 'bg-racing-surface2/30' : ''} ${s.netPos > 0 ? 'text-racing-green' : s.netPos < 0 ? 'text-racing-red' : 'text-racing-muted'}`}>
+                      {s.netPos > 0 ? `+${s.netPos}` : s.netPos}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       {/* SECTION 2 — Race by Race Summary Cards */}
@@ -269,14 +270,12 @@ const SeasonStatsTab = () => {
                   <Stat label="Laps" value={race.total_laps ?? '—'} />
                   <Stat label="Avg Speed" value={race.avg_speed ? `${race.avg_speed} mph` : '—'} />
                   {race.fastest_lap_driver && (
-                    <>
-                      <div className="col-span-2 flex items-center gap-1.5 mt-1">
-                        <span className="font-condensed text-racing-muted uppercase w-16 shrink-0">Fast Lap</span>
-                        <CarBadge num={race.fastest_lap_car || ''} size="sm" />
-                        <span className="font-body text-racing-text">{formatDriverName(race.fastest_lap_driver)}</span>
-                        <span className="font-mono text-racing-yellow ml-auto">{race.fastest_lap_speed} mph · L{race.fastest_lap_number}</span>
-                      </div>
-                    </>
+                    <div className="col-span-2 flex items-center gap-1.5 mt-1">
+                      <span className="font-condensed text-racing-muted uppercase w-16 shrink-0">Fast Lap</span>
+                      <CarBadge num={race.fastest_lap_car || ''} size="sm" />
+                      <span className="font-body text-racing-text">{formatDriverName(race.fastest_lap_driver)}</span>
+                      <span className="font-mono text-racing-yellow ml-auto">{race.fastest_lap_speed} mph · L{race.fastest_lap_number}</span>
+                    </div>
                   )}
                   {race.most_improved_driver && (
                     <div className="col-span-2 flex items-center gap-1.5">
@@ -323,6 +322,94 @@ const SeasonStatsTab = () => {
     </div>
   );
 };
+
+/* ── Mobile Standings Cards ── */
+const SORT_OPTIONS = [
+  { key: 'totalPts', label: 'Points' },
+  { key: 'wins', label: 'Wins' },
+  { key: 'podiums', label: 'Podiums' },
+  { key: 'avgFinish', label: 'Avg Finish' },
+  { key: 'lapsLed', label: 'Laps Led' },
+  { key: 'netPos', label: 'Net Positions' },
+];
+
+const MobileStandings = ({ standings, rounds, sortKey, sortDir, onSort }: {
+  standings: any[];
+  rounds: number[];
+  sortKey: string;
+  sortDir: SortDir;
+  onSort: (k: string) => void;
+}) => (
+  <div className="space-y-3">
+    {/* Sort selector */}
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="font-condensed text-[10px] text-racing-muted uppercase">Sort by</span>
+      {SORT_OPTIONS.map(opt => (
+        <button
+          key={opt.key}
+          onClick={() => onSort(opt.key)}
+          className={`font-condensed text-xs px-2 py-1 rounded border transition-colors ${
+            sortKey === opt.key
+              ? 'text-racing-yellow border-racing-yellow bg-racing-surface2'
+              : 'text-racing-muted border-racing-border'
+          }`}
+        >
+          {opt.label}{sortKey === opt.key ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
+        </button>
+      ))}
+    </div>
+
+    {/* Cards */}
+    {standings.map((s: any, i: number) => (
+      <div key={s.car} className="bg-racing-surface rounded border border-racing-border p-3 space-y-2">
+        {/* Top row: rank, car badge, driver, engine */}
+        <div className="flex items-center gap-2">
+          <span className="font-heading text-lg text-racing-muted w-6 text-right">{i + 1}</span>
+          <CarBadge num={s.car} />
+          <span className="font-body text-sm text-racing-text flex-1 truncate">{formatDriverName(s.driver_name)}</span>
+          <EngineIcon engine={s.engine} />
+          <span className="font-mono text-base font-bold text-racing-yellow">{s.totalPts}</span>
+        </div>
+
+        {/* Stats grid */}
+        <div className="grid grid-cols-4 gap-x-2 gap-y-1">
+          <MiniStat label="Wins" value={s.wins} highlight={s.wins > 0} />
+          <MiniStat label="Podiums" value={s.podiums} />
+          <MiniStat label="Top 5" value={s.top5} />
+          <MiniStat label="Led" value={s.lapsLed} />
+          <MiniStat label="Avg F" value={s.avgFinish} />
+          <MiniStat label="Avg S" value={s.avgStart} />
+          <MiniStat label="Net" value={s.netPos > 0 ? `+${s.netPos}` : s.netPos} positive={s.netPos > 0} negative={s.netPos < 0} />
+          <MiniStat label="DNFs" value={s.dnfs} highlight={s.dnfs > 0} />
+        </div>
+
+        {/* Round-by-round points */}
+        <div className="flex gap-1 flex-wrap">
+          {rounds.map(rn => (
+            <span key={rn} className={`font-mono text-[10px] px-1.5 py-0.5 rounded ${
+              s.roundPoints[rn] !== undefined
+                ? 'bg-racing-surface2 text-racing-text'
+                : 'text-racing-muted'
+            }`}>
+              R{rn}: {s.roundPoints[rn] !== undefined ? s.roundPoints[rn] : '—'}
+            </span>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const MiniStat = ({ label, value, highlight, positive, negative }: {
+  label: string; value: string | number; highlight?: boolean; positive?: boolean; negative?: boolean;
+}) => (
+  <div className="text-center">
+    <p className="font-condensed text-[9px] text-racing-muted uppercase">{label}</p>
+    <p className={`font-mono text-xs ${
+      positive ? 'text-racing-green' : negative ? 'text-racing-red' : highlight ? 'text-racing-yellow' : 'text-racing-text'
+    }`}>{value}</p>
+  </div>
+);
 
 const Stat = ({ label, value }: { label: string; value: string | number }) => (
   <div className="flex justify-between">
