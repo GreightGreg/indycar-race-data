@@ -88,17 +88,17 @@ const FastestLapsTab = () => {
 
       {/* Session selector */}
       <div className="flex flex-wrap gap-2">
-        {SESSION_OPTIONS.map(opt => (
+        {(availableSessions || []).map(opt => (
           <button
-            key={opt.value}
-            onClick={() => { setSessionType(opt.value); setSelectedSection('Lap'); }}
+            key={opt}
+            onClick={() => { setSessionType(opt); setSelectedSection('Lap'); }}
             className={`px-3 py-1.5 rounded text-xs font-condensed font-semibold uppercase transition-all ${
-              sessionType === opt.value
+              sessionType === opt
                 ? 'bg-racing-yellow/10 text-racing-yellow border border-racing-yellow/30'
                 : 'bg-racing-surface text-racing-muted border border-racing-border hover:text-racing-text'
             }`}
           >
-            {opt.label}
+            {opt}
           </button>
         ))}
       </div>
