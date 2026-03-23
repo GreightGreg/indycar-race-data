@@ -15,6 +15,7 @@ const WeekendTab = () => {
   const { data: sessionStats } = useSessionStats(raceId);
   
   const { data: p1Results } = useSessionFullResults(raceId, 'Practice 1');
+  const { data: p2Results } = useSessionFullResults(raceId, 'Practice 2');
   const { data: pfResults } = useSessionFullResults(raceId, 'Practice Final');
   const { data: qualResults } = useQualifyingResults(raceId);
   const { data: combinedPractice } = useCombinedPracticeResults(raceId);
