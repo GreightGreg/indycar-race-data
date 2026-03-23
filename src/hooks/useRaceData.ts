@@ -208,6 +208,24 @@ export const useFastestLapSections = (raceId: string | null, sessionType: string
     enabled: !!raceId,
   });
 
+export const useFastestLapSessionTypes = (raceId: string | null) =>
+  useQuery({
+    queryKey: ['fastest_lap_session_types', raceId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fastest_laps')
+        .select('session_type')
+        .eq('race_id', raceId!)
+        .eq('rank', 1)
+        .eq('section_name', 'Lap');
+      if (error) throw error;
+      const unique = [...new Set(data.map(d => d.session_type))];
+      const order = ['Race', 'Practice 1', 'Practice 2', 'Practice Final', 'Qualifying'];
+      return order.filter(s => unique.includes(s));
+    },
+    enabled: !!raceId,
+  });
+
 export const useChampionshipStandings = (raceId: string | null) =>
   useQuery({
     queryKey: ['championship', raceId],
