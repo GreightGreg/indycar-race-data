@@ -670,29 +670,54 @@ async function parseQualifyingResults(supabase: any, lines: string[], raceId: st
   await supabase.from("qualifying_results").delete().eq("race_id", raceId);
   const results: any[] = [];
   let inData = false;
+  let pendingSpeed: number | null = null;
 
   for (const line of lines) {
     if (line.includes("Rank Car Driver")) { inData = true; continue; }
     if (line.includes("(C)hassis:")) break;
     if (!inData) continue;
+
+    // Standalone avg_speed on its own line (appears before or after the data line)
+    const speedOnly = line.match(/^([\d\.]+)$/);
+    if (speedOnly && parseFloat(speedOnly[1]) > 100 && parseFloat(speedOnly[1]) < 300) {
+      pendingSpeed = parseFloat(speedOnly[1]);
+      continue;
+    }
+
+    // Full match with avg_speed on same line
     const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+([\d\.]+)\s+([\d:\.]+)\s+([\d\.]+)/);
     if (m) {
       const l1 = parseFloat(m[5]);
       const l2 = parseFloat(m[6]);
       results.push({ race_id: raceId, qual_position: parseInt(m[1]), car_number: m[2], driver_name: m[3].trim(), engine: parseEngine(m[4]), lap1_time: m[5], lap2_time: m[6], total_time: m[7], avg_speed: parseFloat(m[8]), best_lap_time: String(Math.min(l1, l2)), comment: null });
+      pendingSpeed = null;
       continue;
     }
+
+    // Match WITHOUT avg_speed (it's on a separate line)
+    const m2 = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+([\d\.]+)\s+([\d:\.]+)$/);
+    if (m2) {
+      const l1 = parseFloat(m2[5]);
+      const l2 = parseFloat(m2[6]);
+      results.push({ race_id: raceId, qual_position: parseInt(m2[1]), car_number: m2[2], driver_name: m2[3].trim(), engine: parseEngine(m2[4]), lap1_time: m2[5], lap2_time: m2[6], total_time: m2[7], avg_speed: pendingSpeed, best_lap_time: String(Math.min(l1, l2)), comment: null });
+      pendingSpeed = null;
+      continue;
+    }
+
     const dnqM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d\.]+)\s+DNQ/);
     if (dnqM) {
       results.push({ race_id: raceId, qual_position: parseInt(dnqM[1]), car_number: dnqM[2], driver_name: dnqM[3].trim(), engine: parseEngine(dnqM[4]), lap1_time: dnqM[5], lap2_time: null, total_time: null, avg_speed: null, best_lap_time: dnqM[5], comment: "DNQ" });
+      pendingSpeed = null;
       continue;
     }
     const noTimeM = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+No Time/);
     if (noTimeM) {
       results.push({ race_id: raceId, qual_position: parseInt(noTimeM[1]), car_number: noTimeM[2], driver_name: noTimeM[3].trim(), engine: parseEngine(noTimeM[4]), lap1_time: null, lap2_time: null, total_time: null, avg_speed: null, best_lap_time: null, comment: "DNQ" });
+      pendingSpeed = null;
     }
   }
   if (results.length > 0) await supabase.from("qualifying_results").insert(results);
+  console.log(`Parsed qualifying: ${results.length} drivers`);
   return { drivers: results.length };
 }
 
