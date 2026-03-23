@@ -61,68 +61,100 @@ const FastestLapsTab = () => {
     [laps, sessionType],
   );
 
-  const sectorComparison = useMemo(() => {
-    if (qualSectors?.length && qualResults?.length) {
-      const driverMap = new Map<string, { car: string; name: string; qualPos: number; laps: any[] }>();
-      for (const qs of qualSectors) {
-        if (!driverMap.has(qs.car_number)) {
-          const qr = qualResults.find(q => q.car_number === qs.car_number);
-          driverMap.set(qs.car_number, { car: qs.car_number, name: formatDriverName(qs.driver_name), qualPos: qr?.qual_position || 99, laps: [] });
-        }
-        driverMap.get(qs.car_number)!.laps.push(qs);
+  const qualifyingSectorDriverCount = useMemo(
+    () => new Set((qualSectors || []).map((row) => row.car_number)).size,
+    [qualSectors],
+  );
+
+  const hasCompleteOvalSectorData = useMemo(() => {
+    if (!qualResults?.length || !qualSectors?.length) return false;
+    return qualifyingSectorDriverCount / qualResults.length >= 0.8;
+  }, [qualResults, qualSectors, qualifyingSectorDriverCount]);
+
+  const roadCourseSectionNames = useMemo(() => {
+    if (sessionType !== 'Qualifying') return [] as string[];
+
+    return Array.from(new Set(
+      (sessionFastestRows || [])
+        .map((row) => row.section_name)
+        .filter((name) => name && name !== 'Lap'),
+    ));
+  }, [sessionFastestRows, sessionType]);
+
+  const ovalSectorComparison = useMemo(() => {
+    if (!hasCompleteOvalSectorData || !qualSectors || !qualResults) return [];
+
+    const driverMap = new Map<string, { car: string; name: string; qualPos: number; laps: any[] }>();
+    for (const qs of qualSectors) {
+      if (!driverMap.has(qs.car_number)) {
+        const qr = qualResults.find(q => q.car_number === qs.car_number);
+        driverMap.set(qs.car_number, { car: qs.car_number, name: formatDriverName(qs.driver_name), qualPos: qr?.qual_position || 99, laps: [] });
       }
-      return Array.from(driverMap.values()).sort((a, b) => a.qualPos - b.qualPos);
+      driverMap.get(qs.car_number)!.laps.push(qs);
     }
 
-    if (sessionType !== 'Qualifying' || !qualResults?.length) return [];
+    return Array.from(driverMap.values()).sort((a, b) => a.qualPos - b.qualPos);
+  }, [hasCompleteOvalSectorData, qualResults, qualSectors]);
+
+  const roadCourseSectorComparison = useMemo(() => {
+    if (sessionType !== 'Qualifying' || !qualResults?.length || hasCompleteOvalSectorData) return [];
 
     const qualifyingFastestRows = (sessionFastestRows || []).filter((row) => row.section_name !== 'Lap');
     if (!qualifyingFastestRows.length) return [];
 
-    const byDriver = aggregateFastestLapSectionsByCar(qualifyingFastestRows);
-    return byDriver
+    return aggregateFastestLapSectionsByCar(sessionFastestRows)
       .map((driver) => {
         const qr = qualResults.find((q) => q.car_number === driver.car_number);
         return {
           car: driver.car_number,
           name: formatDriverName(driver.driver_name),
           qualPos: qr?.qual_position || 99,
-          laps: [
-            {
-              lap_number: 1,
-              full_lap_time: driver.sections.Lap?.section_time ? Number(driver.sections.Lap.section_time) : null,
-              ...Object.fromEntries(SECTOR_KEYS.map((sector) => [sector.key, driver.sections[sector.label]?.section_time ? Number(driver.sections[sector.label].section_time) : null])),
-            },
-          ],
+          bestLapTime: driver.sections.Lap?.section_time || driver.sections.Lap?.time || null,
+          sections: driver.sections,
         };
       })
       .sort((a, b) => a.qualPos - b.qualPos);
-  }, [qualResults, qualSectors, sessionFastestRows, sessionType]);
+  }, [hasCompleteOvalSectorData, qualResults, sessionFastestRows, sessionType]);
 
   const bestSectorTimes = useMemo(() => {
-    if (!qualSectors) return {} as Record<string, number>;
-    const bests: Record<string, number> = {};
-    for (const key of SECTOR_KEYS) {
-      let min = Infinity;
-      for (const qs of qualSectors) {
-        const val = Number(qs[key.key as keyof typeof qs]);
-        if (val && val < min) min = val;
+    if (hasCompleteOvalSectorData) {
+      if (!qualSectors) return {} as Record<string, number>;
+
+      const bests: Record<string, number> = {};
+      for (const key of SECTOR_KEYS) {
+        let min = Infinity;
+        for (const qs of qualSectors) {
+          const val = Number(qs[key.key as keyof typeof qs]);
+          if (val && val < min) min = val;
+        }
+        bests[key.key] = min;
       }
-      bests[key.key] = min;
+      return bests;
+    }
+
+    const bests: Record<string, number> = {};
+    for (const sectionName of roadCourseSectionNames) {
+      let min = Infinity;
+      for (const row of sessionFastestRows || []) {
+        if (row.section_name !== sectionName) continue;
+        const val = Number(row.section_time || row.time);
+        if (Number.isFinite(val) && val > 0 && val < min) min = val;
+      }
+      bests[sectionName] = min;
     }
     return bests;
-  }, [qualSectors]);
+  }, [hasCompleteOvalSectorData, qualSectors, roadCourseSectionNames, sessionFastestRows]);
 
   const driverLapComparison = useMemo(() => {
-    if (!selectedDriver || !qualSectors) return null;
+    if (!hasCompleteOvalSectorData || !selectedDriver || !qualSectors) return null;
     const driverSectors = qualSectors.filter(s => s.car_number === selectedDriver);
     const lap1 = driverSectors.find(s => s.lap_number === 1);
     const lap2 = driverSectors.find(s => s.lap_number === 2);
     if (!lap1) return null;
     return { lap1, lap2 };
-  }, [selectedDriver, qualSectors]);
+  }, [hasCompleteOvalSectorData, selectedDriver, qualSectors]);
 
-  const driversForSelector = sectorComparison.map(d => ({ car: d.car, name: d.name }));
+  const driversForSelector = ovalSectorComparison.map(d => ({ car: d.car, name: d.name }));
 
   return (
     <div className="space-y-6">
