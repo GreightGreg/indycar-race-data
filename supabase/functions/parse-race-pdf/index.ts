@@ -180,15 +180,52 @@ function parseEventInfo(lines: string[]) {
   const eventLine = normalizedLines.find(l => l.includes("Event:")) || "";
   const trackLine = normalizedLines.find(l => l.includes("Track:")) || "";
   const sessionLine = normalizedLines.find(l => l.includes("Session:")) || "";
-  const eventMatch = eventLine.match(/(?:Event:\s*)(.+?)\s+Round\s+(\d+)/);
-  const eventName = eventMatch ? eventMatch[1].trim() : eventLine.replace(/^.*Event:\s*/, "").trim();
-  const roundNumber = eventMatch ? parseInt(eventMatch[2]) : 0;
-  const trackMatch = trackLine.match(/(?:Track:\s*)(.+?)\s+[\d.]+\s+mile/);
-  const trackName = trackMatch ? trackMatch[1].trim() : trackLine.replace(/^.*Track:\s*/, "").trim();
-  const dateMatch = sessionLine.match(/(\w+ \d+,\s*\d{4})/);
+
+  // Format: "Good Ranchers 250 Event: Round 2" — event name is BEFORE "Event:"
+  // Or: "Event: Good Ranchers 250 Round 2" — event name is AFTER "Event:"
+  let eventName = "";
+  let roundNumber = 0;
+
+  // Try "value Event: Round N" format first (unpdf extracts value before label)
+  const beforeEventMatch = eventLine.match(/^(.+?)\s+Event:\s*Round\s+(\d+)/);
+  if (beforeEventMatch) {
+    eventName = beforeEventMatch[1].trim();
+    roundNumber = parseInt(beforeEventMatch[2]);
+  } else {
+    // Try "Event: value Round N" format
+    const afterEventMatch = eventLine.match(/Event:\s*(.+?)\s+Round\s+(\d+)/);
+    if (afterEventMatch) {
+      eventName = afterEventMatch[1].trim();
+      roundNumber = parseInt(afterEventMatch[2]);
+    } else {
+      // Try just finding Round number anywhere
+      const roundMatch = eventLine.match(/Round\s+(\d+)/);
+      roundNumber = roundMatch ? parseInt(roundMatch[1]) : 0;
+      eventName = eventLine.replace(/Event:/, "").replace(/Round\s+\d+/, "").trim();
+    }
+  }
+
+  // Format: "Phoenix Raceway Track: 1 mile(s)" — track name is BEFORE "Track:"
+  let trackName = "";
+  const beforeTrackMatch = trackLine.match(/^(.+?)\s+Track:\s*[\d.]+\s+mile/);
+  if (beforeTrackMatch) {
+    trackName = beforeTrackMatch[1].trim();
+  } else {
+    const afterTrackMatch = trackLine.match(/Track:\s*(.+?)\s+[\d.]+\s+mile/);
+    trackName = afterTrackMatch ? afterTrackMatch[1].trim() : trackLine.replace(/Track:/, "").trim();
+  }
+
+  // Extract track length
+  const trackLengthMatch = trackLine.match(/([\d.]+)\s+mile/);
+  const trackLengthMiles = trackLengthMatch ? parseFloat(trackLengthMatch[1]) : null;
+
+  // Format: "March 7, 2026 Session: Race" — date is BEFORE "Session:"
+  const dateMatch = normalizedLines.join(" ").match(/(\w+ \d+,\s*\d{4})/);
   const sessionDate = dateMatch ? dateMatch[1] : "";
   const year = dateMatch ? parseInt(dateMatch[1].split(",")[1].trim()) : new Date().getFullYear();
-  return { eventName, roundNumber, trackName, sessionDate, year };
+
+  console.log("Parsed event info:", JSON.stringify({ eventName, roundNumber, trackName, trackLengthMiles, sessionDate, year }));
+  return { eventName, roundNumber, trackName, trackLengthMiles, sessionDate, year };
 }
 
 async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
