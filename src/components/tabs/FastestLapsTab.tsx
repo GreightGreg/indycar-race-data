@@ -97,14 +97,14 @@ const FastestLapsTab = () => {
   }, [hasCompleteOvalSectorData, qualResults, qualSectors]);
 
   const roadCourseSectorComparison = useMemo(() => {
-    if (sessionType !== 'Qualifying' || !qualResults?.length || hasCompleteOvalSectorData) return [];
+    if (sessionType !== 'Qualifying' || hasCompleteOvalSectorData) return [];
 
     const qualifyingFastestRows = (sessionFastestRows || []).filter((row) => row.section_name !== 'Lap');
     if (!qualifyingFastestRows.length) return [];
 
     return aggregateFastestLapSectionsByCar(sessionFastestRows)
       .map((driver) => {
-        const qr = qualResults.find((q) => q.car_number === driver.car_number);
+        const qr = (qualResults || []).find((q) => q.car_number === driver.car_number);
         return {
           car: driver.car_number,
           name: formatDriverName(driver.driver_name),
