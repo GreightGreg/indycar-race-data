@@ -1,0 +1,1 @@
+DELETE FROM races WHERE round_number = 99 AND event_name = 'Test Race';
