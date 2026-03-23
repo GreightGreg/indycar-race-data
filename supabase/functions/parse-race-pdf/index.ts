@@ -624,7 +624,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       continue;
     }
     if (section === "cautions") {
-      const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
+      const m = line.trim().match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
       if (m && parseInt(m[1]) <= 30 && parseInt(m[2]) > 0) {
         const startLap = parseInt(m[2]);
         const endLap = parseInt(m[3]);
@@ -641,7 +641,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
     }
     if (section === "penalties") {
-      const m = line.match(/^(\d+)\s+(.+?)\s+(\d+)\s+(.+)/);
+      const m = line.trim().match(/^(\d+)\s+(.+?)\s+(\d+)\s+(.+)/);
       if (m) {
         penalties.push({
           race_id: raceId,
@@ -658,6 +658,17 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
 
   if (results.length === 0) {
     throw new Error("No race result rows parsed; existing race results were preserved");
+  }
+
+  // Round 1 semantic fix: total_points must equal race_points (no prior races)
+  // and championship_rank is derived from race_points descending
+  const roundNumber = eventInfo?.roundNumber || 0;
+  if (roundNumber === 1) {
+    for (const r of results) {
+      r.total_points = r.race_points;
+    }
+    const sorted = [...results].sort((a, b) => b.race_points - a.race_points);
+    sorted.forEach((r, i) => { r.championship_rank = i + 1; });
   }
 
   await replaceRows(supabase, "race_results", { race_id: raceId }, results);
