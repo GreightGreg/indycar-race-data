@@ -389,6 +389,30 @@ function parseRacePointColumns(pointTokens: string[], roundNumber: number) {
     return { racePoints: value, totalPoints: value };
   }
 
+  if (
+    roundNumber === 1 &&
+    pointTokens.length % 2 === 0 &&
+    pointTokens.every(token => /^\d$/.test(token))
+  ) {
+    const mid = pointTokens.length / 2;
+    const left = pointTokens.slice(0, mid).join("");
+    const right = pointTokens.slice(mid).join("");
+    if (left === right) {
+      const combined = parseInt(left, 10) || 0;
+      return { racePoints: combined, totalPoints: combined };
+    }
+  }
+
+  if (
+    roundNumber === 1 &&
+    pointTokens.length === 2 &&
+    pointTokens.every(token => /^\d$/.test(token)) &&
+    parseInt(pointTokens[1], 10) < parseInt(pointTokens[0], 10)
+  ) {
+    const combined = parseInt(pointTokens.join(""), 10) || 0;
+    return { racePoints: combined, totalPoints: combined };
+  }
+
   let best: { racePoints: number; totalPoints: number; score: number } | null = null;
 
   for (let split = 1; split < pointTokens.length; split++) {
@@ -414,8 +438,43 @@ function parseRacePointColumns(pointTokens: string[], roundNumber: number) {
       };
 }
 
+function normalizeRaceResultTimeGap(tokens: string[]): string {
+  if (tokens.length === 0) return "--.----";
+
+  const candidates = tokens.filter(token =>
+    /^--\.----$/.test(token) ||
+    /^-+$/.test(token) ||
+    /^\d+-$/.test(token) ||
+    /^\d{1,2}:\d{2}\.\d+$/.test(token) ||
+    /^\d+\.\d+$/.test(token)
+  );
+
+  if (candidates.length > 0) {
+    return candidates[candidates.length - 1];
+  }
+
+  return tokens[tokens.length - 1];
+}
+
+function isRaceResultRowStart(line: string): boolean {
+  return /^\d+\s+\d+\s+\d+\s+/.test(line.trim());
+}
+
+function trimEmbeddedRaceResultRow(line: string): string {
+  const normalized = line.replace(/\s+/g, " ").trim();
+  const matches = Array.from(normalized.matchAll(/\b\d+\s+\d+\s+\d+\s+[A-Za-z]/g));
+
+  if (matches.length > 1) {
+    const secondMatchIndex = matches[1].index ?? normalized.length;
+    return normalized.slice(0, secondMatchIndex).trim();
+  }
+
+  return normalized;
+}
+
 function parseRaceResultLine(line: string, roundNumber: number) {
-  const tokens = line.trim().split(/\s+/);
+  const normalizedLine = trimEmbeddedRaceResultRow(line);
+  const tokens = normalizedLine.split(/\s+/);
   if (tokens.length < 15) return null;
 
   const engineIndex = tokens.findIndex((token, index) => index >= 3 && /^D\/[CH]\/F$/.test(token));
@@ -427,19 +486,25 @@ function parseRaceResultLine(line: string, roundNumber: number) {
   const driverName = tokens.slice(3, engineIndex).join(" ").trim();
   const engine = parseEngine(tokens[engineIndex]);
 
-  const baseIndex = engineIndex + 1;
-  if (tokens.length < baseIndex + 7) return null;
+  const baseTokens = tokens.slice(engineIndex + 1);
+  if (baseTokens.length < 8) return null;
 
-  const lapsCompleted = parseInt(tokens[baseIndex], 10);
-  const lapsDown = parseInt(tokens[baseIndex + 1], 10);
-  const timeGap = tokens[baseIndex + 2];
-  const pitStops = parseInt(tokens[baseIndex + 3], 10);
-  const elapsedTime = tokens[baseIndex + 4];
-  const avgSpeed = parseFloat(tokens[baseIndex + 5]);
-  const tailTokens = tokens.slice(baseIndex + 6);
+  const lapsCompleted = parseInt(baseTokens[0], 10);
+  const lapsDown = parseInt(baseTokens[1], 10);
+  if (!Number.isFinite(lapsCompleted) || !Number.isFinite(lapsDown)) return null;
+
+  const elapsedIndex = baseTokens.findIndex(token => /^(\d{2}:){2}\d{2}\.\d+$/.test(token));
+  if (elapsedIndex < 4 || elapsedIndex >= baseTokens.length - 1) return null;
+
+  const pitStopToken = baseTokens[elapsedIndex - 1];
+  const pitStops = parseInt(pitStopToken, 10);
+  const elapsedTime = baseTokens[elapsedIndex];
+  const avgSpeed = parseFloat(baseTokens[elapsedIndex + 1]);
+  const timeGap = normalizeRaceResultTimeGap(baseTokens.slice(2, elapsedIndex - 1));
+  const tailTokens = baseTokens.slice(elapsedIndex + 2);
   if (!tailTokens.length || !/^\d+$/.test(tailTokens[tailTokens.length - 1])) return null;
 
-  const championshipRank = parseInt(tailTokens[tailTokens.length - 1], 10);
+  let championshipRank = parseInt(tailTokens[tailTokens.length - 1], 10);
   const tailWithoutRank = tailTokens.slice(0, -1);
 
   let pointsStartIndex = tailWithoutRank.length;
@@ -450,6 +515,17 @@ function parseRaceResultLine(line: string, roundNumber: number) {
   const statusTokens = tailWithoutRank.slice(0, pointsStartIndex);
   const pointTokens = tailWithoutRank.slice(pointsStartIndex);
   if (!pointTokens.length) return null;
+
+  if (
+    roundNumber === 1 &&
+    pointTokens.length === 3 &&
+    pointTokens.every(token => /^\d+$/.test(token)) &&
+    pointTokens[0] === pointTokens[1] &&
+    parseInt(pointTokens[2], 10) === finishPosition
+  ) {
+    championshipRank = finishPosition;
+    pointTokens.pop();
+  }
 
   const { racePoints, totalPoints } = parseRacePointColumns(pointTokens, roundNumber);
 
@@ -516,21 +592,36 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   let section = "header";
   let sawCautionSection = false;
   let sawPenaltySection = false;
+  let pendingResultLine = "";
   const cautionLapCount = cautionLapsMatch ? parseInt(cautionLapsMatch[1]) : null;
 
+  const flushPendingResultLine = () => {
+    if (!pendingResultLine) return;
+    const parsedRow = parseRaceResultLine(pendingResultLine.replace(/\s+/g, " ").trim(), eventInfo?.roundNumber || 0);
+    if (parsedRow) {
+      results.push({ race_id: raceId, ...parsedRow });
+    } else {
+      console.warn("Failed to parse race result row:", pendingResultLine);
+    }
+    pendingResultLine = "";
+  };
+
   for (const line of allLines) {
-    if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { section = "results"; continue; }
-    if (line.includes("Lead Change Summary") || line.includes("LeadChange")) { section = "leadchanges"; continue; }
-    if (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line) || line.includes("# Start End") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; sawCautionSection = true; continue; }
-    if (/penalty\s*summary/i.test(line)) { section = "penalties"; sawPenaltySection = true; continue; }
-    if (line.includes("(C)hassis:") || line.includes("Legend:")) { section = "done"; continue; }
+    if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { flushPendingResultLine(); section = "results"; continue; }
+    if (line.includes("Lead Change Summary") || line.includes("LeadChange")) { flushPendingResultLine(); section = "leadchanges"; continue; }
+    if (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line) || line.includes("# Start End") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { flushPendingResultLine(); section = "cautions"; sawCautionSection = true; continue; }
+    if (/penalty\s*summary/i.test(line)) { flushPendingResultLine(); section = "penalties"; sawPenaltySection = true; continue; }
+    if (line.includes("(C)hassis:") || line.includes("Legend:")) { flushPendingResultLine(); section = "done"; continue; }
     if (section === "done") break;
 
     if (section === "results") {
-      const parsedRow = parseRaceResultLine(line, eventInfo?.roundNumber || 0);
-      if (parsedRow) {
-        results.push({ race_id: raceId, ...parsedRow });
+      if (isRaceResultRowStart(line)) {
+        flushPendingResultLine();
+        pendingResultLine = line;
+      } else if (pendingResultLine) {
+        pendingResultLine = `${pendingResultLine} ${line}`;
       }
+      continue;
     }
     if (section === "cautions") {
       const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
@@ -562,6 +653,8 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
     }
   }
+
+  flushPendingResultLine();
 
   if (results.length === 0) {
     throw new Error("No race result rows parsed; existing race results were preserved");
