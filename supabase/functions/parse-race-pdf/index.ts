@@ -172,7 +172,7 @@ function identifyReport(lines: string[]): string | null {
   const normalizedLines = lines.map(normalizeHeaderLine);
   const reportLine = normalizedLines.find(l => l.includes("Report:")) || "";
   const sessionLine = normalizedLines.find(l => l.includes("Session:")) || "";
-  if (reportLine.includes("Official Lap Report")) return "race_results";
+  if (reportLine.includes("Official Lap Report") || reportLine.includes("Official Final Results")) return "race_results";
   if (reportLine.includes("Event Summary")) return "event_summary";
   if (reportLine.includes("Leader Lap Summary")) return "leader_laps";
   if (reportLine.includes("Race Lap Chart")) return "lap_chart";
