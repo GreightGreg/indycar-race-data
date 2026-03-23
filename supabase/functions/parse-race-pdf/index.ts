@@ -62,7 +62,7 @@ serve(async (req) => {
     let result;
     switch (reportType) {
       case "race_results":
-        result = await parseRaceResults(supabase, page1Lines, raceId, eventInfo);
+        result = await parseRaceResults(supabase, pdf, raceId, eventInfo);
         break;
       case "event_summary":
         result = await parseEventSummary(supabase, page1Lines, raceId);
