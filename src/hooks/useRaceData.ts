@@ -9,7 +9,7 @@ export const useRaces = () =>
         .from('races')
         .select('*, seasons(*)')
         .order('year', { ascending: false })
-        .order('round_number', { ascending: false });
+        .order('race_date', { ascending: false });
       if (error) throw error;
       return data;
     },
