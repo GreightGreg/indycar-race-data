@@ -65,7 +65,7 @@ serve(async (req) => {
         result = await parseRaceResults(supabase, pdf, raceId, eventInfo);
         break;
       case "event_summary":
-        result = await parseEventSummary(supabase, page1Lines, raceId);
+        result = await parseEventSummary(supabase, pdf, page1Lines, raceId);
         break;
       case "leader_laps":
         result = await parseLeaderLaps(supabase, pdf, raceId);
