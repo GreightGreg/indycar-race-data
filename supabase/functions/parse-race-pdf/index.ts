@@ -477,7 +477,7 @@ async function parseLapChart(supabase: any, pdf: any, raceId: string) {
   return { positions: insertRows.length };
 }
 
-async function parsePitStops(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parsePitStops(supabase: any, pdf: any, raceId: string) {
   await supabase.from("pit_stops").delete().eq("race_id", raceId);
   const stops: any[] = [];
   let currentCar = "";
