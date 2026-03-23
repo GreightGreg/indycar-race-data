@@ -629,7 +629,7 @@ async function parseCombinedPractice(supabase: any, lines: string[], raceId: str
   return { drivers: results.length };
 }
 
-async function parseQualifyingSectors(supabase: any, pages: string[], pdf: any, raceId: string) {
+async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
   await supabase.from("qualifying_sectors").delete().eq("race_id", raceId);
   const sectorNames = ["dogleg", "front_stretch", "turn1_entry", "turn1_exit", "turn2_entry", "turn2_exit", "turn3_entry", "turn3_exit", "turn4", "full_lap"];
   const rows: any[] = [];
