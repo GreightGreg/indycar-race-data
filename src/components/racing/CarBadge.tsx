@@ -38,7 +38,7 @@ interface CarBadgeProps {
 const CarBadge = ({ num, size = 'md' }: CarBadgeProps) => {
   const bg = CAR_COLORS[num];
   const dim = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
-  const imgSize = size === 'sm' ? 'w-4 h-4' : 'w-5 h-5';
+  const imgSize = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
   const isDark = !bg || DARK_COLORS.has(bg);
 
   const imageUrl = `${SUPABASE_URL}/storage/v1/object/public/car-numbers/${num}.webp`;
