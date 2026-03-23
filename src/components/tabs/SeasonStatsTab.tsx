@@ -74,6 +74,7 @@ const SeasonStatsTab = () => {
           engine: r.engine,
           roundPoints: {} as Record<number, number>,
           roundFinishes: {} as Record<number, number>,
+          roundLapsLed: lapsLedByCarRound[r.car_number] || {} as Record<number, number>,
           totalPts: 0,
           wins: 0,
           podiums: 0,
