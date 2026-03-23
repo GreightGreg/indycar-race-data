@@ -30,13 +30,7 @@ serve(async (req) => {
     const uint8Array = new Uint8Array(arrayBuffer);
     const pdf = await getDocumentProxy(uint8Array);
 
-    const pages: string[] = [];
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const text = content.items.map((item: any) => item.str).join(" ");
-      pages.push(text);
-    }
+    // Don't pre-extract all pages — let parsers read on demand to save CPU
 
     const page1 = await pdf.getPage(1);
     const page1Content = await page1.getTextContent();
