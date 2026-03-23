@@ -179,13 +179,18 @@ export const useFastestLaps = (raceId: string | null, sectionName: string, sessi
   useQuery({
     queryKey: ['fastest_laps', raceId, sectionName, sessionType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('fastest_laps')
         .select('*')
         .eq('race_id', raceId!)
         .eq('section_name', sectionName)
-        .eq('session_type', sessionType)
         .order('rank');
+
+      query = sessionType === 'Qualifying'
+        ? query.ilike('session_type', 'Qualifying%')
+        : query.eq('session_type', sessionType);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -196,12 +201,17 @@ export const useFastestLapSections = (raceId: string | null, sessionType: string
   useQuery({
     queryKey: ['fastest_lap_sections', raceId, sessionType],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('fastest_laps')
         .select('section_name, section_length_miles')
         .eq('race_id', raceId!)
-        .eq('session_type', sessionType)
         .eq('rank', 1);
+
+      query = sessionType === 'Qualifying'
+        ? query.ilike('session_type', 'Qualifying%')
+        : query.eq('session_type', sessionType);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -219,9 +229,12 @@ export const useFastestLapSessionTypes = (raceId: string | null) =>
         .eq('rank', 1)
         .eq('section_name', 'Lap');
       if (error) throw error;
-      const unique = [...new Set(data.map(d => d.session_type))];
+
+      const unique = new Set(
+        data.map((d) => d.session_type.startsWith('Qualifying') ? 'Qualifying' : d.session_type),
+      );
       const order = ['Race', 'Practice 1', 'Practice 2', 'Practice Final', 'Qualifying'];
-      return order.filter(s => unique.includes(s));
+      return order.filter((s) => unique.has(s));
     },
     enabled: !!raceId,
   });
