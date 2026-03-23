@@ -121,7 +121,7 @@ const HeadToHeadTab = () => {
       </div>
 
       <div className="bg-racing-surface rounded p-4 max-w-2xl mx-auto">
-        {comparisons.map(c => <StatRow key={c.label} label={c.label} v1={c.v1} v2={c.v2} highlight={getHighlight(c)} />)}
+        {comparisons.map(c => <StatRow key={c.label} label={c.label} v1={c.v1} v2={c.v2} highlight={getHighlight(c)} isEngine={(c as any).isEngine} />)}
       </div>
 
       {chartData.length > 0 && (
