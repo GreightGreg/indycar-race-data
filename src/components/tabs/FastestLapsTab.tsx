@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useRaceContext } from '@/contexts/RaceContext';
-import { useFastestLaps, useFastestLapSections } from '@/hooks/useRaceData';
+import { useFastestLaps, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
