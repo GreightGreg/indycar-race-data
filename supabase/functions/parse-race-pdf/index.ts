@@ -743,6 +743,25 @@ async function parseSessionResults(supabase: any, lines: string[], raceId: strin
         best_lap_number: parseInt(m[9]),
         total_laps: parseInt(m[10])
       });
+    } else {
+      // DNP driver — has rank, car, name, engine but no times
+      const dnp = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s*(\d+)?$/);
+      if (dnp) {
+        results.push({
+          race_id: raceId,
+          session_type: sessionType,
+          rank: parseInt(dnp[1]),
+          car_number: dnp[2],
+          driver_name: dnp[3].trim(),
+          engine: parseEngine(dnp[4]),
+          best_time: null,
+          best_speed: null,
+          diff_to_leader: null,
+          gap_to_ahead: null,
+          best_lap_number: null,
+          total_laps: dnp[5] ? parseInt(dnp[5]) : 0
+        });
+      }
     }
   }
   if (results.length > 0) await supabase.from("session_full_results").insert(results);
