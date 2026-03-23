@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import { useRaceContext } from '@/pages/Index';
 import { useLapsLed, useRaceDetails, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const LapsLedTab = () => {
   const { raceId } = useRaceContext();
