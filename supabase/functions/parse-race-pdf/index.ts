@@ -478,17 +478,33 @@ async function parseLapChart(supabase: any, pdf: any, raceId: string) {
 
   for (let p = 1; p <= pdf.numPages; p++) {
     const lines = await getPageLines(pdf, p);
-    const lapHeaderLine = lines.find(l => l.includes("Lap->"));
-    if (!lapHeaderLine) continue;
-    const lapNumbers = lapHeaderLine.replace(/.*Lap->\s*/, "").trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+    
+    // Find lap numbers: look for lines of purely sequential ascending numbers
+    let lapNumbers: number[] = [];
+    const numberOnlyLines = lines.filter(l => /^[\d\s]+$/.test(l.trim()) && l.trim().split(/\s+/).length > 5);
+    for (const nl of numberOnlyLines) {
+      const nums = nl.trim().split(/\s+/).map(Number);
+      let isSequential = true;
+      for (let i = 1; i < Math.min(nums.length, 10); i++) {
+        if (nums[i] <= nums[i - 1]) { isSequential = false; break; }
+      }
+      if (isSequential && nums.length > 5) { lapNumbers = nums; break; }
+    }
+    if (lapNumbers.length === 0) continue;
+
     for (const line of lines) {
-      const m = line.match(/^(\d+)\s+-\s+.+?\s+\(\d+\)\s+\d+\s+(.+)/);
+      // Format: "12 - Malukas, David (1) 1 12 12 12 12..."
+      // carNum - driverName (startPos) rowPosition cellValues...
+      const m = line.match(/^(\d+)\s+-\s+.+?\s+\(\d+\)\s+(\d+)\s+(.+)/);
       if (!m) continue;
-      const carNumber = m[1];
-      if (!carPositions[carNumber]) carPositions[carNumber] = {};
-      const posValues = m[2].trim().split(/\s+/).map(Number).filter(n => !isNaN(n));
+      const rowPosition = parseInt(m[2]); // chart row = position
+      const cellValues = m[3].trim().split(/\s+/);
       lapNumbers.forEach((lap, idx) => {
-        if (posValues[idx] !== undefined) carPositions[carNumber][lap] = idx + 1;
+        const carNum = cellValues[idx];
+        if (carNum && !isNaN(parseInt(carNum))) {
+          if (!carPositions[carNum]) carPositions[carNum] = {};
+          carPositions[carNum][lap] = rowPosition;
+        }
       });
     }
   }
@@ -505,6 +521,7 @@ async function parseLapChart(supabase: any, pdf: any, raceId: string) {
     }
   }
   await markFileReceived(supabase, raceId, "lap_chart");
+  console.log(`Parsed lap chart: ${insertRows.length} position records`);
   return { positions: insertRows.length };
 }
 
