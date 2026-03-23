@@ -346,6 +346,37 @@ async function markFileReceived(supabase: any, raceId: string, fileType: string)
   }
 }
 
+async function replaceRows(
+  supabase: any,
+  table: string,
+  filters: Record<string, string>,
+  rows: any[],
+  options: { allowEmpty?: boolean; chunkSize?: number } = {}
+) {
+  const { allowEmpty = false, chunkSize = 500 } = options;
+
+  if (!allowEmpty && rows.length === 0) {
+    return false;
+  }
+
+  let deleteQuery = supabase.from(table).delete();
+  for (const [column, value] of Object.entries(filters)) {
+    deleteQuery = deleteQuery.eq(column, value);
+  }
+  const { error: deleteError } = await deleteQuery;
+  if (deleteError) throw new Error(`Failed clearing ${table}: ${deleteError.message}`);
+
+  if (rows.length > 0) {
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const batch = rows.slice(i, i + chunkSize);
+      const { error: insertError } = await supabase.from(table).insert(batch);
+      if (insertError) throw new Error(`Failed inserting ${table}: ${insertError.message}`);
+    }
+  }
+
+  return true;
+}
+
 function parseEngine(cet: string): string {
   if (!cet) return "Unknown";
   const parts = cet.split("/");
@@ -360,7 +391,6 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     allLines.push(...pageLines);
   }
 
-  await supabase.from("race_results").delete().eq("race_id", raceId);
   const headerLine = allLines.find(l => l.includes("Time of Race:")) || "";
   const totalLapsMatch = headerLine.match(/End of Lap (\d+)/);
   const timeMatch = headerLine.match(/Time of Race:\s+([\d:\.]+)/);
@@ -396,12 +426,15 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
   const cautions = [];
   const penalties = [];
   let section = "header"; // header | results | leadchanges | cautions | penalties
+  let sawCautionSection = false;
+  let sawPenaltySection = false;
+  const cautionLapCount = cautionLapsMatch ? parseInt(cautionLapsMatch[1]) : null;
 
   for (const line of allLines) {
     if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { section = "results"; continue; }
     if (line.includes("Lead Change Summary") || line.includes("LeadChange")) { section = "leadchanges"; continue; }
-    if (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line) || line.includes("# Start End") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; continue; }
-    if (/penalty\s*summary/i.test(line)) { section = "penalties"; continue; }
+    if (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line) || line.includes("# Start End") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; sawCautionSection = true; continue; }
+    if (/penalty\s*summary/i.test(line)) { section = "penalties"; sawPenaltySection = true; continue; }
     if (line.includes("(C)hassis:") || line.includes("Legend:")) { section = "done"; continue; }
     if (section === "done") break;
 
@@ -460,15 +493,22 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     }
   }
 
-  if (results.length > 0) await supabase.from("race_results").insert(results);
-  if (cautions.length > 0) {
-    await supabase.from("cautions").delete().eq("race_id", raceId);
-    await supabase.from("cautions").insert(cautions);
+  if (results.length === 0) {
+    throw new Error("No race result rows parsed; existing race results were preserved");
   }
-  if (penalties.length > 0) {
-    await supabase.from("penalties").delete().eq("race_id", raceId);
-    await supabase.from("penalties").insert(penalties);
+
+  await replaceRows(supabase, "race_results", { race_id: raceId }, results);
+
+  if (sawCautionSection && (cautions.length > 0 || cautionLapCount === 0)) {
+    await replaceRows(supabase, "cautions", { race_id: raceId }, cautions, { allowEmpty: true });
+  } else if (cautionLapCount && cautionLapCount > 0 && cautions.length === 0) {
+    console.warn(`Caution section detected in summary but no caution rows parsed for race ${raceId}; preserving existing cautions`);
   }
+
+  if (sawPenaltySection) {
+    await replaceRows(supabase, "penalties", { race_id: raceId }, penalties, { allowEmpty: true });
+  }
+
   await markFileReceived(supabase, raceId, "race_results");
   console.log(`Parsed race results: ${results.length} drivers, ${cautions.length} cautions, ${penalties.length} penalties`);
   return { drivers: results.length, cautions: cautions.length, penalties: penalties.length };
@@ -552,7 +592,6 @@ async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], 
 }
 
 async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {
-  await supabase.from("race_laps").delete().eq("race_id", raceId);
   const laps = [];
   for (let p = 1; p <= pdf.numPages; p++) {
     const lines = await getPageLines(pdf, p);
@@ -572,13 +611,13 @@ async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {
       }
     }
   }
-  if (laps.length > 0) await supabase.from("race_laps").insert(laps);
+  if (laps.length === 0) throw new Error("No leader lap rows parsed; existing lap data was preserved");
+  await replaceRows(supabase, "race_laps", { race_id: raceId }, laps);
   await markFileReceived(supabase, raceId, "leader_laps");
   return { laps: laps.length };
 }
 
 async function parseLapChart(supabase: any, pdf: any, raceId: string) {
-  await supabase.from("race_positions").delete().eq("race_id", raceId);
   const carPositions: Record<string, Record<number, number>> = {};
 
   for (let p = 1; p <= pdf.numPages; p++) {
@@ -620,18 +659,14 @@ async function parseLapChart(supabase: any, pdf: any, raceId: string) {
       insertRows.push({ race_id: raceId, lap_number: parseInt(lap), car_number: carNumber, position: pos });
     }
   }
-  if (insertRows.length > 0) {
-    for (let i = 0; i < insertRows.length; i += 500) {
-      await supabase.from("race_positions").insert(insertRows.slice(i, i + 500));
-    }
-  }
+  if (insertRows.length === 0) throw new Error("No lap chart rows parsed; existing position data was preserved");
+  await replaceRows(supabase, "race_positions", { race_id: raceId }, insertRows);
   await markFileReceived(supabase, raceId, "lap_chart");
   console.log(`Parsed lap chart: ${insertRows.length} position records`);
   return { positions: insertRows.length };
 }
 
 async function parsePitStops(supabase: any, pdf: any, raceId: string) {
-  await supabase.from("pit_stops").delete().eq("race_id", raceId);
   const stops: any[] = [];
   let currentCar = "";
   let currentDriver = "";
@@ -693,14 +728,14 @@ async function parsePitStops(supabase: any, pdf: any, raceId: string) {
     }
   }
   if (pendingStop) stops.push(pendingStop);
-  if (stops.length > 0) await supabase.from("pit_stops").insert(stops);
+  if (stops.length === 0) throw new Error("No pit stop rows parsed; existing pit stop data was preserved");
+  await replaceRows(supabase, "pit_stops", { race_id: raceId }, stops);
   await markFileReceived(supabase, raceId, "pit_stops");
   console.log(`Parsed pit stops: ${stops.length} stops`);
   return { stops: stops.length };
 }
 
 async function parseSectionTimes(supabase: any, pdf: any, raceId: string, sessionType: string) {
-  await supabase.from("fastest_laps").delete().eq("race_id", raceId).eq("session_type", sessionType);
   const rows: any[] = [];
 
   for (let p = 1; p <= pdf.numPages; p++) {
@@ -730,11 +765,8 @@ async function parseSectionTimes(supabase: any, pdf: any, raceId: string, sessio
     }
   }
 
-  if (rows.length > 0) {
-    for (let i = 0; i < rows.length; i += 500) {
-      await supabase.from("fastest_laps").insert(rows.slice(i, i + 500));
-    }
-  }
+  if (rows.length === 0) throw new Error(`No section-time rows parsed for ${sessionType}; existing data was preserved`);
+  await replaceRows(supabase, "fastest_laps", { race_id: raceId, session_type: sessionType }, rows);
   const sessionKeyMap: Record<string, string> = {
     "Race": "section_times_race",
     "Practice 1": "section_times_practice_1",
@@ -751,7 +783,6 @@ async function parseSectionTimes(supabase: any, pdf: any, raceId: string, sessio
 }
 
 async function parseSessionResults(supabase: any, lines: string[], raceId: string, sessionType: string) {
-  await supabase.from("session_full_results").delete().eq("race_id", raceId).eq("session_type", sessionType);
   const results: any[] = [];
   let inData = false;
 
@@ -815,12 +846,12 @@ async function parseSessionResults(supabase: any, lines: string[], raceId: strin
       }
     }
   }
-  if (results.length > 0) await supabase.from("session_full_results").insert(results);
+  if (results.length === 0) throw new Error(`No session result rows parsed for ${sessionType}; existing data was preserved`);
+  await replaceRows(supabase, "session_full_results", { race_id: raceId, session_type: sessionType }, results);
   return { drivers: results.length };
 }
 
 async function parseQualifyingResults(supabase: any, lines: string[], raceId: string) {
-  await supabase.from("qualifying_results").delete().eq("race_id", raceId);
   const results: any[] = [];
   let inData = false;
   let pendingSpeed: number | null = null;
@@ -875,13 +906,13 @@ async function parseQualifyingResults(supabase: any, lines: string[], raceId: st
     }
   }
 
-  if (results.length > 0) await supabase.from("qualifying_results").insert(results);
+  if (results.length === 0) throw new Error("No qualifying rows parsed; existing qualifying data was preserved");
+  await replaceRows(supabase, "qualifying_results", { race_id: raceId }, results);
   console.log(`Parsed qualifying: ${results.length} drivers`);
   return { drivers: results.length };
 }
 
 async function parseCombinedPractice(supabase: any, lines: string[], raceId: string) {
-  await supabase.from("combined_practice_results").delete().eq("race_id", raceId);
   const results: any[] = [];
   let inData = false;
 
@@ -894,12 +925,12 @@ async function parseCombinedPractice(supabase: any, lines: string[], raceId: str
       results.push({ race_id: raceId, rank: parseInt(m[1]), car_number: m[2], driver_name: m[3].trim(), engine: parseEngine(m[4]), best_session: m[5], best_time: m[6], best_speed: parseFloat(m[7]), total_laps: parseInt(m[8]) });
     }
   }
-  if (results.length > 0) await supabase.from("combined_practice_results").insert(results);
+  if (results.length === 0) throw new Error("No combined practice rows parsed; existing combined practice data was preserved");
+  await replaceRows(supabase, "combined_practice_results", { race_id: raceId }, results);
   return { drivers: results.length };
 }
 
 async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
-  await supabase.from("qualifying_sectors").delete().eq("race_id", raceId);
   const sectorNames = ["dogleg", "front_stretch", "turn1_entry", "turn1_exit", "turn2_entry", "turn2_exit", "turn3_entry", "turn3_exit", "turn4", "full_lap"];
   const rows: any[] = [];
 
@@ -949,6 +980,7 @@ async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
     }
   }
 
-  if (rows.length > 0) await supabase.from("qualifying_sectors").insert(rows);
+  if (rows.length === 0) throw new Error("No qualifying sector rows parsed; existing qualifying sector data was preserved");
+  await replaceRows(supabase, "qualifying_sectors", { race_id: raceId }, rows);
   return { drivers: rows.length };
 }
