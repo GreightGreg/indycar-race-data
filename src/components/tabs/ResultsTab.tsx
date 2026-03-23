@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useRaceResults, useRaceDetails, useCautions, usePenalties } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';

@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
 

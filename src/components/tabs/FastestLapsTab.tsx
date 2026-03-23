@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useFastestLaps, useFastestLapSections } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';

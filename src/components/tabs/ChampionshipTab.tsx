@@ -1,4 +1,4 @@
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useChampionshipStandings } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';

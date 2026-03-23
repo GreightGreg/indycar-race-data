@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useLapsLed, useRaceDetails, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';

@@ -1,4 +1,4 @@
-import { useState, createContext, useContext } from 'react';
+import { useState } from 'react';
 import Header from '@/components/racing/Header';
 import TabNav from '@/components/racing/TabNav';
 import Footer from '@/components/racing/Footer';
@@ -11,14 +11,7 @@ import PitStrategyTab from '@/components/tabs/PitStrategyTab';
 import FastestLapsTab from '@/components/tabs/FastestLapsTab';
 import ChampionshipTab from '@/components/tabs/ChampionshipTab';
 import { useRaces } from '@/hooks/useRaceData';
-
-interface RaceContextType {
-  raceId: string | null;
-  setRaceId: (id: string) => void;
-}
-
-export const RaceContext = createContext<RaceContextType>({ raceId: null, setRaceId: () => {} });
-export const useRaceContext = () => useContext(RaceContext);
+import { RaceContext } from '@/contexts/RaceContext';
 
 const TAB_COMPONENTS: Record<string, React.FC> = {
   'Race Results': ResultsTab,

@@ -1,4 +1,4 @@
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useRaceResults, usePitStops, usePitExecution } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';

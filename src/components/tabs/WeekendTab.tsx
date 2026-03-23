@@ -1,4 +1,4 @@
-import { useRaceContext } from '@/pages/Index';
+import { useRaceContext } from '@/contexts/RaceContext';
 import { useRaceDetails, useSessionStats } from '@/hooks/useRaceData';
 import { useSessionFullResults, useQualifyingResults, useCombinedPracticeResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
