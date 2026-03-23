@@ -42,9 +42,11 @@ serve(async (req) => {
     const page1Content = await page1.getTextContent();
     const page1Lines = extractLines(page1Content.items);
 
+    console.log("Page 1 lines (first 15):", JSON.stringify(page1Lines.slice(0, 15)));
     const reportType = identifyReport(page1Lines);
+    console.log("Identified report type:", reportType);
     if (!reportType) {
-      return new Response(JSON.stringify({ error: "Unknown report type", preview: page1Lines.slice(0, 6) }), {
+      return new Response(JSON.stringify({ error: "Unknown report type", preview: page1Lines.slice(0, 15) }), {
         status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
