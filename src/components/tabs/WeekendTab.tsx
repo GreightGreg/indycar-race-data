@@ -1,5 +1,5 @@
 import { useRaceContext } from '@/pages/Index';
-import { useRaceDetails, useSessionStats, useRaceResults } from '@/hooks/useRaceData';
+import { useRaceDetails, useSessionStats } from '@/hooks/useRaceData';
 import { useSessionFullResults, useQualifyingResults, useCombinedPracticeResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
 import { useIsMobile } from '@/hooks/use-mobile';
