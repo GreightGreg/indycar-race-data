@@ -22,7 +22,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   'Head to Head': HeadToHeadTab,
   'Pit Strategy': PitStrategyTab,
   'Season Stats': SeasonStatsTab,
-  'Fastest Laps': FastestLapsTab,
+  'Track Dominance': TrackDominanceTab,
   'Championship': ChampionshipTab,
 };
 
