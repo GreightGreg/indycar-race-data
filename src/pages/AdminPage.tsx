@@ -55,19 +55,28 @@ const AdminPage = () => {
   const handleUpload = async () => {
     if (!files.length) return;
     setUploading(true); setUploadResult([]); setUploadError('');
-    try {
-      const results: string[] = [];
-      for (const file of files) {
+    const results: string[] = [];
+    const errors: string[] = [];
+    for (const file of files) {
+      try {
         const formData = new FormData();
         formData.append('file', file);
         const res = await supabase.functions.invoke('parse-race-pdf', { body: formData });
-        if (res.error) { setUploadError(`Error with ${file.name}: ${res.error.message}`); }
-        else { results.push(`✓ ${file.name} → ${res.data?.reportType || 'parsed'}`); }
+        if (res.error) {
+          errors.push(`✗ ${file.name}: ${res.error.message}`);
+        } else if (res.data?.skipped) {
+          results.push(`⊘ ${file.name} → skipped (${res.data?.message || res.data?.reportType || 'not needed'})`);
+        } else {
+          results.push(`✓ ${file.name} → ${res.data?.reportType || 'parsed'}`);
+        }
+      } catch (e: any) {
+        errors.push(`✗ ${file.name}: ${e.message}`);
       }
-      setUploadResult(results);
-      setFiles([]);
-      loadData();
-    } catch (e: any) { setUploadError(e.message); }
+    }
+    setUploadResult(results);
+    setUploadError(errors.length ? errors.join('\n') : '');
+    setFiles([]);
+    loadData();
     setUploading(false);
   };
 
