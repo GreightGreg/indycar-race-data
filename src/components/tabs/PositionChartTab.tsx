@@ -9,6 +9,7 @@ const PositionChartTab = () => {
   const { data: positions } = useRacePositions(raceId);
   const { data: cautions } = useCautions(raceId);
   const [highlightedCar, setHighlightedCar] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const { data, cars, cautionRanges } = useMemo(() => {
     if (!positions?.length) return { data: [], cars: [], cautionRanges: [] as [number, number][] };
