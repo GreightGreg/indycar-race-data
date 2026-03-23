@@ -9,6 +9,7 @@ import LapsLedTab from '@/components/tabs/LapsLedTab';
 import HeadToHeadTab from '@/components/tabs/HeadToHeadTab';
 import PitStrategyTab from '@/components/tabs/PitStrategyTab';
 import FastestLapsTab from '@/components/tabs/FastestLapsTab';
+import SeasonStatsTab from '@/components/tabs/SeasonStatsTab';
 import ChampionshipTab from '@/components/tabs/ChampionshipTab';
 import { useRaces } from '@/hooks/useRaceData';
 import { RaceContext } from '@/contexts/RaceContext';
