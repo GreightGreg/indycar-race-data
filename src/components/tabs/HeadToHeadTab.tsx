@@ -5,11 +5,15 @@ import { useRaceResults, useLapsLed, useFastestLaps, useRacePositions, useCautio
 import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';
 
-const StatRow = ({ label, v1, v2, highlight }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none' }) => (
+const StatRow = ({ label, v1, v2, highlight, isEngine }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none'; isEngine?: boolean }) => (
   <div className="flex items-center py-1.5 border-b border-racing-border/30">
-    <span className={`flex-1 text-right font-mono text-xs ${highlight === 'left' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>{v1}{highlight === 'left' && ' ◀'}</span>
+    <span className={`flex-1 text-right font-mono text-xs ${highlight === 'left' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+      {isEngine ? <span className="inline-flex justify-end w-full"><EngineIcon engine={v1} /></span> : <>{v1}{highlight === 'left' && ' ◀'}</>}
+    </span>
     <span className="w-32 text-center font-condensed text-[10px] text-racing-muted uppercase px-2">{label}</span>
-    <span className={`flex-1 font-mono text-xs ${highlight === 'right' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>{highlight === 'right' && '▶ '}{v2}</span>
+    <span className={`flex-1 font-mono text-xs ${highlight === 'right' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+      {isEngine ? <EngineIcon engine={v2} /> : <>{highlight === 'right' && '▶ '}{v2}</>}
+    </span>
   </div>
 );
 
