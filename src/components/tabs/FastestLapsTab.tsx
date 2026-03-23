@@ -132,7 +132,7 @@ const FastestLapsTab = () => {
               <div className="min-w-0 flex-1">
                 <p className="font-body text-sm text-racing-text">{formatDriverName(f.driver_name)}</p>
                 <div className="flex gap-3 mt-0.5">
-                  <span className="font-mono text-[10px] text-racing-text">{f.section_time}{selectedSection !== 'Full Lap' ? 's' : ''}</span>
+                  <span className="font-mono text-[10px] text-racing-text">{f.section_time}{selectedSection !== 'Lap' ? 's' : ''}</span>
                   <span className="font-mono text-[10px] text-racing-yellow">{Number(f.section_speed)?.toFixed(3)} mph</span>
                   <span className="font-mono text-[10px] text-racing-muted">L{f.lap_number}</span>
                 </div>
