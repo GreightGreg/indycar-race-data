@@ -291,36 +291,42 @@ function parseEventInfo(lines: string[]) {
 }
 
 async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
+  console.log("getOrCreateRace called with:", JSON.stringify({ round: eventInfo.roundNumber, year: eventInfo.year, track: eventInfo.trackName }));
+
   // Try matching on round_number + year first (skip if round is 0)
   if (eventInfo.roundNumber > 0) {
-    const { data: existing } = await supabase
+    const { data: existing, error: e1 } = await supabase
       .from("races")
       .select("id")
       .eq("round_number", eventInfo.roundNumber)
       .eq("year", eventInfo.year)
       .maybeSingle();
-    if (existing) return existing.id;
+    if (e1) console.error("Lookup error (round+year):", e1.message);
+    if (existing) { console.log("Found existing race by round+year:", existing.id); return existing.id; }
 
-    const { data: existing2 } = await supabase
+    const { data: existing2, error: e2 } = await supabase
       .from("races")
       .select("id")
       .eq("round_number", eventInfo.roundNumber)
       .eq("season_year", eventInfo.year)
       .maybeSingle();
-    if (existing2) return existing2.id;
+    if (e2) console.error("Lookup error (round+season_year):", e2.message);
+    if (existing2) { console.log("Found existing race by round+season_year:", existing2.id); return existing2.id; }
   }
 
   // Try matching by track name + year (for event summary where round may be 0)
   if (eventInfo.trackName) {
-    const { data: byTrack } = await supabase
+    const { data: byTrack, error: e3 } = await supabase
       .from("races")
       .select("id")
       .eq("year", eventInfo.year)
       .ilike("track_name", `%${eventInfo.trackName.split(' ')[0]}%`)
       .maybeSingle();
-    if (byTrack) return byTrack.id;
+    if (e3) console.error("Lookup error (track):", e3.message);
+    if (byTrack) { console.log("Found existing race by track:", byTrack.id); return byTrack.id; }
   }
 
+  console.log("Creating new race for round", eventInfo.roundNumber, "date:", eventInfo.sessionDate);
   const { data: newRace, error } = await supabase
     .from("races")
     .insert({
@@ -336,7 +342,11 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     })
     .select("id")
     .single();
-  if (error) throw new Error(`Failed to create race: ${error.message}`);
+  if (error) {
+    console.error("Failed to create race:", error.message, error.details, error.hint);
+    throw new Error(`Failed to create race: ${error.message}`);
+  }
+  console.log("Created new race:", newRace.id);
   return newRace.id;
 }
 
