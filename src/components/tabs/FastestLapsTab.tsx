@@ -3,7 +3,7 @@ import { useRaceContext } from '@/contexts/RaceContext';
 import { useFastestLaps, useFastestLapSections, useFastestLapSessionTypes } from '@/hooks/useRaceData';
 import { useQualifyingSectors, useQualifyingResults } from '@/hooks/useSessionData';
 import { formatDriverName } from '@/lib/formatName';
-import { aggregateFastestLapRows } from '@/lib/raceStats';
+import { aggregateFastestLapRows, aggregateFastestLapSectionsByCar } from '@/lib/raceStats';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const CarBadge = ({ num }: { num: string }) => (
@@ -61,17 +61,42 @@ const FastestLapsTab = () => {
   );
 
   const sectorComparison = useMemo(() => {
-    if (!qualSectors || !qualResults) return [];
-    const driverMap = new Map<string, { car: string; name: string; qualPos: number; laps: any[] }>();
-    for (const qs of qualSectors) {
-      if (!driverMap.has(qs.car_number)) {
-        const qr = qualResults.find(q => q.car_number === qs.car_number);
-        driverMap.set(qs.car_number, { car: qs.car_number, name: formatDriverName(qs.driver_name), qualPos: qr?.qual_position || 99, laps: [] });
+    if (qualSectors?.length && qualResults?.length) {
+      const driverMap = new Map<string, { car: string; name: string; qualPos: number; laps: any[] }>();
+      for (const qs of qualSectors) {
+        if (!driverMap.has(qs.car_number)) {
+          const qr = qualResults.find(q => q.car_number === qs.car_number);
+          driverMap.set(qs.car_number, { car: qs.car_number, name: formatDriverName(qs.driver_name), qualPos: qr?.qual_position || 99, laps: [] });
+        }
+        driverMap.get(qs.car_number)!.laps.push(qs);
       }
-      driverMap.get(qs.car_number)!.laps.push(qs);
+      return Array.from(driverMap.values()).sort((a, b) => a.qualPos - b.qualPos);
     }
-    return Array.from(driverMap.values()).sort((a, b) => a.qualPos - b.qualPos);
-  }, [qualSectors, qualResults]);
+
+    if (sessionType !== 'Qualifying' || !qualResults?.length) return [];
+
+    const qualifyingFastestRows = (laps || []).filter((row) => row.section_name !== 'Lap');
+    if (!qualifyingFastestRows.length) return [];
+
+    const byDriver = aggregateFastestLapSectionsByCar(qualifyingFastestRows);
+    return byDriver
+      .map((driver) => {
+        const qr = qualResults.find((q) => q.car_number === driver.car_number);
+        return {
+          car: driver.car_number,
+          name: formatDriverName(driver.driver_name),
+          qualPos: qr?.qual_position || 99,
+          laps: [
+            {
+              lap_number: 1,
+              full_lap_time: driver.sections.Lap?.section_time ? Number(driver.sections.Lap.section_time) : null,
+              ...Object.fromEntries(SECTOR_KEYS.map((sector) => [sector.key, driver.sections[sector.label]?.section_time ? Number(driver.sections[sector.label].section_time) : null])),
+            },
+          ],
+        };
+      })
+      .sort((a, b) => a.qualPos - b.qualPos);
+  }, [laps, qualResults, qualSectors, sessionType]);
 
   const bestSectorTimes = useMemo(() => {
     if (!qualSectors) return {} as Record<string, number>;
