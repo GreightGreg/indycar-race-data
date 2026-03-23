@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useRaceContext } from '@/pages/Index';
 import { useLapsLed, useRaceDetails, DRIVER_COLORS } from '@/hooks/useRaceData';
+import { formatDriverName } from '@/lib/formatName';
 
 const LapsLedTab = () => {
   const { raceId } = useRaceContext();
@@ -10,7 +11,7 @@ const LapsLedTab = () => {
 
   const barData = useMemo(() =>
     (lapsLedData || []).map(d => ({
-      name: `#${d.car_number} ${d.driver_name?.split(' ')[0] || ''}`,
+      name: `#${d.car_number} ${formatDriverName(d.driver_name).split(' ')[0] || ''}`,
       car: d.car_number,
       lapsLed: d.laps_led,
     })),
@@ -48,17 +49,17 @@ const LapsLedTab = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-racing-surface rounded p-4 border-t-2 border-racing-blue">
           <p className="font-condensed text-xs text-racing-muted uppercase">Most Laps Led</p>
-          <p className="font-heading text-xl text-racing-yellow">{mostLaps.driver_name?.split(' ')[0]} #{mostLaps.car_number}</p>
+          <p className="font-heading text-xl text-racing-yellow">{formatDriverName(mostLaps.driver_name)} #{mostLaps.car_number}</p>
           <p className="font-mono text-[10px] text-racing-muted">{mostLaps.laps_led} laps</p>
         </div>
         <div className="bg-racing-surface rounded p-4 border-t-2 border-racing-yellow">
           <p className="font-condensed text-xs text-racing-muted uppercase">Most Lead Stints</p>
-          <p className="font-heading text-xl text-racing-yellow">{mostStints.driver_name?.split(' ')[0]} #{mostStints.car_number}</p>
+          <p className="font-heading text-xl text-racing-yellow">{formatDriverName(mostStints.driver_name)} #{mostStints.car_number}</p>
           <p className="font-mono text-[10px] text-racing-muted">{mostStints.stints} stints</p>
         </div>
         <div className="bg-racing-surface rounded p-4 border-t-2 border-racing-blue">
           <p className="font-condensed text-xs text-racing-muted uppercase">Longest Consecutive Lead</p>
-          <p className="font-heading text-xl text-racing-yellow">{longestConsec.driver_name?.split(' ')[0]} #{longestConsec.car_number}</p>
+          <p className="font-heading text-xl text-racing-yellow">{formatDriverName(longestConsec.driver_name)} #{longestConsec.car_number}</p>
           <p className="font-mono text-[10px] text-racing-muted">{longestConsec.longest_consecutive} laps (Laps {longestConsec.start_lap_of_longest}–{(longestConsec.start_lap_of_longest || 0) + longestConsec.longest_consecutive - 1})</p>
         </div>
         <div className="bg-racing-surface rounded p-4 border-t-2 border-racing-yellow">

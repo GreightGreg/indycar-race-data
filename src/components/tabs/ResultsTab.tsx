@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useRaceContext } from '@/pages/Index';
 import { useRaceResults, useRaceDetails, useCautions, usePenalties } from '@/hooks/useRaceData';
+import { formatDriverName } from '@/lib/formatName';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
@@ -37,16 +38,16 @@ const ResultsTab = () => {
   const filtered = results.filter(r => {
     if (!search) return true;
     const q = search.toLowerCase();
-    return r.driver_name.toLowerCase().includes(q) || r.car_number.includes(q);
+    return r.driver_name.toLowerCase().includes(q) || formatDriverName(r.driver_name).toLowerCase().includes(q) || r.car_number.includes(q);
   });
 
   const winner = results[0];
   const statCards = race ? [
-    { label: 'Winner', value: winner?.driver_name.split(' ')[0] || '', sub: `#${winner?.car_number} · ${winner?.engine}`, border: 'border-racing-blue' },
+    { label: 'Winner', value: formatDriverName(winner?.driver_name), sub: `#${winner?.car_number} · ${winner?.engine}`, border: 'border-racing-blue' },
     { label: 'Race Time', value: race.total_race_time || '', sub: `${race.avg_speed} mph avg`, border: 'border-racing-yellow' },
     { label: 'Total Laps', value: String(race.total_laps || ''), sub: `${race.green_laps} green · ${race.caution_laps} caution`, border: 'border-racing-blue' },
     { label: 'Lead Changes', value: String(race.lead_changes || ''), sub: `${race.drivers_who_led} drivers led`, border: 'border-racing-yellow' },
-    { label: 'Fastest Lap', value: `${race.fastest_lap_speed} mph`, sub: `#${race.fastest_lap_car} ${race.fastest_lap_driver?.split(' ')[0]} · Lap ${race.fastest_lap_number}`, border: 'border-racing-blue' },
+    { label: 'Fastest Lap', value: `${race.fastest_lap_speed} mph`, sub: `#${race.fastest_lap_car} ${formatDriverName(race.fastest_lap_driver)} · Lap ${race.fastest_lap_number}`, border: 'border-racing-blue' },
     { label: 'Race Passes', value: String(race.total_passes || ''), sub: `${race.position_passes} position passes`, border: 'border-racing-yellow' },
   ] : [];
 
@@ -85,7 +86,7 @@ const ResultsTab = () => {
                 <td className="px-2 py-2"><PosBadge pos={r.finish_position} /></td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-muted">P{r.start_position}</td>
                 <td className="px-2 py-2"><CarBadge num={r.car_number} /></td>
-                <td className="px-2 py-2 font-body text-sm text-racing-text">{r.driver_name}</td>
+                <td className="px-2 py-2 font-body text-sm text-racing-text">{formatDriverName(r.driver_name)}</td>
                 <td className="px-2 py-2"><EngineText engine={r.engine} /></td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.laps_completed}</td>
                 <td className="px-2 py-2 font-mono text-xs text-racing-text">{r.time_gap}</td>

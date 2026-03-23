@@ -44,7 +44,7 @@ const Header = ({ races, selectedRaceId, onRaceChange, isLoading }: HeaderProps)
               <optgroup key={year} label={`${year} Season`}>
                 {grouped[year].map(r => (
                   <option key={r.id} value={r.id}>
-                    {r.event_name} — {r.track_name} — Round {r.round_number} — {format(new Date(r.race_date), 'MMMM d, yyyy')}
+                    {r.track_name} — {r.event_name} — Round {r.round_number} — {format(new Date(r.race_date), 'MMMM d, yyyy')}
                   </option>
                 ))}
               </optgroup>

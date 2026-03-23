@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea } from 'recharts';
 import { useRaceContext } from '@/pages/Index';
 import { useRaceResults, useLapsLed, useFastestLaps, useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
+import { formatDriverName } from '@/lib/formatName';
 
 const StatRow = ({ label, v1, v2, highlight }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none' }) => (
   <div className="flex items-center py-1.5 border-b border-racing-border/30">
@@ -22,7 +23,7 @@ const HeadToHeadTab = () => {
   const [car1, setCar1] = useState('2');
   const [car2, setCar2] = useState('27');
 
-  const drivers = useMemo(() => results?.map(r => ({ num: r.car_number, name: r.driver_name })) || [], [results]);
+  const drivers = useMemo(() => results?.map(r => ({ num: r.car_number, name: formatDriverName(r.driver_name) })) || [], [results]);
 
   useMemo(() => {
     if (drivers.length >= 2 && !drivers.find(d => d.num === car1)) {

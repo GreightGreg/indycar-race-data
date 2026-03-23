@@ -1,6 +1,7 @@
 import { useRaceContext } from '@/pages/Index';
 import { useRaceDetails, useSessionStats, useSessionResults, useRaceResults } from '@/hooks/useRaceData';
 import { useSessionFullResults, useQualifyingResults, useCombinedPracticeResults } from '@/hooks/useSessionData';
+import { formatDriverName } from '@/lib/formatName';
 
 const CarBadge = ({ num }: { num: string }) => (
   <span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-sm w-8 h-6 rounded-sm">{num}</span>
@@ -24,7 +25,7 @@ const WeekendTab = () => {
 
   const weekendStory = results?.map(r => ({
     car: r.car_number,
-    driver: r.driver_name,
+    driver: formatDriverName(r.driver_name),
     qualPos: r.start_position,
     finishPos: r.finish_position,
     change: r.start_position - r.finish_position,
@@ -61,23 +62,23 @@ const WeekendTab = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="bg-racing-surface rounded border-t-2 border-racing-blue p-4">
           <p className="font-condensed text-xs text-racing-muted uppercase">Most Improved</p>
-          <p className="font-heading text-xl text-racing-yellow mt-1">{race.most_improved_driver} #{race.most_improved_car}</p>
+          <p className="font-heading text-xl text-racing-yellow mt-1">{formatDriverName(race.most_improved_driver)} #{race.most_improved_car}</p>
           <p className="font-mono text-[10px] text-racing-muted">Gained {race.most_improved_positions} positions</p>
         </div>
         <div className="bg-racing-surface rounded border-t-2 border-racing-yellow p-4">
           <p className="font-condensed text-xs text-racing-muted uppercase">Best Race Lap</p>
-          <p className="font-heading text-xl text-racing-yellow mt-1">{race.fastest_lap_driver} #{race.fastest_lap_car}</p>
+          <p className="font-heading text-xl text-racing-yellow mt-1">{formatDriverName(race.fastest_lap_driver)} #{race.fastest_lap_car}</p>
           <p className="font-mono text-[10px] text-racing-muted">{race.fastest_lap_speed} mph · {race.fastest_lap_time} sec · Lap {race.fastest_lap_number}</p>
         </div>
         <div className="bg-racing-surface rounded border-t-2 border-racing-blue p-4">
           <p className="font-condensed text-xs text-racing-muted uppercase">Best Lead Lap</p>
-          <p className="font-heading text-xl text-racing-yellow mt-1">{race.best_lead_lap_driver}</p>
+          <p className="font-heading text-xl text-racing-yellow mt-1">{formatDriverName(race.best_lead_lap_driver)}</p>
           <p className="font-mono text-[10px] text-racing-muted">{race.best_lead_lap_speed} mph · {race.best_lead_lap_time} sec</p>
         </div>
         {combinedPractice?.[0] && (
           <div className="bg-racing-surface rounded border-t-2 border-racing-yellow p-4">
             <p className="font-condensed text-xs text-racing-muted uppercase">Combined Practice Best</p>
-            <p className="font-heading text-xl text-racing-yellow mt-1">{combinedPractice[0].driver_name} #{combinedPractice[0].car_number}</p>
+            <p className="font-heading text-xl text-racing-yellow mt-1">{formatDriverName(combinedPractice[0].driver_name)} #{combinedPractice[0].car_number}</p>
             <p className="font-mono text-[10px] text-racing-muted">{Number(combinedPractice[0].best_speed).toFixed(3)} mph · {combinedPractice[0].best_session}</p>
           </div>
         )}
@@ -111,7 +112,7 @@ const WeekendTab = () => {
                   <tr key={d.id} className="border-b border-racing-border/50">
                     <td className="px-3 py-2 font-heading text-sm text-racing-muted">{d.rank}</td>
                     <td className="px-3 py-2"><CarBadge num={d.car_number} /></td>
-                    <td className="px-3 py-2 font-body text-sm text-racing-text">{d.driver_name}</td>
+                    <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(d.driver_name)}</td>
                     <td className="px-3 py-2"><EngineText engine={d.engine || ''} /></td>
                     <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{d.best_time}s</td>
                     <td className="px-3 py-2 font-mono text-xs text-racing-text">{Number(d.best_speed).toFixed(3)} mph</td>
@@ -150,7 +151,7 @@ const WeekendTab = () => {
                     <tr key={q.id} className={`border-b border-racing-border/50 ${isDNQ ? 'opacity-70' : ''}`}>
                       <td className="px-3 py-2 font-heading text-sm text-racing-muted">P{q.qual_position}</td>
                       <td className="px-3 py-2"><CarBadge num={q.car_number} /></td>
-                      <td className="px-3 py-2 font-body text-sm text-racing-text">{q.driver_name}</td>
+                      <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(q.driver_name)}</td>
                       <td className="px-3 py-2"><EngineText engine={q.engine || ''} /></td>
                       <td className={`px-3 py-2 font-mono text-xs ${fasterLap === 1 ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
                         {q.lap1_time ? `${q.lap1_time}s` : 'No Time'}
@@ -223,7 +224,7 @@ const SessionResultsTable = ({ title, data }: { title: string; data: any[] }) =>
               <tr key={d.id} className="border-b border-racing-border/50">
                 <td className="px-2 py-1.5 font-heading text-sm text-racing-muted">{d.rank}</td>
                 <td className="px-2 py-1.5"><span className="inline-flex items-center justify-center bg-racing-blue text-white font-heading text-xs w-7 h-5 rounded-sm">{d.car_number}</span></td>
-                <td className="px-2 py-1.5 font-body text-xs text-racing-text">{d.driver_name}</td>
+                <td className="px-2 py-1.5 font-body text-xs text-racing-text">{formatDriverName(d.driver_name)}</td>
                 <td className="px-2 py-1.5"><span className={`font-mono text-[10px] ${d.engine === 'Honda' ? 'text-racing-honda' : 'text-racing-chevy'}`}>{d.engine}</span></td>
                 <td className="px-2 py-1.5 font-mono text-xs text-racing-yellow">{d.best_time}s</td>
                 <td className="px-2 py-1.5 font-mono text-xs text-racing-text">{Number(d.best_speed).toFixed(3)} mph</td>
