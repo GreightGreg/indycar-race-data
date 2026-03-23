@@ -96,7 +96,7 @@ const FastestLapsTab = () => {
         {SESSION_OPTIONS.map(opt => (
           <button
             key={opt.value}
-            onClick={() => { setSessionType(opt.value); setSelectedSection('Full Lap'); }}
+            onClick={() => { setSessionType(opt.value); setSelectedSection('Lap'); }}
             className={`px-3 py-1.5 rounded text-xs font-condensed font-semibold uppercase transition-all ${
               sessionType === opt.value
                 ? 'bg-racing-yellow/10 text-racing-yellow border border-racing-yellow/30'
