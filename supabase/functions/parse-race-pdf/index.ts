@@ -103,6 +103,21 @@ serve(async (req) => {
       case "results_quals":
         result = await parseQualifyingResults(supabase, page1Lines, raceId);
         break;
+      case "results_quals_group1":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Group 1");
+        break;
+      case "results_quals_group2":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Group 2");
+        break;
+      case "results_quals_round2":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Round 2 (Fast 12)");
+        break;
+      case "results_quals_round3":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Round 3 (Fast 6)");
+        break;
+      case "results_quals_combined":
+        result = await parseSessionResults(supabase, page1Lines, raceId, "Qualifying Combined");
+        break;
       case "combined_practice":
         result = await parseCombinedPractice(supabase, page1Lines, raceId);
         break;
