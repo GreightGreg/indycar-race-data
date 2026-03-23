@@ -705,7 +705,7 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
 
   await markFileReceived(supabase, raceId, "race_results");
   console.log(`Parsed race results: ${results.length} drivers, ${cautions.length} cautions, ${penalties.length} penalties`);
-  return { drivers: results.length, cautions: cautions.length, penalties: penalties.length, _debug_postResultsLines: postResultsLines };
+  return { drivers: results.length, cautions: cautions.length, penalties: penalties.length };
 }
 
 async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], raceId: string) {
