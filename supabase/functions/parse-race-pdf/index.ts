@@ -509,7 +509,7 @@ async function parsePitStops(supabase: any, pdf: any, raceId: string) {
   return { stops: stops.length };
 }
 
-async function parseSectionTimes(supabase: any, pages: string[], pdf: any, raceId: string, sessionType: string) {
+async function parseSectionTimes(supabase: any, pdf: any, raceId: string, sessionType: string) {
   await supabase.from("fastest_laps").delete().eq("race_id", raceId).eq("session_type", sessionType);
   const rows: any[] = [];
 
