@@ -4,6 +4,7 @@ import { useRaceContext } from '@/contexts/RaceContext';
 import { useRaceResults, useLapsLed, useFastestLaps, useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
 import EngineIcon from '@/components/racing/EngineIcon';
+import CarBadge from '@/components/racing/CarBadge';
 import { buildLapsLedStats } from '@/lib/raceStats';
 
 const StatRow = ({ label, v1, v2, highlight, isEngine }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none'; isEngine?: boolean }) => (
