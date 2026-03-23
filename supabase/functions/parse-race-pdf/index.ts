@@ -399,9 +399,9 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
 
   for (const line of allLines) {
     if (line.includes("Pos SP Car Driver") || line.includes("Laps Time Pit")) { section = "results"; continue; }
-    if (line.includes("Lead Change Summary")) { section = "leadchanges"; continue; }
-    if (line.includes("Caution Flag") || line.includes("Caution Summary") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; continue; }
-    if (line.includes("Penalty Summary")) { section = "penalties"; continue; }
+    if (line.includes("Lead Change Summary") || line.includes("LeadChange")) { section = "leadchanges"; continue; }
+    if (/caution\s*flag/i.test(line) || /caution\s*summary/i.test(line) || line.includes("# Start End") || (section === "leadchanges" && /^\s*#?\s*Start/.test(line))) { section = "cautions"; continue; }
+    if (/penalty\s*summary/i.test(line)) { section = "penalties"; continue; }
     if (line.includes("(C)hassis:") || line.includes("Legend:")) { section = "done"; continue; }
     if (section === "done") break;
 
@@ -429,15 +429,19 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
       }
     }
     if (section === "cautions") {
-      // Format: "cautionNum startLap to endLap totalLaps reason" or "cautionNum startLap endLap totalLaps reason"
+      // Format variations: "# Start End Laps Reason" or "# Start to End TotalLaps Reason"
       const m = line.match(/^(\d+)\s+(\d+)\s+(?:to\s+)?(\d+)\s+(\d+)\s+(.+)/);
-      if (m && parseInt(m[1]) <= 20 && parseInt(m[2]) > 0) {
+      if (m && parseInt(m[1]) <= 30 && parseInt(m[2]) > 0) {
+        const startLap = parseInt(m[2]);
+        const endLap = parseInt(m[3]);
+        const lapsVal = parseInt(m[4]);
         cautions.push({
           race_id: raceId,
           caution_number: parseInt(m[1]),
-          start_lap: parseInt(m[2]),
-          end_lap: parseInt(m[3]),
-          total_laps: parseInt(m[4]),
+          start_lap: startLap,
+          end_lap: endLap,
+          laps: endLap - startLap + 1,
+          total_laps: lapsVal,
           reason: m[5].trim()
         });
       }
