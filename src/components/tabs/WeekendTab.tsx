@@ -170,7 +170,7 @@ const WeekendTab = () => {
                       <span className="font-heading text-sm text-racing-muted w-6 shrink-0">P{q.qual_position}</span>
                       <CarBadge num={q.car_number} />
                       <span className="font-body text-sm text-racing-text">{formatDriverName(q.driver_name)}</span>
-                      <EngineText engine={q.engine || ''} />
+                      <EngineIcon engine={q.engine || ''} />
                       {isDNQ && <span className="ml-auto inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-heading bg-racing-orange/20 text-racing-orange">DNQ</span>}
                     </div>
                     <div className="flex gap-3 font-mono text-[10px]">
