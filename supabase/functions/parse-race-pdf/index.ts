@@ -141,9 +141,17 @@ async function getPageLines(pdf: any, pageNum: number): Promise<string[]> {
   return extractLines(content.items);
 }
 
+function normalizeHeaderLine(line: string): string {
+  return line
+    .replace(/\b([A-Za-z])\s+([A-Za-z]{2,})\b/g, "$1$2")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function identifyReport(lines: string[]): string | null {
-  const reportLine = lines.find(l => l.includes("Report:")) || "";
-  const sessionLine = lines.find(l => l.includes("Session:")) || "";
+  const normalizedLines = lines.map(normalizeHeaderLine);
+  const reportLine = normalizedLines.find(l => l.includes("Report:")) || "";
+  const sessionLine = normalizedLines.find(l => l.includes("Session:")) || "";
   if (reportLine.includes("Official Lap Report")) return "race_results";
   if (reportLine.includes("Event Summary")) return "event_summary";
   if (reportLine.includes("Leader Lap Summary")) return "leader_laps";
@@ -168,14 +176,15 @@ function identifyReport(lines: string[]): string | null {
 }
 
 function parseEventInfo(lines: string[]) {
-  const eventLine = lines.find(l => l.startsWith("Event:")) || "";
-  const trackLine = lines.find(l => l.startsWith("Track:")) || "";
-  const sessionLine = lines.find(l => l.startsWith("Session:")) || "";
-  const eventMatch = eventLine.match(/Event:\s+(.+?)\s+Round\s+(\d+)/);
-  const eventName = eventMatch ? eventMatch[1].trim() : eventLine.replace("Event:", "").trim();
+  const normalizedLines = lines.map(normalizeHeaderLine);
+  const eventLine = normalizedLines.find(l => l.includes("Event:")) || "";
+  const trackLine = normalizedLines.find(l => l.includes("Track:")) || "";
+  const sessionLine = normalizedLines.find(l => l.includes("Session:")) || "";
+  const eventMatch = eventLine.match(/(?:Event:\s*)(.+?)\s+Round\s+(\d+)/);
+  const eventName = eventMatch ? eventMatch[1].trim() : eventLine.replace(/^.*Event:\s*/, "").trim();
   const roundNumber = eventMatch ? parseInt(eventMatch[2]) : 0;
-  const trackMatch = trackLine.match(/Track:\s+(.+?)\s+[\d.]+\s+mile/);
-  const trackName = trackMatch ? trackMatch[1].trim() : trackLine.replace("Track:", "").trim();
+  const trackMatch = trackLine.match(/(?:Track:\s*)(.+?)\s+[\d.]+\s+mile/);
+  const trackName = trackMatch ? trackMatch[1].trim() : trackLine.replace(/^.*Track:\s*/, "").trim();
   const dateMatch = sessionLine.match(/(\w+ \d+,\s*\d{4})/);
   const sessionDate = dateMatch ? dateMatch[1] : "";
   const year = dateMatch ? parseInt(dateMatch[1].split(",")[1].trim()) : new Date().getFullYear();
