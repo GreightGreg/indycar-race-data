@@ -185,7 +185,10 @@ function identifyReport(lines: string[]): string | null {
     if (sessionLine.includes("Race")) return "section_times_race";
   }
   // Must check "Official Results of Session" BEFORE generic "Results of Session"
-  if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) return "results_quals";
+  if (reportLine.includes("Official Results of Session") && sessionLine.includes("Qualifications")) {
+    const hasCombinedSessionColumn = normalizedLines.some(l => l.includes("Time Speed Session"));
+    return hasCombinedSessionColumn ? "results_quals_combined" : "results_quals";
+  }
   if (reportLine.includes("Results of Session")) {
     if (sessionLine.includes("Practice 1")) return "results_p1";
     if (sessionLine.includes("Practice 2")) return "results_p2";
