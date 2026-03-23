@@ -180,7 +180,7 @@ function identifyReport(lines: string[]): string | null {
   if (reportLine.includes("Top Section Times")) {
     if (sessionLine.includes("Practice 1")) return "section_times_p1";
     if (sessionLine.includes("Practice 2")) return "section_times_p2";
-    if (sessionLine.includes("Practice Final")) return "section_times_pf";
+    if (sessionLine.includes("Practice Final") || sessionLine.includes("Warm-up")) return "section_times_pf";
     if (sessionLine.includes("Qualifications")) return "section_times_quals";
     if (sessionLine.includes("Race")) return "section_times_race";
   }
@@ -189,7 +189,7 @@ function identifyReport(lines: string[]): string | null {
   if (reportLine.includes("Results of Session")) {
     if (sessionLine.includes("Practice 1")) return "results_p1";
     if (sessionLine.includes("Practice 2")) return "results_p2";
-    if (sessionLine.includes("Practice Final")) return "results_pf";
+    if (sessionLine.includes("Practice Final") || sessionLine.includes("Warm-up")) return "results_pf";
     // Road/street course qualifying rounds
     if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 1")) return "results_quals_group1";
     if (sessionLine.includes("Qualifications") && sessionLine.includes("Group 2")) return "results_quals_group2";
