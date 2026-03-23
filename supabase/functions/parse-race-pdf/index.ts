@@ -115,6 +115,7 @@ serve(async (req) => {
     });
 
   } catch (err) {
+    console.error("Parse error:", err.message, err.stack);
     return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
