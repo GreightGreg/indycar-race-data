@@ -88,9 +88,11 @@ serve(async (req) => {
       case "section_times_pf":
         result = await parseSectionTimes(supabase, pdf, raceId, "Practice Final");
         break;
-      case "section_times_quals":
-        result = await parseSectionTimes(supabase, pdf, raceId, "Qualifying");
+      case "section_times_quals": {
+        const qualSessionType = getQualifyingSectionSessionType(page1Lines);
+        result = await parseSectionTimes(supabase, pdf, raceId, qualSessionType);
         break;
+      }
       case "results_p1":
         result = await parseSessionResults(supabase, page1Lines, raceId, "Practice 1");
         break;
@@ -166,6 +168,16 @@ function normalizeHeaderLine(line: string): string {
     .replace(/\b([A-Za-z])\s+([A-Za-z]{2,})\b/g, "$1$2")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function getQualifyingSectionSessionType(lines: string[]): string {
+  const normalizedLines = lines.map(normalizeHeaderLine);
+  const sessionLine = normalizedLines.find(l => l.includes("Session:")) || "";
+  if (sessionLine.includes("Group 1")) return "Qualifying Group 1";
+  if (sessionLine.includes("Group 2")) return "Qualifying Group 2";
+  if (sessionLine.includes("Round 2") || sessionLine.includes("Fast 12") || sessionLine.includes("Segment 2") || sessionLine.includes("Top 12")) return "Qualifying Round 2 (Fast 12)";
+  if (sessionLine.includes("Round 3") || sessionLine.includes("Fast 6") || sessionLine.includes("Segment 3")) return "Qualifying Round 3 (Fast 6)";
+  return "Qualifying";
 }
 
 function identifyReport(lines: string[]): string | null {
@@ -719,8 +731,18 @@ async function parseSectionTimes(supabase: any, pdf: any, raceId: string, sessio
       await supabase.from("fastest_laps").insert(rows.slice(i, i + 500));
     }
   }
-  const fileKey = sessionType === "Race" ? "section_times_race" : `section_times_${sessionType.toLowerCase().replace(" ", "_")}`;
-  await markFileReceived(supabase, raceId, fileKey);
+  const sessionKeyMap: Record<string, string> = {
+    "Race": "section_times_race",
+    "Practice 1": "section_times_practice_1",
+    "Practice 2": "section_times_practice_2",
+    "Practice Final": "section_times_practice_final",
+    "Qualifying": "section_times_qualifying",
+    "Qualifying Group 1": "section_times_qualifying_group_1",
+    "Qualifying Group 2": "section_times_qualifying_group_2",
+    "Qualifying Round 2 (Fast 12)": "section_times_qualifying_round_2",
+    "Qualifying Round 3 (Fast 6)": "section_times_qualifying_round_3",
+  };
+  await markFileReceived(supabase, raceId, sessionKeyMap[sessionType] || `section_times_${sessionType.toLowerCase().replace(/[^a-z0-9]+/g, "_")}`);
   return { rows: rows.length, sections: pdf.numPages };
 }
 
