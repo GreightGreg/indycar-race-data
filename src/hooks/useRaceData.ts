@@ -266,68 +266,28 @@ export const useChampionshipStandings = (raceId: string | null) =>
   useQuery({
     queryKey: ['championship', raceId],
     queryFn: async () => {
-      // Get the race details to know the year and round
-      const { data: race, error: raceErr } = await supabase
-        .from('races')
-        .select('year, round_number')
-        .eq('id', raceId!)
-        .single();
-      if (raceErr) throw raceErr;
-
-      // Get all race results for races in same year up to this round
-      const { data: races, error: racesErr } = await supabase
-        .from('races')
-        .select('id, round_number')
-        .eq('year', race.year)
-        .eq('status', 'complete')
-        .lte('round_number', race.round_number);
-      if (racesErr) throw racesErr;
-
-      const raceIds = races.map(r => r.id);
-
-      const { data: results, error: resultsErr } = await supabase
+      const { data: results, error } = await supabase
         .from('race_results')
-        .select('car_number, driver_name, engine, race_points, race_id')
-        .in('race_id', raceIds);
-      if (resultsErr) throw resultsErr;
+        .select('car_number, driver_name, engine, race_points, total_points, championship_rank')
+        .eq('race_id', raceId!)
+        .order('finish_position');
+      if (error) throw error;
 
-      // Aggregate by driver
-      const driverTotals: Record<string, {
-        car_number: string;
-        driver_name: string;
-        engine: string;
-        pointsByRound: Record<number, number>;
-        total: number;
-      }> = {};
+      const sorted = [...results]
+        .filter(r => r.championship_rank != null)
+        .sort((a, b) => (a.championship_rank ?? 999) - (b.championship_rank ?? 999));
 
-      for (const r of results) {
-        if (!driverTotals[r.car_number]) {
-          driverTotals[r.car_number] = {
-            car_number: r.car_number,
-            driver_name: r.driver_name,
-            engine: r.engine,
-            pointsByRound: {},
-            total: 0,
-          };
-        }
-        const roundNum = races.find(rc => rc.id === r.race_id)?.round_number || 0;
-        driverTotals[r.car_number].pointsByRound[roundNum] = (driverTotals[r.car_number].pointsByRound[roundNum] || 0) + r.race_points;
-        driverTotals[r.car_number].total += r.race_points;
-      }
+      const maxPts = sorted[0]?.total_points || 1;
 
-      const sorted = Object.values(driverTotals).sort((a, b) => b.total - a.total);
-      const maxPts = sorted[0]?.total || 1;
-      const currentRound = race.round_number;
-
-      return sorted.map((d, i) => ({
-        rank: i + 1,
-        car: d.car_number,
-        driver_name: d.driver_name,
-        engine: d.engine,
-        r2: d.pointsByRound[currentRound] || 0,
-        r1: d.total - (d.pointsByRound[currentRound] || 0),
-        total: d.total,
-        gap: i === 0 ? '—' : `${d.total - maxPts}`,
+      return sorted.map(r => ({
+        rank: r.championship_rank!,
+        car: r.car_number,
+        driver_name: r.driver_name,
+        engine: r.engine,
+        r2: r.race_points,
+        r1: r.total_points - r.race_points,
+        total: r.total_points,
+        gap: r.championship_rank === 1 ? '—' : `${r.total_points - maxPts}`,
         maxPts,
       }));
     },
