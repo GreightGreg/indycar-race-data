@@ -168,6 +168,7 @@ function normalizeHeaderLine(line: string): string {
     .replace(/\b([A-Za-z])\s+([A-Za-z]{2,})\b/g, "$1$2")
     .replace(/\s+/g, " ")
     .trim();
+}
 
 function getQualifyingSectionSessionType(lines: string[]): string {
   const normalizedLines = lines.map(normalizeHeaderLine);
