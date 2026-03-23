@@ -67,6 +67,7 @@ const SeasonStatsTab = () => {
           driver_name: r.driver_name,
           engine: r.engine,
           roundPoints: {} as Record<number, number>,
+          roundFinishes: {} as Record<number, number>,
           totalPts: 0,
           wins: 0,
           podiums: 0,
@@ -81,7 +82,10 @@ const SeasonStatsTab = () => {
       }
       const d = driverMap[key];
       const round = racesMap[r.race_id];
-      if (round) d.roundPoints[round] = r.race_points;
+      if (round) {
+        d.roundPoints[round] = r.race_points;
+        d.roundFinishes[round] = r.finish_position;
+      }
       d.totalPts += r.race_points;
       if (r.finish_position === 1) d.wins++;
       if (r.finish_position <= 3) d.podiums++;
