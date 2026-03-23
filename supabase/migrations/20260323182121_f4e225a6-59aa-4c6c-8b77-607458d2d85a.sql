@@ -1,0 +1,14 @@
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS total_race_time text;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS race_time text;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS drivers_led integer;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS drivers_who_led integer;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS files_received text[] DEFAULT '{}';
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS season_year integer;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS year integer;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS best_lead_lap_speed decimal;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS best_lead_lap_time text;
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS best_lead_lap_driver text;
+ALTER TABLE public.fastest_laps ADD COLUMN IF NOT EXISTS session_type text NOT NULL DEFAULT 'Race';
+ALTER TABLE public.fastest_laps ADD COLUMN IF NOT EXISTS section_length_miles decimal;
+ALTER TABLE public.fastest_laps ADD COLUMN IF NOT EXISTS section_time text;
+ALTER TABLE public.fastest_laps ADD COLUMN IF NOT EXISTS section_speed decimal;
