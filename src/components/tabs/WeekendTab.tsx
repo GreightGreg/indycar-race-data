@@ -249,8 +249,8 @@ const SessionResultsView = ({ title, data, isMobile }: { title: string; data: an
               <div className="min-w-0 flex-1">
                 <p className="font-body text-xs text-racing-text truncate">{formatDriverName(d.driver_name)}</p>
                 <div className="flex gap-2 mt-0.5">
-                  <span className="font-mono text-[10px] text-racing-yellow">{d.best_time}s</span>
-                  <span className="font-mono text-[10px] text-racing-text">{Number(d.best_speed).toFixed(3)} mph</span>
+                  <span className="font-mono text-[10px] text-racing-yellow">{d.best_time ? `${d.best_time}s` : 'DNP'}</span>
+                  <span className="font-mono text-[10px] text-racing-text">{d.best_speed ? `${Number(d.best_speed).toFixed(3)} mph` : '—'}</span>
                   <span className="font-mono text-[10px] text-racing-muted">{d.total_laps} laps</span>
                 </div>
               </div>
