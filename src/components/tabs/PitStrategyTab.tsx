@@ -35,7 +35,7 @@ const PitStrategyTab = () => {
             <div key={d.car} className="bg-racing-surface rounded p-2.5 mb-1.5">
               <div className="flex items-center gap-2 mb-1.5">
                 <CarBadge num={d.car} />
-                <span className="font-body text-xs text-racing-text">{d.driver.split(' ')[0]}</span>
+                <span className="font-body text-xs text-racing-text truncate">{d.driver}</span>
                 <span className="font-mono text-[10px] text-racing-muted ml-auto">{d.stops.length} stops</span>
               </div>
               <div className="relative h-5 bg-racing-bg rounded">
