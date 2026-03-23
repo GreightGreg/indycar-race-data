@@ -52,7 +52,7 @@ const PositionChartTab = () => {
   return (
     <div className="space-y-4">
       <h2 className="font-heading text-2xl text-racing-text">Position Chart</h2>
-      <p className="font-mono text-xs text-racing-muted">Y-axis: Position (P1 top). Yellow bands = caution periods. Click a driver below to track their race.</p>
+      <p className="font-mono text-sm text-racing-muted">Y-axis: Position (P1 top). Yellow bands = caution periods. Click a driver below to track their race.</p>
 
       <div className="w-full" style={{ height: isMobile ? 400 : 500 }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -94,7 +94,7 @@ const PositionChartTab = () => {
           <button
             key={car}
             onClick={() => handleLineClick(car)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-body transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-sm font-body transition-all ${
               highlightedCar === car
                 ? 'bg-racing-surface2 ring-1 ring-racing-yellow/50 opacity-100'
                 : highlightedCar !== null

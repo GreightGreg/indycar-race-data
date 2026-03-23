@@ -152,19 +152,19 @@ const TrackDominanceTab = () => {
   const TrackMap = () => (
     race?.track_map_url ? (
       <div className="bg-racing-surface rounded-lg border border-racing-border p-4">
-        <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-3">
+        <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-3">
           {race.track_name} — Track Map
         </h3>
         <img src={race.track_map_url} alt={`${race.track_name} track map`} className="w-full rounded" />
         {!isMobile && (
-          <p className="font-mono text-[10px] text-racing-muted mt-2">
+          <p className="font-mono text-[12px] text-racing-muted mt-2">
             Section labels correspond to timing zones in the dominance table →
           </p>
         )}
       </div>
     ) : (
       <div className="bg-racing-surface rounded-lg border border-racing-border p-6 lg:p-8 flex items-center justify-center lg:min-h-[300px]">
-        <p className="font-condensed text-sm text-racing-muted text-center">
+        <p className="font-condensed text-[15px] text-racing-muted text-center">
           Track map available after event summary PDF is uploaded
         </p>
       </div>
@@ -182,7 +182,7 @@ const TrackDominanceTab = () => {
             <button
               key={opt}
               onClick={() => { setSessionType(opt); setExpandedSection(null); setShowQualSectors(false); }}
-              className={`px-3 py-1.5 rounded text-xs font-condensed font-semibold uppercase transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded text-sm font-condensed font-semibold uppercase transition-all whitespace-nowrap ${
                 sessionType === opt
                   ? 'bg-racing-yellow/10 text-racing-yellow border border-racing-yellow/30'
                   : 'bg-racing-surface text-racing-muted border border-racing-border hover:text-racing-text'
@@ -203,16 +203,16 @@ const TrackDominanceTab = () => {
 
         {/* Section Dominance Table */}
         <div className="order-1 lg:order-2">
-          <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">Section Dominance</h3>
+          <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-2">Section Dominance</h3>
           <div className="space-y-px">
             {/* Desktop header */}
             <div className="hidden lg:grid grid-cols-[1fr_60px_auto_90px_70px_40px_24px] gap-1 px-2 py-1.5 border-b border-racing-border">
-              <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase">Section</span>
-              <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase">Length</span>
-              <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase">P1 Driver</span>
-              <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase text-right">Time</span>
-              <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase text-right">Speed</span>
-              <span className="font-condensed font-semibold text-[10px] text-racing-muted uppercase text-right">Lap</span>
+              <span className="font-condensed font-semibold text-[12px] text-racing-muted uppercase">Section</span>
+              <span className="font-condensed font-semibold text-[12px] text-racing-muted uppercase">Length</span>
+              <span className="font-condensed font-semibold text-[12px] text-racing-muted uppercase">P1 Driver</span>
+              <span className="font-condensed font-semibold text-[12px] text-racing-muted uppercase text-right">Time</span>
+              <span className="font-condensed font-semibold text-[12px] text-racing-muted uppercase text-right">Speed</span>
+              <span className="font-condensed font-semibold text-[12px] text-racing-muted uppercase text-right">Lap</span>
               <span />
             </div>
 
@@ -234,27 +234,27 @@ const TrackDominanceTab = () => {
                     {/* Mobile: 3 columns — section, P1 badge+name, time */}
                     <div className="lg:hidden px-3 py-2.5 flex items-center gap-2">
                       <div className="flex-1 min-w-0">
-                        <span className="font-condensed text-xs text-racing-text font-semibold">{sectionName}</span>
+                        <span className="font-condensed text-sm text-racing-text font-semibold">{sectionName}</span>
                       </div>
                       <div className="flex items-center gap-1.5 shrink-0">
                         <CarBadge num={p1.car_number} size="sm" />
-                        <span className="font-body text-[11px] text-racing-text">{formatDriverName(p1.driver_name)}</span>
+                        <span className="font-body text-[13px] text-racing-text">{formatDriverName(p1.driver_name)}</span>
                       </div>
-                      <span className="font-mono text-[10px] text-racing-yellow shrink-0">{p1.section_time || p1.time}</span>
+                      <span className="font-mono text-[12px] text-racing-yellow shrink-0">{p1.section_time || p1.time}</span>
                       <ChevronDown className={`w-3.5 h-3.5 text-racing-muted transition-transform shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
                     </div>
 
                     {/* Desktop: full 7 columns */}
                     <div className="hidden lg:grid grid-cols-[1fr_60px_auto_90px_70px_40px_24px] gap-1 items-center px-2 py-2">
-                      <span className="font-condensed text-xs text-racing-text">{sectionName}</span>
-                      <span className="font-mono text-[10px] text-racing-muted">{p1.section_length_miles ? `${Number(p1.section_length_miles).toFixed(3)}` : '—'}</span>
+                      <span className="font-condensed text-sm text-racing-text">{sectionName}</span>
+                      <span className="font-mono text-[12px] text-racing-muted">{p1.section_length_miles ? `${Number(p1.section_length_miles).toFixed(3)}` : '—'}</span>
                       <div className="flex items-center gap-1.5">
                         <CarBadge num={p1.car_number} size="sm" />
-                        <span className="font-body text-xs text-racing-text">{formatDriverName(p1.driver_name)}</span>
+                        <span className="font-body text-sm text-racing-text">{formatDriverName(p1.driver_name)}</span>
                       </div>
-                      <span className="font-mono text-xs text-racing-yellow text-right">{p1.section_time || p1.time}</span>
-                      <span className="font-mono text-[10px] text-racing-text text-right">{Number(p1.section_speed ?? p1.speed)?.toFixed(3)}</span>
-                      <span className="font-mono text-[10px] text-racing-muted text-right">L{p1.lap_number}</span>
+                      <span className="font-mono text-sm text-racing-yellow text-right">{p1.section_time || p1.time}</span>
+                      <span className="font-mono text-[12px] text-racing-text text-right">{Number(p1.section_speed ?? p1.speed)?.toFixed(3)}</span>
+                      <span className="font-mono text-[12px] text-racing-muted text-right">L{p1.lap_number}</span>
                       <ChevronDown className={`w-3.5 h-3.5 text-racing-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                     </div>
                   </button>
@@ -270,10 +270,10 @@ const TrackDominanceTab = () => {
                             className={`px-3 py-2 ${idx === 0 ? 'bg-racing-surface2/40' : idx % 2 === 0 ? 'bg-racing-surface/30' : ''}`}
                           >
                             <div className="flex items-center gap-2">
-                              <span className="font-heading text-[10px] text-racing-muted w-5 shrink-0">P{row.rank}</span>
+                              <span className="font-heading text-[12px] text-racing-muted w-5 shrink-0">P{row.rank}</span>
                               <CarBadge num={row.car_number} size="sm" />
-                              <span className="font-body text-[11px] text-racing-text flex-1 min-w-0 truncate">{formatDriverName(row.driver_name)}</span>
-                              <span className="font-mono text-[10px] text-racing-yellow shrink-0">{row.section_time || row.time}</span>
+                              <span className="font-body text-[13px] text-racing-text flex-1 min-w-0 truncate">{formatDriverName(row.driver_name)}</span>
+                              <span className="font-mono text-[12px] text-racing-yellow shrink-0">{row.section_time || row.time}</span>
                             </div>
                           </div>
                         ))}
@@ -286,15 +286,15 @@ const TrackDominanceTab = () => {
                             key={row.id}
                             className={`grid grid-cols-[1fr_60px_auto_90px_70px_40px_24px] gap-1 items-center px-2 py-1 ${idx === 0 ? 'bg-racing-surface2/40' : idx % 2 === 0 ? 'bg-racing-surface/30' : ''}`}
                           >
-                            <span className="font-heading text-[10px] text-racing-muted">P{row.rank}</span>
+                            <span className="font-heading text-[12px] text-racing-muted">P{row.rank}</span>
                             <span />
                             <div className="flex items-center gap-1.5">
                               <CarBadge num={row.car_number} size="sm" />
-                              <span className="font-body text-xs text-racing-text">{formatDriverName(row.driver_name)}</span>
+                              <span className="font-body text-sm text-racing-text">{formatDriverName(row.driver_name)}</span>
                             </div>
-                            <span className="font-mono text-[10px] text-racing-text text-right">{row.section_time || row.time}</span>
-                            <span className="font-mono text-[10px] text-racing-text text-right">{Number(row.section_speed ?? row.speed)?.toFixed(3)}</span>
-                            <span className="font-mono text-[10px] text-racing-muted text-right">L{row.lap_number}</span>
+                            <span className="font-mono text-[12px] text-racing-text text-right">{row.section_time || row.time}</span>
+                            <span className="font-mono text-[12px] text-racing-text text-right">{Number(row.section_speed ?? row.speed)?.toFixed(3)}</span>
+                            <span className="font-mono text-[12px] text-racing-muted text-right">L{row.lap_number}</span>
                             <span />
                           </div>
                         ))}
@@ -320,7 +320,7 @@ const TrackDominanceTab = () => {
           {isMobile && !showQualSectors && (
             <button
               onClick={() => setShowQualSectors(true)}
-              className="w-full px-4 py-3 bg-racing-surface border border-racing-border rounded font-condensed font-semibold text-sm text-racing-muted uppercase flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 bg-racing-surface border border-racing-border rounded font-condensed font-semibold text-[15px] text-racing-muted uppercase flex items-center justify-center gap-2"
             >
               <ChevronDown className="w-4 h-4" />
               Show Qualifying Sectors
@@ -332,22 +332,22 @@ const TrackDominanceTab = () => {
               {isMobile && (
                 <button
                   onClick={() => setShowQualSectors(false)}
-                  className="w-full px-4 py-2 bg-racing-surface border border-racing-border rounded font-condensed font-semibold text-xs text-racing-muted uppercase mb-3 flex items-center justify-center gap-2"
+                  className="w-full px-4 py-2 bg-racing-surface border border-racing-border rounded font-condensed font-semibold text-sm text-racing-muted uppercase mb-3 flex items-center justify-center gap-2"
                 >
                   <ChevronDown className="w-3.5 h-3.5 rotate-180" />
                   Hide Qualifying Sectors
                 </button>
               )}
 
-              <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-1">Qualifying Sector Comparison</h3>
-              <p className="font-mono text-[10px] text-racing-muted mb-3">
+              <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-1">Qualifying Sector Comparison</h3>
+              <p className="font-mono text-[12px] text-racing-muted mb-3">
                 {hasCompleteOvalSectorData
                   ? 'Best sector time across both laps per driver. Yellow = fastest in that sector across the field.'
                   : 'Best section time per driver across all qualifying rounds. Yellow = fastest in that section across the field.'}
               </p>
 
               {isMobile && (
-                <p className="font-mono text-[9px] text-racing-yellow mb-2">← Scroll horizontally to see all sectors →</p>
+                <p className="font-mono text-[11px] text-racing-yellow mb-2">← Scroll horizontally to see all sectors →</p>
               )}
 
               {hasCompleteOvalSectorData ? (isMobile ? (
@@ -355,10 +355,10 @@ const TrackDominanceTab = () => {
                   <table className="min-w-[700px] w-full text-left">
                     <thead>
                       <tr className="border-b border-racing-border">
-                        <th className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1.5 py-1.5 sticky left-0 bg-racing-bg z-10">Car</th>
-                        <th className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1.5 py-1.5">Best</th>
+                        <th className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1.5 py-1.5 sticky left-0 bg-racing-bg z-10">Car</th>
+                        <th className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1.5 py-1.5">Best</th>
                         {SECTOR_KEYS.map(sk => (
-                          <th key={sk.key} className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1 py-1.5">{sk.label}</th>
+                          <th key={sk.key} className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1 py-1.5">{sk.label}</th>
                         ))}
                       </tr>
                     </thead>
@@ -375,17 +375,17 @@ const TrackDominanceTab = () => {
                             <td className="px-1.5 py-1 sticky left-0 bg-racing-bg z-10">
                               <div className="flex items-center gap-1">
                                 <CarBadge size="sm" num={d.car} />
-                                <span className="font-body text-[10px] text-racing-text">{d.name.split(' ')[0]}</span>
+                                <span className="font-body text-[12px] text-racing-text">{d.name.split(' ')[0]}</span>
                               </div>
                             </td>
-                            <td className="px-1.5 py-1 font-mono text-[10px] text-racing-yellow font-bold">{bestTime}</td>
+                            <td className="px-1.5 py-1 font-mono text-[12px] text-racing-yellow font-bold">{bestTime}</td>
                             {SECTOR_KEYS.map(sk => {
                               const v1 = lap1 ? Number(lap1[sk.key as keyof typeof lap1]) : null;
                               const v2 = lap2 ? Number(lap2[sk.key as keyof typeof lap2]) : null;
                               const best = v1 && v2 ? Math.min(v1, v2) : v1 || v2 || null;
                               const isFastest = best !== null && Math.abs(best - bestSectorTimes[sk.key]) < 0.0001;
                               return (
-                                <td key={sk.key} className={`px-1 py-1 font-mono text-[10px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+                                <td key={sk.key} className={`px-1 py-1 font-mono text-[12px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
                                   {best ? best.toFixed(4) : '—'}
                                 </td>
                               );
@@ -401,14 +401,14 @@ const TrackDominanceTab = () => {
                   <table className="w-full min-w-[900px] text-left">
                     <thead>
                       <tr className="border-b border-racing-border">
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Pos</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Car</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Driver</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">L1</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">L2</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Best</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Pos</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Car</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Driver</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">L1</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">L2</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Best</th>
                         {SECTOR_KEYS.map(sk => (
-                          <th key={sk.key} className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1 py-2">{sk.label}</th>
+                          <th key={sk.key} className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1 py-2">{sk.label}</th>
                         ))}
                       </tr>
                     </thead>
@@ -422,19 +422,19 @@ const TrackDominanceTab = () => {
                           l1Time ? Number(l1Time).toFixed(4) : '—';
                         return (
                           <tr key={d.car} className="border-b border-racing-border/50">
-                            <td className="px-2 py-1.5 font-heading text-xs text-racing-muted">P{d.qualPos}</td>
+                            <td className="px-2 py-1.5 font-heading text-sm text-racing-muted">P{d.qualPos}</td>
                             <td className="px-2 py-1.5"><CarBadge size="sm" num={d.car} /></td>
-                            <td className="px-2 py-1.5 font-body text-xs text-racing-text">{d.name.split(' ')[0]}</td>
-                            <td className="px-2 py-1.5 font-mono text-[10px] text-racing-text">{l1Time ? Number(l1Time).toFixed(4) : '—'}</td>
-                            <td className="px-2 py-1.5 font-mono text-[10px] text-racing-text">{l2Time ? Number(l2Time).toFixed(4) : '—'}</td>
-                            <td className="px-2 py-1.5 font-mono text-[10px] text-racing-yellow font-bold">{bestTime}</td>
+                            <td className="px-2 py-1.5 font-body text-sm text-racing-text">{d.name.split(' ')[0]}</td>
+                            <td className="px-2 py-1.5 font-mono text-[12px] text-racing-text">{l1Time ? Number(l1Time).toFixed(4) : '—'}</td>
+                            <td className="px-2 py-1.5 font-mono text-[12px] text-racing-text">{l2Time ? Number(l2Time).toFixed(4) : '—'}</td>
+                            <td className="px-2 py-1.5 font-mono text-[12px] text-racing-yellow font-bold">{bestTime}</td>
                             {SECTOR_KEYS.map(sk => {
                               const v1 = lap1 ? Number(lap1[sk.key as keyof typeof lap1]) : null;
                               const v2 = lap2 ? Number(lap2[sk.key as keyof typeof lap2]) : null;
                               const best = v1 && v2 ? Math.min(v1, v2) : v1 || v2 || null;
                               const isFastest = best !== null && Math.abs(best - bestSectorTimes[sk.key]) < 0.0001;
                               return (
-                                <td key={sk.key} className={`px-1 py-1.5 font-mono text-[10px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+                                <td key={sk.key} className={`px-1 py-1.5 font-mono text-[12px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
                                   {best ? best.toFixed(4) : '—'}
                                 </td>
                               );
@@ -450,10 +450,10 @@ const TrackDominanceTab = () => {
                   <table className="min-w-[600px] w-full text-left">
                     <thead>
                       <tr className="border-b border-racing-border">
-                        <th className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1.5 py-1.5 sticky left-0 bg-racing-bg z-10">Car</th>
-                        <th className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1.5 py-1.5">Best</th>
+                        <th className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1.5 py-1.5 sticky left-0 bg-racing-bg z-10">Car</th>
+                        <th className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1.5 py-1.5">Best</th>
                         {roadCourseSectionNames.map((sectionName) => (
-                          <th key={sectionName} className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1 py-1.5">{sectionName}</th>
+                          <th key={sectionName} className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1 py-1.5">{sectionName}</th>
                         ))}
                       </tr>
                     </thead>
@@ -463,17 +463,17 @@ const TrackDominanceTab = () => {
                           <td className="px-1.5 py-1 sticky left-0 bg-racing-bg z-10">
                             <div className="flex items-center gap-1">
                               <CarBadge size="sm" num={driver.car} />
-                              <span className="font-body text-[10px] text-racing-text">{driver.name.split(' ')[0]}</span>
+                              <span className="font-body text-[12px] text-racing-text">{driver.name.split(' ')[0]}</span>
                             </div>
                           </td>
-                          <td className="px-1.5 py-1 font-mono text-[10px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</td>
+                          <td className="px-1.5 py-1 font-mono text-[12px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</td>
                           {roadCourseSectionNames.map((sectionName) => {
                             const row = driver.sections[sectionName];
                             const displayValue = getRoadCourseSectionDisplay(row?.section_time || row?.time);
                             const numericValue = getRoadCourseSectionValue(row?.section_time || row?.time);
                             const isFastest = numericValue !== null && Math.abs(numericValue - bestSectorTimes[sectionName]) < 0.0001;
                             return (
-                              <td key={sectionName} className={`px-1 py-1 font-mono text-[10px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+                              <td key={sectionName} className={`px-1 py-1 font-mono text-[12px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
                                 {displayValue}
                               </td>
                             );
@@ -488,29 +488,29 @@ const TrackDominanceTab = () => {
                   <table className="w-full min-w-[1100px] text-left">
                     <thead>
                       <tr className="border-b border-racing-border">
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Pos</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Car</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Driver</th>
-                        <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-2 py-2">Best</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Pos</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Car</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Driver</th>
+                        <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-2 py-2">Best</th>
                         {roadCourseSectionNames.map((sectionName) => (
-                          <th key={sectionName} className="font-condensed font-semibold text-[10px] text-racing-muted uppercase px-1 py-2">{sectionName}</th>
+                          <th key={sectionName} className="font-condensed font-semibold text-[12px] text-racing-muted uppercase px-1 py-2">{sectionName}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {roadCourseSectorComparison.map((driver) => (
                         <tr key={driver.car} className="border-b border-racing-border/50">
-                          <td className="px-2 py-1.5 font-heading text-xs text-racing-muted">P{driver.qualPos}</td>
+                          <td className="px-2 py-1.5 font-heading text-sm text-racing-muted">P{driver.qualPos}</td>
                           <td className="px-2 py-1.5"><CarBadge size="sm" num={driver.car} /></td>
-                          <td className="px-2 py-1.5 font-body text-xs text-racing-text">{driver.name}</td>
-                          <td className="px-2 py-1.5 font-mono text-[10px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</td>
+                          <td className="px-2 py-1.5 font-body text-sm text-racing-text">{driver.name}</td>
+                          <td className="px-2 py-1.5 font-mono text-[12px] text-racing-yellow font-bold">{driver.bestLapTime || '—'}</td>
                           {roadCourseSectionNames.map((sectionName) => {
                             const row = driver.sections[sectionName];
                             const displayValue = getRoadCourseSectionDisplay(row?.section_time || row?.time);
                             const numericValue = getRoadCourseSectionValue(row?.section_time || row?.time);
                             const isFastest = numericValue !== null && Math.abs(numericValue - bestSectorTimes[sectionName]) < 0.0001;
                             return (
-                              <td key={sectionName} className={`px-1 py-1.5 font-mono text-[10px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+                              <td key={sectionName} className={`px-1 py-1.5 font-mono text-[12px] ${isFastest ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
                                 {displayValue}
                               </td>
                             );
@@ -523,11 +523,11 @@ const TrackDominanceTab = () => {
               ))}
 
               {hasCompleteOvalSectorData && <div>
-                <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2 mt-6">Driver Qualifying Lap Comparison</h3>
+                <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-2 mt-6">Driver Qualifying Lap Comparison</h3>
                 <select
                   value={selectedDriver || ''}
                   onChange={e => setSelectedDriver(e.target.value || null)}
-                  className="bg-racing-surface border border-racing-border text-racing-text font-body text-sm px-3 py-2 rounded mb-4 w-full sm:w-auto"
+                  className="bg-racing-surface border border-racing-border text-racing-text font-body text-[15px] px-3 py-2 rounded mb-4 w-full sm:w-auto"
                 >
                   <option value="">Select a driver…</option>
                   {driversForSelector.map(d => (
@@ -544,10 +544,10 @@ const TrackDominanceTab = () => {
                         const delta = v1 && v2 ? v2 - v1 : null;
                         return (
                           <div key={sk.key} className="bg-racing-surface rounded px-3 py-2 flex items-center justify-between">
-                            <span className="font-condensed text-xs text-racing-text w-20">{sk.label}</span>
-                            <span className="font-mono text-[10px] text-racing-text">{v1 ? v1.toFixed(4) : '—'}</span>
-                            <span className="font-mono text-[10px] text-racing-text">{v2 ? v2.toFixed(4) : '—'}</span>
-                            <span className={`font-mono text-[10px] font-bold w-16 text-right ${
+                            <span className="font-condensed text-sm text-racing-text w-20">{sk.label}</span>
+                            <span className="font-mono text-[12px] text-racing-text">{v1 ? v1.toFixed(4) : '—'}</span>
+                            <span className="font-mono text-[12px] text-racing-text">{v2 ? v2.toFixed(4) : '—'}</span>
+                            <span className={`font-mono text-[12px] font-bold w-16 text-right ${
                               delta === null ? 'text-racing-muted' : delta < 0 ? 'text-racing-green' : delta > 0 ? 'text-racing-red' : 'text-racing-muted'
                             }`}>
                               {delta !== null ? `${delta > 0 ? '+' : ''}${delta.toFixed(4)}` : '—'}
@@ -561,10 +561,10 @@ const TrackDominanceTab = () => {
                         const delta = v1 && v2 ? v2 - v1 : null;
                         return (
                           <div className="bg-racing-surface2 rounded px-3 py-2 flex items-center justify-between border-t-2 border-racing-border">
-                            <span className="font-condensed text-xs text-racing-yellow font-bold w-20">Full Lap</span>
-                            <span className="font-mono text-[10px] text-racing-yellow">{v1 ? v1.toFixed(4) : '—'}</span>
-                            <span className="font-mono text-[10px] text-racing-yellow">{v2 ? v2.toFixed(4) : '—'}</span>
-                            <span className={`font-mono text-[10px] font-bold w-16 text-right ${
+                            <span className="font-condensed text-sm text-racing-yellow font-bold w-20">Full Lap</span>
+                            <span className="font-mono text-[12px] text-racing-yellow">{v1 ? v1.toFixed(4) : '—'}</span>
+                            <span className="font-mono text-[12px] text-racing-yellow">{v2 ? v2.toFixed(4) : '—'}</span>
+                            <span className={`font-mono text-[12px] font-bold w-16 text-right ${
                               delta === null ? 'text-racing-muted' : delta < 0 ? 'text-racing-green' : delta > 0 ? 'text-racing-red' : 'text-racing-muted'
                             }`}>
                               {delta !== null ? `${delta > 0 ? '+' : ''}${delta.toFixed(4)}` : '—'}
@@ -573,10 +573,10 @@ const TrackDominanceTab = () => {
                         );
                       })()}
                       <div className="flex justify-between px-3 mt-1">
-                        <span className="font-mono text-[9px] text-racing-muted">Sector</span>
-                        <span className="font-mono text-[9px] text-racing-muted">L1</span>
-                        <span className="font-mono text-[9px] text-racing-muted">L2</span>
-                        <span className="font-mono text-[9px] text-racing-muted w-16 text-right">Delta</span>
+                        <span className="font-mono text-[11px] text-racing-muted">Sector</span>
+                        <span className="font-mono text-[11px] text-racing-muted">L1</span>
+                        <span className="font-mono text-[11px] text-racing-muted">L2</span>
+                        <span className="font-mono text-[11px] text-racing-muted w-16 text-right">Delta</span>
                       </div>
                     </div>
                   ) : (
@@ -584,10 +584,10 @@ const TrackDominanceTab = () => {
                       <table className="w-full min-w-[600px] text-left">
                         <thead>
                           <tr className="border-b border-racing-border">
-                            <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-3 py-2">Sector</th>
-                            <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-3 py-2">Lap 1</th>
-                            <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-3 py-2">Lap 2</th>
-                            <th className="font-condensed font-semibold text-xs text-racing-muted uppercase px-3 py-2">Delta</th>
+                            <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-3 py-2">Sector</th>
+                            <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-3 py-2">Lap 1</th>
+                            <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-3 py-2">Lap 2</th>
+                            <th className="font-condensed font-semibold text-sm text-racing-muted uppercase px-3 py-2">Delta</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -597,10 +597,10 @@ const TrackDominanceTab = () => {
                             const delta = v1 && v2 ? v2 - v1 : null;
                             return (
                               <tr key={sk.key} className="border-b border-racing-border/50">
-                                <td className="px-3 py-2 font-condensed text-xs text-racing-text">{sk.label}</td>
-                                <td className="px-3 py-2 font-mono text-xs text-racing-text">{v1 ? v1.toFixed(4) : '—'}</td>
-                                <td className="px-3 py-2 font-mono text-xs text-racing-text">{v2 ? v2.toFixed(4) : '—'}</td>
-                                <td className={`px-3 py-2 font-mono text-xs font-bold ${
+                                <td className="px-3 py-2 font-condensed text-sm text-racing-text">{sk.label}</td>
+                                <td className="px-3 py-2 font-mono text-sm text-racing-text">{v1 ? v1.toFixed(4) : '—'}</td>
+                                <td className="px-3 py-2 font-mono text-sm text-racing-text">{v2 ? v2.toFixed(4) : '—'}</td>
+                                <td className={`px-3 py-2 font-mono text-sm font-bold ${
                                   delta === null ? 'text-racing-muted' : delta < 0 ? 'text-racing-green' : delta > 0 ? 'text-racing-red' : 'text-racing-muted'
                                 }`}>
                                   {delta !== null ? `${delta > 0 ? '+' : ''}${delta.toFixed(4)}` : '—'}
@@ -614,10 +614,10 @@ const TrackDominanceTab = () => {
                             const delta = v1 && v2 ? v2 - v1 : null;
                             return (
                               <tr className="border-t-2 border-racing-border bg-racing-surface/50">
-                                <td className="px-3 py-2 font-condensed text-xs text-racing-yellow font-bold">Full Lap</td>
-                                <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{v1 ? v1.toFixed(4) : '—'}</td>
-                                <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{v2 ? v2.toFixed(4) : '—'}</td>
-                                <td className={`px-3 py-2 font-mono text-xs font-bold ${
+                                <td className="px-3 py-2 font-condensed text-sm text-racing-yellow font-bold">Full Lap</td>
+                                <td className="px-3 py-2 font-mono text-sm text-racing-yellow">{v1 ? v1.toFixed(4) : '—'}</td>
+                                <td className="px-3 py-2 font-mono text-sm text-racing-yellow">{v2 ? v2.toFixed(4) : '—'}</td>
+                                <td className={`px-3 py-2 font-mono text-sm font-bold ${
                                   delta === null ? 'text-racing-muted' : delta < 0 ? 'text-racing-green' : delta > 0 ? 'text-racing-red' : 'text-racing-muted'
                                 }`}>
                                   {delta !== null ? `${delta > 0 ? '+' : ''}${delta.toFixed(4)}` : '—'}

@@ -18,7 +18,7 @@ const EngineIcon = ({ engine, size = 'sm', className = '' }: EngineIconProps) =>
   const isChevy = engine?.toLowerCase().includes('chevy') || engine?.toLowerCase().includes('chevrolet') || engine === 'C';
 
   if (!isHonda && !isChevy) {
-    return <span className="font-mono text-xs text-racing-muted">{engine}</span>;
+    return <span className="font-mono text-sm text-racing-muted">{engine}</span>;
   }
 
   return (

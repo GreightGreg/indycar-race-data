@@ -9,11 +9,11 @@ import { buildLapsLedStats } from '@/lib/raceStats';
 
 const StatRow = ({ label, v1, v2, highlight, isEngine }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none'; isEngine?: boolean }) => (
   <div className="flex items-center py-1.5 border-b border-racing-border/30">
-    <span className={`flex-1 text-right font-mono text-xs ${highlight === 'left' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+    <span className={`flex-1 text-right font-mono text-sm ${highlight === 'left' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
       {isEngine ? <span className="inline-flex justify-end w-full"><EngineIcon engine={v1} /></span> : <>{v1}{highlight === 'left' && ' ◀'}</>}
     </span>
-    <span className="w-32 text-center font-condensed text-[10px] text-racing-muted uppercase px-2">{label}</span>
-    <span className={`flex-1 font-mono text-xs ${highlight === 'right' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
+    <span className="w-32 text-center font-condensed text-[12px] text-racing-muted uppercase px-2">{label}</span>
+    <span className={`flex-1 font-mono text-sm ${highlight === 'right' ? 'text-racing-yellow font-bold' : 'text-racing-text'}`}>
       {isEngine ? <EngineIcon engine={v2} /> : <>{highlight === 'right' && '▶ '}{v2}</>}
     </span>
   </div>
@@ -106,11 +106,11 @@ const HeadToHeadTab = () => {
     <div className="space-y-6">
       <h2 className="font-heading text-2xl text-racing-text">Head to Head</h2>
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <select value={car1} onChange={e => setCar1(e.target.value)} className="bg-racing-surface border border-racing-border text-racing-text font-body text-sm px-3 py-2 rounded">
+        <select value={car1} onChange={e => setCar1(e.target.value)} className="bg-racing-surface border border-racing-border text-racing-text font-body text-[15px] px-3 py-2 rounded">
           {drivers.map(d => <option key={d.num} value={d.num}>#{d.num} {d.name}</option>)}
         </select>
         <span className="font-heading text-xl text-racing-muted">VS</span>
-        <select value={car2} onChange={e => setCar2(e.target.value)} className="bg-racing-surface border border-racing-border text-racing-text font-body text-sm px-3 py-2 rounded">
+        <select value={car2} onChange={e => setCar2(e.target.value)} className="bg-racing-surface border border-racing-border text-racing-text font-body text-[15px] px-3 py-2 rounded">
           {drivers.map(d => <option key={d.num} value={d.num}>#{d.num} {d.name}</option>)}
         </select>
       </div>
@@ -118,12 +118,12 @@ const HeadToHeadTab = () => {
       <div className="grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 items-center">
         <div className="bg-racing-surface rounded p-3 sm:p-4 flex flex-col items-center">
           <CarBadge num={car1} size="lg" />
-          <p className="font-body text-xs sm:text-sm text-racing-text mt-2">{drivers.find(d => d.num === car1)?.name}</p>
+          <p className="font-body text-sm sm:text-[15px] text-racing-text mt-2">{drivers.find(d => d.num === car1)?.name}</p>
         </div>
         <div className="flex items-center justify-center"><span className="font-heading text-xl sm:text-3xl text-racing-muted">VS</span></div>
         <div className="bg-racing-surface rounded p-3 sm:p-4 flex flex-col items-center">
           <CarBadge num={car2} size="lg" />
-          <p className="font-body text-xs sm:text-sm text-racing-text mt-2">{drivers.find(d => d.num === car2)?.name}</p>
+          <p className="font-body text-sm sm:text-[15px] text-racing-text mt-2">{drivers.find(d => d.num === car2)?.name}</p>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ const HeadToHeadTab = () => {
 
       {chartData.length > 0 && (
         <div>
-          <h3 className="font-condensed font-semibold text-sm text-racing-text uppercase mb-2">Position Comparison</h3>
+          <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-2">Position Comparison</h3>
           <div style={{ height: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>

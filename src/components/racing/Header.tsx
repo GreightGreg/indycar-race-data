@@ -34,12 +34,12 @@ const Header = ({ races, selectedRaceId, onRaceChange, isLoading }: HeaderProps)
       <div className="max-w-[1400px] mx-auto px-4 py-3 flex items-center justify-between gap-4">
         <div className="shrink-0">
           <h1 className="font-heading text-[28px] leading-none text-racing-blue tracking-wide">RACEDAY PADDOCK</h1>
-          <p className="font-condensed text-[10px] text-racing-muted uppercase tracking-[0.2em]">DATA CENTER</p>
+          <p className="font-condensed text-[12px] text-racing-muted uppercase tracking-[0.2em]">DATA CENTER</p>
         </div>
         <div className="text-right shrink min-w-0">
           <div className="relative w-full max-w-md">
             <select
-              className="bg-racing-surface border border-racing-border text-racing-text font-mono text-xs md:text-sm px-3 py-1.5 pr-8 rounded cursor-pointer w-full appearance-none"
+              className="bg-racing-surface border border-racing-border text-racing-text font-mono text-sm md:text-[15px] px-3 py-1.5 pr-8 rounded cursor-pointer w-full appearance-none"
               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23e8ff00' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
             value={selectedRaceId || ''}
             onChange={e => onRaceChange(e.target.value)}
