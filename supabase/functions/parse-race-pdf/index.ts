@@ -210,28 +210,32 @@ function parseEventInfo(lines: string[]) {
   const trackLine = normalizedLines.find(l => l.includes("Track:")) || "";
   const sessionLine = normalizedLines.find(l => l.includes("Session:")) || "";
 
-  // Format: "Good Ranchers 250 Event: Round 2" — event name is BEFORE "Event:"
-  // Or: "Event: Good Ranchers 250 Round 2" — event name is AFTER "Event:"
+  // Search ALL lines for Round number — it may be on a different line than "Event:"
   let eventName = "";
   let roundNumber = 0;
+
+  // First, find round number from any line
+  for (const l of normalizedLines) {
+    const rm = l.match(/Round\s+(\d+)/i);
+    if (rm) { roundNumber = parseInt(rm[1]); break; }
+  }
 
   // Try "value Event: Round N" format first (unpdf extracts value before label)
   const beforeEventMatch = eventLine.match(/^(.+?)\s+Event:\s*Round\s+(\d+)/);
   if (beforeEventMatch) {
     eventName = beforeEventMatch[1].trim();
-    roundNumber = parseInt(beforeEventMatch[2]);
   } else {
-    // Try "Event: value Round N" format
-    const afterEventMatch = eventLine.match(/Event:\s*(.+?)\s+Round\s+(\d+)/);
-    if (afterEventMatch) {
-      eventName = afterEventMatch[1].trim();
-      roundNumber = parseInt(afterEventMatch[2]);
-    } else {
-      // Try just finding Round number anywhere
-      const roundMatch = eventLine.match(/Round\s+(\d+)/);
-      roundNumber = roundMatch ? parseInt(roundMatch[1]) : 0;
-      eventName = eventLine.replace(/Event:/, "").replace(/Round\s+\d+/, "").trim();
+    // Try "Event: value Round N" or "Event: value"
+    const afterEventMatch = eventLine.match(/Event:\s*(.+?)(?:\s+Round\s+\d+)?$/);
+    if (afterEventMatch && afterEventMatch[1].trim() && afterEventMatch[1].trim() !== "Round") {
+      eventName = afterEventMatch[1].replace(/Round\s+\d+/, "").trim();
     }
+  }
+
+  // If eventName is still empty, check the first line for the event title (before "Event:" or "Round")
+  if (!eventName) {
+    const firstLine = normalizedLines[0] || "";
+    eventName = firstLine.replace(/Event:.*/, "").replace(/Round\s+\d+/, "").trim();
   }
 
   // Format: "Phoenix Raceway Track: 1 mile(s)" — track name is BEFORE "Track:"
