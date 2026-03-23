@@ -138,7 +138,7 @@ const WeekendTab = () => {
                       <td className="px-3 py-2 font-heading text-sm text-racing-muted">{d.rank}</td>
                       <td className="px-3 py-2"><CarBadge num={d.car_number} /></td>
                       <td className="px-3 py-2 font-body text-sm text-racing-text">{formatDriverName(d.driver_name)}</td>
-                      <td className="px-3 py-2"><EngineText engine={d.engine || ''} /></td>
+                      <td className="px-3 py-2"><EngineIcon engine={d.engine || ''} /></td>
                       <td className="px-3 py-2 font-mono text-xs text-racing-yellow">{d.best_time}s</td>
                       <td className="px-3 py-2 font-mono text-xs text-racing-text">{Number(d.best_speed).toFixed(3)} mph</td>
                       <td className="px-3 py-2 font-mono text-xs text-racing-muted">{d.best_session}</td>
