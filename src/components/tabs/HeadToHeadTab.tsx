@@ -3,6 +3,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceA
 import { useRaceContext } from '@/pages/Index';
 import { useRaceResults, useLapsLed, useFastestLaps, useRacePositions, useCautions, DRIVER_COLORS } from '@/hooks/useRaceData';
 import { formatDriverName } from '@/lib/formatName';
+import EngineIcon from '@/components/racing/EngineIcon';
 
 const StatRow = ({ label, v1, v2, highlight }: { label: string; v1: string; v2: string; highlight: 'left' | 'right' | 'none' }) => (
   <div className="flex items-center py-1.5 border-b border-racing-border/30">
