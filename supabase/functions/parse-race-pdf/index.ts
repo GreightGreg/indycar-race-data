@@ -926,6 +926,10 @@ async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], 
       stats.most_improved_car = improved[1];
       stats.most_improved_driver = improved[2].trim();
     }
+    const improvedPos = line.match(/Improved\s+(\d+)\s+positions/i);
+    if (improvedPos) {
+      stats.most_improved_positions = parseInt(improvedPos[1]);
+    }
     const passes = line.match(/Total Passes:\s+(\d+)\s+Position Passes:\s+(\d+)/);
     if (passes) {
       stats.total_passes = parseInt(passes[1]);
