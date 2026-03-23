@@ -21,8 +21,8 @@ export const RaceContext = createContext<RaceContextType>({ raceId: null, setRac
 export const useRaceContext = () => useContext(RaceContext);
 
 const TAB_COMPONENTS: Record<string, React.FC> = {
-  'Results': ResultsTab,
-  'Weekend': WeekendTab,
+  'Race Results': ResultsTab,
+  'Session Results': WeekendTab,
   'Position Chart': PositionChartTab,
   'Laps Led': LapsLedTab,
   'Head to Head': HeadToHeadTab,
@@ -32,7 +32,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
 };
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState('Results');
+  const [activeTab, setActiveTab] = useState('Race Results');
   const { data: races, isLoading } = useRaces();
   const [selectedRaceId, setSelectedRaceId] = useState<string | null>(null);
 
