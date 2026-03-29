@@ -196,7 +196,11 @@ function identifyReport(lines: string[]): string | null {
   const normalizedLines = lines.map(normalizeHeaderLine);
   const reportLine = normalizedLines.find((l) => l.includes("Report:")) || "";
   const sessionLine = normalizedLines.find((l) => l.includes("Session:")) || "";
-  if (reportLine.includes("Official Lap Report") || reportLine.includes("Official Final Results"))
+  if (
+    reportLine.includes("Official Lap Report") ||
+    reportLine.includes("Unofficial Lap Report") ||
+    reportLine.includes("Official Final Results")
+  )
     return "race_results";
   if (reportLine.includes("Event Summary")) return "event_summary";
   if (reportLine.includes("Leader Lap Summary")) return "leader_laps";
@@ -900,101 +904,107 @@ async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], 
   try {
     const page1ForImg = await pdf.getPage(1);
     const ops = await page1ForImg.getOperatorList();
-    
+
     const imageNames: string[] = [];
     for (let i = 0; i < ops.fnArray.length; i++) {
       if (ops.fnArray[i] === 85 || ops.fnArray[i] === 82 || ops.fnArray[i] === 83) {
         if (ops.argsArray[i]) imageNames.push(ops.argsArray[i][0]);
       }
     }
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     if (imageNames.length >= 2) {
       const trackMapObj = await new Promise<any>((resolve) => {
         page1ForImg.objs.get(imageNames[1], resolve);
       });
-      
+
       if (trackMapObj && trackMapObj.width > 500 && trackMapObj.width > trackMapObj.height) {
         const { width, height, data } = trackMapObj;
-        
+
         function uint32BE(n: number): Uint8Array {
-          return new Uint8Array([(n>>24)&0xff,(n>>16)&0xff,(n>>8)&0xff,n&0xff]);
+          return new Uint8Array([(n >> 24) & 0xff, (n >> 16) & 0xff, (n >> 8) & 0xff, n & 0xff]);
         }
-        
+
         function crc32(buf: Uint8Array): number {
           const table = new Int32Array(256);
-          for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=c&1?(0xedb88320^(c>>>1)):(c>>>1);table[i]=c;}
+          for (let i = 0; i < 256; i++) {
+            let c = i;
+            for (let j = 0; j < 8; j++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            table[i] = c;
+          }
           let crc = -1;
-          for(const b of buf) crc=table[(crc^b)&0xff]^(crc>>>8);
-          return (~crc)>>>0;
+          for (const b of buf) crc = table[(crc ^ b) & 0xff] ^ (crc >>> 8);
+          return ~crc >>> 0;
         }
-        
+
         function pngChunk(type: string, chunkData: Uint8Array): Uint8Array {
           const t = new TextEncoder().encode(type);
           const len = uint32BE(chunkData.length);
           const combined = new Uint8Array(t.length + chunkData.length);
-          combined.set(t); combined.set(chunkData, t.length);
+          combined.set(t);
+          combined.set(chunkData, t.length);
           const crcVal = uint32BE(crc32(combined));
           const result = new Uint8Array(4 + 4 + chunkData.length + 4);
-          result.set(len, 0); result.set(t, 4); result.set(chunkData, 8);
+          result.set(len, 0);
+          result.set(t, 4);
+          result.set(chunkData, 8);
           result.set(crcVal, 8 + chunkData.length);
           return result;
         }
-        
+
         const ihdr = new Uint8Array(13);
         const ihdrView = new DataView(ihdr.buffer);
-        ihdrView.setUint32(0, width); ihdrView.setUint32(4, height);
-        ihdr[8]=8; ihdr[9]=2;
-        
+        ihdrView.setUint32(0, width);
+        ihdrView.setUint32(4, height);
+        ihdr[8] = 8;
+        ihdr[9] = 2;
+
         const srcData = new Uint8Array(data);
         const raw = new Uint8Array(height * (width * 3 + 1));
-        for(let y=0;y<height;y++){
-          raw[y*(width*3+1)]=0;
-          raw.set(srcData.subarray(y*width*3,(y+1)*width*3), y*(width*3+1)+1);
+        for (let y = 0; y < height; y++) {
+          raw[y * (width * 3 + 1)] = 0;
+          raw.set(srcData.subarray(y * width * 3, (y + 1) * width * 3), y * (width * 3 + 1) + 1);
         }
-        
+
         const { deflate } = await import("https://deno.land/x/compress@v0.4.5/mod.ts");
         const compressed = deflate(raw);
-        
-        const sig = new Uint8Array([137,80,78,71,13,10,26,10]);
+
+        const sig = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
         const iend = new Uint8Array(0);
-        const chunks = [sig, pngChunk('IHDR',ihdr), pngChunk('IDAT',compressed), pngChunk('IEND',iend)];
-        const totalLen = chunks.reduce((s,c)=>s+c.length,0);
+        const chunks = [sig, pngChunk("IHDR", ihdr), pngChunk("IDAT", compressed), pngChunk("IEND", iend)];
+        const totalLen = chunks.reduce((s, c) => s + c.length, 0);
         const png = new Uint8Array(totalLen);
         let offset = 0;
-        for(const chunk of chunks){png.set(chunk,offset);offset+=chunk.length;}
-        
+        for (const chunk of chunks) {
+          png.set(chunk, offset);
+          offset += chunk.length;
+        }
+
         const storageClient = createClient(
           Deno.env.get("SUPABASE_URL") ?? "",
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
         );
-        
+
         const filename = `${raceId}.png`;
-        const { error: uploadError } = await storageClient.storage
-          .from('track-maps')
-          .upload(filename, png, { 
-            contentType: 'image/png', 
-            upsert: true 
-          });
-        
+        const { error: uploadError } = await storageClient.storage.from("track-maps").upload(filename, png, {
+          contentType: "image/png",
+          upsert: true,
+        });
+
         if (!uploadError) {
-          const { data: urlData } = storageClient.storage
-            .from('track-maps')
-            .getPublicUrl(filename);
-          
-          await supabase.from('races')
-            .update({ track_map_url: urlData.publicUrl })
-            .eq('id', raceId);
-          
+          const { data: urlData } = storageClient.storage.from("track-maps").getPublicUrl(filename);
+
+          await supabase.from("races").update({ track_map_url: urlData.publicUrl }).eq("id", raceId);
+
           console.log(`Track map extracted and stored: ${urlData.publicUrl}`);
         } else {
-          console.error('Track map upload error:', uploadError.message);
+          console.error("Track map upload error:", uploadError.message);
         }
       }
     }
-  } catch(e: any) {
-    console.error('Track map extraction failed (non-fatal):', e.message);
+  } catch (e: any) {
+    console.error("Track map extraction failed (non-fatal):", e.message);
   }
 
   // Collect all lines from all pages
