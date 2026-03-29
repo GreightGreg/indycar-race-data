@@ -851,18 +851,63 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     throw new Error("No race result rows parsed; existing race results were preserved");
   }
 
-  // Round 1 semantic fix: total_points must equal race_points (no prior races)
-  // and championship_rank is derived from race_points descending
+  // Derive championship totals/ranks from cumulative race points rather than
+  // trusting PDF standing columns, which can split digits incorrectly.
   const roundNumber = eventInfo?.roundNumber || 0;
+  const seasonYear = eventInfo?.year || new Date().getFullYear();
+
   if (roundNumber === 1) {
     for (const r of results) {
-      r.total_points = r.race_points;
+      r.total_points = Number(r.race_points) || 0;
     }
-    const sorted = [...results].sort((a, b) => b.race_points - a.race_points);
-    sorted.forEach((r, i) => {
-      r.championship_rank = i + 1;
-    });
+  } else if (roundNumber > 1) {
+    const { data: priorRaces, error: priorRacesError } = await supabase
+      .from("races")
+      .select("id")
+      .eq("year", seasonYear)
+      .lt("round_number", roundNumber)
+      .order("round_number", { ascending: true });
+
+    if (priorRacesError) {
+      throw new Error(`Failed loading prior races for championship totals: ${priorRacesError.message}`);
+    }
+
+    const priorRaceIds = (priorRaces || []).map((race: any) => race.id).filter((id: string) => id !== raceId);
+    const priorTotals: Record<string, number> = {};
+
+    if (priorRaceIds.length > 0) {
+      const { data: priorResults, error: priorResultsError } = await supabase
+        .from("race_results")
+        .select("car_number, race_points")
+        .in("race_id", priorRaceIds);
+
+      if (priorResultsError) {
+        throw new Error(`Failed loading prior race points: ${priorResultsError.message}`);
+      }
+
+      for (const row of priorResults || []) {
+        const carNumber = String(row.car_number || "");
+        const racePoints = Number(row.race_points) || 0;
+        priorTotals[carNumber] = (priorTotals[carNumber] || 0) + racePoints;
+      }
+    }
+
+    for (const r of results) {
+      const carNumber = String(r.car_number || "");
+      r.total_points = (priorTotals[carNumber] || 0) + (Number(r.race_points) || 0);
+    }
   }
+
+  const sorted = [...results].sort((a, b) => {
+    if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+    if (b.race_points !== a.race_points) return b.race_points - a.race_points;
+    if (a.finish_position !== b.finish_position) return a.finish_position - b.finish_position;
+    return String(a.car_number).localeCompare(String(b.car_number), undefined, { numeric: true });
+  });
+
+  sorted.forEach((r, i) => {
+    r.championship_rank = i + 1;
+  });
 
   await replaceRows(supabase, "race_results", { race_id: raceId }, results);
 

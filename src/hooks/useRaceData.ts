@@ -287,7 +287,7 @@ export const useChampionshipStandings = (raceId: string | null) =>
         r2: r.race_points,
         r1: r.total_points - r.race_points,
         total: r.total_points,
-        gap: r.championship_rank === 1 ? '—' : `${r.total_points - maxPts}`,
+        gap: r.championship_rank === 1 ? '—' : `${maxPts - r.total_points}`,
         maxPts,
       }));
     },
