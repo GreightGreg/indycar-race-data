@@ -172,9 +172,15 @@ const WeekendTab = () => {
           <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-1">Qualifying Session Results</h3>
           <p className="font-mono text-[12px] text-racing-muted mb-3">Road and street course qualifying is shown by session: groups, Fast 12, Fast 6, and combined order when available.</p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {roadCourseQualifyingSessions.map(session => (
-              <SessionResultsView key={session.title} title={session.title} data={session.data} isMobile={isMobile} />
-            ))}
+            {roadCourseQualifyingSessions.map(session => {
+              const slug = session.title.toLowerCase()
+                .replace('qualifying group 1', 'qualifying-group-1')
+                .replace('qualifying group 2', 'qualifying-group-2')
+                .replace('qualifying round 2 (fast 12)', 'qualifying-fast-12')
+                .replace('qualifying round 3 (fast 6)', 'qualifying-fast-6')
+                .replace('qualifying combined', 'qualifying-combined');
+              return <SessionResultsView key={session.title} id={slug} title={session.title} data={session.data} isMobile={isMobile} />;
+            })}
           </div>
         </div>
       )}
