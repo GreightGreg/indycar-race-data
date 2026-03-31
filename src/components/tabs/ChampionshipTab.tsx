@@ -162,16 +162,20 @@ const ChampionshipTab = () => {
 
   // ─── SECTION 2: NTT P1 Award ───
   const p1Standings = useMemo(() => {
-    const totals: Record<string, { car: string; name: string; roundPoles: Record<number, boolean>; total: number; poles: number }> = {};
+    const totals: Record<string, { car: string; name: string; roundPts: Record<number, number>; total: number; poles: number }> = {};
     for (const race of races) {
       const poleCar = poleByRound[race.round_number];
       if (!poleCar) continue;
+      // Find this driver's actual race_points for this round
+      const raceResults = resultsByRound[race.round_number] || [];
+      const poleResult = raceResults.find(r => r.car_number === poleCar);
+      const pts = poleResult?.race_points ?? 0;
       if (!totals[poleCar]) {
         const r = Object.values(resultsByRound).flat().find(rr => rr.car_number === poleCar);
-        totals[poleCar] = { car: poleCar, name: r?.driver_name || poleCar, roundPoles: {}, total: 0, poles: 0 };
+        totals[poleCar] = { car: poleCar, name: r?.driver_name || poleCar, roundPts: {}, total: 0, poles: 0 };
       }
-      totals[poleCar].roundPoles[race.round_number] = true;
-      totals[poleCar].total += 50;
+      totals[poleCar].roundPts[race.round_number] = pts;
+      totals[poleCar].total += pts;
       totals[poleCar].poles += 1;
     }
     return Object.values(totals).sort((a, b) => b.total - a.total);
