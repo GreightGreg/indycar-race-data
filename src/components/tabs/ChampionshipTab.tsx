@@ -32,13 +32,13 @@ const Section = ({ id, title, description, defaultOpen = false, unofficial = fal
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div id={id} className={`border rounded-lg scroll-mt-[120px] ${unofficial ? 'border-racing-muted/40' : 'border-racing-border'}`}>
+    <div id={id} className={`border rounded-lg scroll-mt-[120px] ${unofficial ? 'border-racing-muted/40 border-l-4 border-l-racing-muted/30' : 'border-racing-border'}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-3 flex-wrap">
-          <h3 className="font-heading text-lg text-racing-yellow">{title}</h3>
+          <h3 className={`font-heading text-lg ${unofficial ? 'text-racing-muted' : 'text-racing-yellow'}`}>{title}</h3>
           {onShare && (
             <span
               role="button"
@@ -162,16 +162,20 @@ const ChampionshipTab = () => {
 
   // ─── SECTION 2: NTT P1 Award ───
   const p1Standings = useMemo(() => {
-    const totals: Record<string, { car: string; name: string; roundPoles: Record<number, boolean>; total: number; poles: number }> = {};
+    const totals: Record<string, { car: string; name: string; roundPts: Record<number, number>; total: number; poles: number }> = {};
     for (const race of races) {
       const poleCar = poleByRound[race.round_number];
       if (!poleCar) continue;
+      // Find this driver's actual race_points for this round
+      const raceResults = resultsByRound[race.round_number] || [];
+      const poleResult = raceResults.find(r => r.car_number === poleCar);
+      const pts = poleResult?.race_points ?? 0;
       if (!totals[poleCar]) {
         const r = Object.values(resultsByRound).flat().find(rr => rr.car_number === poleCar);
-        totals[poleCar] = { car: poleCar, name: r?.driver_name || poleCar, roundPoles: {}, total: 0, poles: 0 };
+        totals[poleCar] = { car: poleCar, name: r?.driver_name || poleCar, roundPts: {}, total: 0, poles: 0 };
       }
-      totals[poleCar].roundPoles[race.round_number] = true;
-      totals[poleCar].total += 50;
+      totals[poleCar].roundPts[race.round_number] = pts;
+      totals[poleCar].total += pts;
       totals[poleCar].poles += 1;
     }
     return Object.values(totals).sort((a, b) => b.total - a.total);
@@ -190,39 +194,33 @@ const ChampionshipTab = () => {
       Chevy: { name: 'Chevrolet', roundPts: {}, total: 0 },
       Honda: { name: 'Honda', roundPts: {}, total: 0 },
     };
+
+    const isChevy = (car: string) => {
+      const eng = (metaMap[car]?.engine || '').toLowerCase();
+      return eng.includes('chevy') || eng.includes('chevrolet') || eng === 'c';
+    };
+
     for (const race of races) {
       const rn = race.round_number;
       const results = resultsByRound[rn] || [];
       const poleCar = poleByRound[rn];
 
-      for (const mfrKey of ['Chevy', 'Honda']) {
+      for (const mfrKey of ['Chevy', 'Honda'] as const) {
+        const isThisMfr = (car: string) => mfrKey === 'Chevy' ? isChevy(car) : !isChevy(car);
+
         const mfrResults = results
-          .filter(r => {
-            const eng = r.engine?.toLowerCase() || '';
-            return mfrKey === 'Chevy'
-              ? (eng.includes('chevy') || eng.includes('chevrolet') || eng === 'c')
-              : (eng.includes('honda') || eng === 'h');
-          })
-          .filter(r => fullSeasonCars.has(r.car_number))
+          .filter(r => isThisMfr(r.car_number) && fullSeasonCars.has(r.car_number))
           .sort((a: any, b: any) => a.finish_position - b.finish_position);
 
         const top2 = mfrResults.slice(0, 2);
         let pts = top2.reduce((s: number, r: any) => s + r.race_points, 0);
 
-        // +5 if their driver won
-        if (mfrResults.length > 0 && mfrResults[0].finish_position === 1) pts += 5;
+        // +5 once if this manufacturer's driver won (finish_position=1 overall)
+        const raceWinner = results.find(r => r.finish_position === 1);
+        if (raceWinner && isThisMfr(raceWinner.car_number)) pts += 5;
 
-        // +1 if their driver got pole
-        if (poleCar) {
-          const poleMeta = metaMap[poleCar];
-          if (poleMeta) {
-            const poleEng = poleMeta.engine?.toLowerCase() || '';
-            const isPole = mfrKey === 'Chevy'
-              ? (poleEng.includes('chevy') || poleEng.includes('chevrolet'))
-              : poleEng.includes('honda');
-            if (isPole) pts += 1;
-          }
-        }
+        // +1 once if this manufacturer's driver got pole
+        if (poleCar && isThisMfr(poleCar)) pts += 1;
 
         mfrs[mfrKey].roundPts[rn] = pts;
         mfrs[mfrKey].total += pts;
@@ -406,7 +404,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 2 – NTT P1 Award */}
-      <Section id="ntt-p1" title="NTT P1 Award" description="50 points awarded to the pole position qualifier at each event." onShare={() => shareSection('ntt-p1')}>
+      <Section id="ntt-p1" title="NTT P1 Award" description="The pole position qualifier earns points equal to their actual race finishing points at each event." onShare={() => shareSection('ntt-p1')}>
         {isMobile ? (
           <div className="space-y-2">
             {p1Standings.map((d, i) => (
@@ -440,7 +438,7 @@ const ChampionshipTab = () => {
                     <td className="px-2 py-2 font-heading text-[15px] text-racing-muted">{i + 1}</td>
                     <td className="px-2 py-2"><CarBadge num={d.car} /></td>
                     <td className="px-2 py-2 font-body text-[15px] text-racing-text">{formatDriverName(d.name)}</td>
-                    <RoundCells roundData={d.roundPoles} format="boolean" />
+                    <RoundCells roundData={d.roundPts} />
                     <td className="px-2 py-2 font-mono text-[15px] text-racing-yellow font-bold text-center">{d.total}</td>
                     <td className="px-2 py-2 font-mono text-[15px] text-racing-text text-center">{d.poles}</td>
                   </tr>
@@ -549,56 +547,7 @@ const ChampionshipTab = () => {
         )}
       </Section>
 
-      {/* SECTION 5 – Team Championship */}
-      <Section id="team" title="Team Championship" description="Average race points per driver per race across all team entries." onShare={() => shareSection('team')}>
-        {isMobile ? (
-          <div className="space-y-2">
-            {teamStandings.map((t, i) => (
-              <div key={t.name} className="flex items-center gap-3 bg-racing-surface2/50 rounded-lg px-3 py-2">
-                <span className="font-heading text-[15px] text-racing-muted w-6">{i + 1}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-body text-[15px] text-racing-text truncate">{t.name}</p>
-                  <div className="flex gap-2 text-[12px] font-mono text-racing-muted mt-0.5 flex-wrap">
-                    {races.map(r => (
-                      <span key={r.round_number}>R{r.round_number}: {t.roundPts[r.round_number]?.toFixed(1) ?? '—'}</span>
-                    ))}
-                  </div>
-                </div>
-                <span className="font-mono text-[15px] text-racing-yellow font-bold">{t.total.toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-racing-border">
-                  <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Rank</th>
-                  <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Team</th>
-                  <RoundHeaders />
-                  <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase text-center">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {teamStandings.map((t, i) => (
-                  <tr key={t.name} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
-                    <td className="px-2 py-2 font-heading text-[15px] text-racing-muted">{i + 1}</td>
-                    <td className="px-2 py-2 font-body text-[15px] text-racing-text">{t.name}</td>
-                    {races.map(r => (
-                      <td key={r.round_number} className="px-2 py-2 font-mono text-[14px] text-racing-text text-center">
-                        {t.roundPts[r.round_number] !== undefined ? t.roundPts[r.round_number].toFixed(1) : '—'}
-                      </td>
-                    ))}
-                    <td className="px-2 py-2 font-mono text-[15px] text-racing-yellow font-bold text-center">{t.total.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-
-      {/* SECTION 6 – Firestone Pit Stop Performance */}
+      {/* SECTION 5 – Firestone Pit Stop Performance */}
       <Section id="pit-stop-performance" title="Firestone Pit Stop Performance" description="Points awarded based on average pit lane transit time per race. Faster pit stops earn more points." onShare={() => shareSection('pit-stop-performance')}>
         {pitStandings === null ? (
           <p className="text-racing-muted font-body text-[14px]">Data pending — upload Section Data Race reports to populate pit stop times.</p>
@@ -648,7 +597,56 @@ const ChampionshipTab = () => {
         )}
       </Section>
 
-      {/* SECTION 7 – Nations Cup */}
+      {/* SECTION 6 – Team Championship (unofficial) */}
+      <Section id="team" title="Team Championship" description="Average race points per driver per race across all team entries." unofficial onShare={() => shareSection('team')}>
+        {isMobile ? (
+          <div className="space-y-2">
+            {teamStandings.map((t, i) => (
+              <div key={t.name} className="flex items-center gap-3 bg-racing-surface2/50 rounded-lg px-3 py-2">
+                <span className="font-heading text-[15px] text-racing-muted w-6">{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-body text-[15px] text-racing-text truncate">{t.name}</p>
+                  <div className="flex gap-2 text-[12px] font-mono text-racing-muted mt-0.5 flex-wrap">
+                    {races.map(r => (
+                      <span key={r.round_number}>R{r.round_number}: {t.roundPts[r.round_number]?.toFixed(1) ?? '—'}</span>
+                    ))}
+                  </div>
+                </div>
+                <span className="font-mono text-[15px] text-racing-yellow font-bold">{t.total.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-racing-border">
+                  <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Rank</th>
+                  <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Team</th>
+                  <RoundHeaders />
+                  <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase text-center">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamStandings.map((t, i) => (
+                  <tr key={t.name} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
+                    <td className="px-2 py-2 font-heading text-[15px] text-racing-muted">{i + 1}</td>
+                    <td className="px-2 py-2 font-body text-[15px] text-racing-text">{t.name}</td>
+                    {races.map(r => (
+                      <td key={r.round_number} className="px-2 py-2 font-mono text-[14px] text-racing-text text-center">
+                        {t.roundPts[r.round_number] !== undefined ? t.roundPts[r.round_number].toFixed(1) : '—'}
+                      </td>
+                    ))}
+                    <td className="px-2 py-2 font-mono text-[15px] text-racing-yellow font-bold text-center">{t.total.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+
+      {/* SECTION 7 – Nations Cup (unofficial) */}
       <Section id="nations-cup" title="Nations Cup" description="Fan-calculated championship awarding each country the points of its highest-finishing driver per race. Inspired by the CART Nations Cup. Not an official INDYCAR championship." unofficial onShare={() => shareSection('nations-cup')}>
         {isMobile ? (
           <div className="space-y-2">
