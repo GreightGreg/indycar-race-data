@@ -105,6 +105,48 @@ export type Database = {
           },
         ]
       }
+      driver_metadata: {
+        Row: {
+          car_number: string
+          driver_name: string
+          engine: string
+          id: string
+          indy_only_round: number | null
+          is_full_season: boolean
+          is_rookie: boolean
+          nationality: string
+          nationality_code: string
+          season_year: number
+          team: string
+        }
+        Insert: {
+          car_number: string
+          driver_name: string
+          engine: string
+          id?: string
+          indy_only_round?: number | null
+          is_full_season?: boolean
+          is_rookie?: boolean
+          nationality: string
+          nationality_code: string
+          season_year?: number
+          team: string
+        }
+        Update: {
+          car_number?: string
+          driver_name?: string
+          engine?: string
+          id?: string
+          indy_only_round?: number | null
+          is_full_season?: boolean
+          is_rookie?: boolean
+          nationality?: string
+          nationality_code?: string
+          season_year?: number
+          team?: string
+        }
+        Relationships: []
+      }
       fastest_laps: {
         Row: {
           car_number: string
@@ -528,6 +570,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "race_laps_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      race_pit_times: {
+        Row: {
+          car_number: string
+          driver_name: string
+          id: string
+          lap_number: number
+          pit_speed: number | null
+          pit_time_seconds: number
+          race_id: string | null
+        }
+        Insert: {
+          car_number: string
+          driver_name: string
+          id?: string
+          lap_number: number
+          pit_speed?: number | null
+          pit_time_seconds: number
+          race_id?: string | null
+        }
+        Update: {
+          car_number?: string
+          driver_name?: string
+          id?: string
+          lap_number?: number
+          pit_speed?: number | null
+          pit_time_seconds?: number
+          race_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_pit_times_race_id_fkey"
             columns: ["race_id"]
             isOneToOne: false
             referencedRelation: "races"
