@@ -294,6 +294,10 @@ const ChampionshipTab = () => {
     return Object.values(nations).sort((a, b) => b.total - a.total);
   }, [races, resultsByRound, metaMap]);
 
+  if (!raceDetails || !seasonRaces) {
+    return <p className="text-racing-muted font-body">Loading championship data…</p>;
+  }
+
   // ─── Render helpers ───
   const RoundHeaders = () => (
     <>
