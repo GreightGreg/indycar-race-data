@@ -294,6 +294,102 @@ export const useChampionshipStandings = (raceId: string | null) =>
     enabled: !!raceId,
   });
 
+// Get all races for a season year
+export const useSeasonRaces = (year: number | null) =>
+  useQuery({
+    queryKey: ['season_races', year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('races')
+        .select('id, round_number, event_name, track_name, race_date')
+        .eq('year', year!)
+        .eq('status', 'complete')
+        .order('round_number');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!year,
+  });
+
+// Get all race results for a season
+export const useSeasonResults = (year: number | null) =>
+  useQuery({
+    queryKey: ['season_results', year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('race_results')
+        .select(`*, races!inner(id, round_number, event_name, year)`)
+        .eq('races.year', year!)
+        .order('finish_position');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!year,
+  });
+
+// Get driver metadata for a season
+export const useDriverMetadata = (year: number | null) =>
+  useQuery({
+    queryKey: ['driver_metadata', year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('driver_metadata')
+        .select('*')
+        .eq('season_year', year!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!year,
+  });
+
+// Get pit times for all races in a season
+export const useSeasonPitTimes = (year: number | null) =>
+  useQuery({
+    queryKey: ['season_pit_times', year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('race_pit_times')
+        .select(`*, races!inner(id, round_number, year)`)
+        .eq('races.year', year!);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!year,
+  });
+
+// Get qualifying results for a season (pole winners only)
+export const useSeasonQualifying = (year: number | null) =>
+  useQuery({
+    queryKey: ['season_qualifying', year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('qualifying_results')
+        .select(`*, races!inner(id, round_number, year)`)
+        .eq('races.year', year!)
+        .eq('qual_position', 1);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!year,
+  });
+
+// Get session_full_results for Fast 6 pole (road courses)
+export const useSeasonFast6Poles = (year: number | null) =>
+  useQuery({
+    queryKey: ['season_fast6_poles', year],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('session_full_results')
+        .select(`*, races!inner(id, round_number, year)`)
+        .eq('races.year', year!)
+        .ilike('session_type', '%Fast 6%')
+        .eq('rank', 1);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!year,
+  });
+
 // Color palette for driver lines (distinct from UI blue/yellow)
 export const DRIVER_COLORS: Record<string, string> = {
   '2': '#e74c3c', '3': '#2ecc71', '4': '#9b59b6', '5': '#ff8c00', '6': '#1abc9c',
