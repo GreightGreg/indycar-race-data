@@ -186,7 +186,7 @@ const WeekendTab = () => {
       )}
 
       {qualResults && qualResults.length > 0 && (
-        <div>
+        <div id="qualifying-oval" className="scroll-mt-[120px]">
           <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-1">Qualifying Results</h3>
           <p className="font-mono text-[12px] text-racing-muted mb-3">Oval qualifying: average of two flying laps. Total time determines grid position.</p>
           {isMobile ? (
