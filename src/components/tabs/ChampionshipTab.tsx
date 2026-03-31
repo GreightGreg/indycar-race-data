@@ -550,7 +550,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 5 – Team Championship */}
-      <Section title="Team Championship" description="Average race points per driver per race across all team entries.">
+      <Section id="team" title="Team Championship" description="Average race points per driver per race across all team entries." onShare={() => shareSection('team')}>
         {isMobile ? (
           <div className="space-y-2">
             {teamStandings.map((t, i) => (
