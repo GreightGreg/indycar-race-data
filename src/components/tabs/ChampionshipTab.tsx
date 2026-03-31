@@ -194,39 +194,33 @@ const ChampionshipTab = () => {
       Chevy: { name: 'Chevrolet', roundPts: {}, total: 0 },
       Honda: { name: 'Honda', roundPts: {}, total: 0 },
     };
+
+    const isChevy = (car: string) => {
+      const eng = (metaMap[car]?.engine || '').toLowerCase();
+      return eng.includes('chevy') || eng.includes('chevrolet') || eng === 'c';
+    };
+
     for (const race of races) {
       const rn = race.round_number;
       const results = resultsByRound[rn] || [];
       const poleCar = poleByRound[rn];
 
-      for (const mfrKey of ['Chevy', 'Honda']) {
+      for (const mfrKey of ['Chevy', 'Honda'] as const) {
+        const isThisMfr = (car: string) => mfrKey === 'Chevy' ? isChevy(car) : !isChevy(car);
+
         const mfrResults = results
-          .filter(r => {
-            const eng = r.engine?.toLowerCase() || '';
-            return mfrKey === 'Chevy'
-              ? (eng.includes('chevy') || eng.includes('chevrolet') || eng === 'c')
-              : (eng.includes('honda') || eng === 'h');
-          })
-          .filter(r => fullSeasonCars.has(r.car_number))
+          .filter(r => isThisMfr(r.car_number) && fullSeasonCars.has(r.car_number))
           .sort((a: any, b: any) => a.finish_position - b.finish_position);
 
         const top2 = mfrResults.slice(0, 2);
         let pts = top2.reduce((s: number, r: any) => s + r.race_points, 0);
 
-        // +5 if their driver won
-        if (mfrResults.length > 0 && mfrResults[0].finish_position === 1) pts += 5;
+        // +5 once if this manufacturer's driver won (finish_position=1 overall)
+        const raceWinner = results.find(r => r.finish_position === 1);
+        if (raceWinner && isThisMfr(raceWinner.car_number)) pts += 5;
 
-        // +1 if their driver got pole
-        if (poleCar) {
-          const poleMeta = metaMap[poleCar];
-          if (poleMeta) {
-            const poleEng = poleMeta.engine?.toLowerCase() || '';
-            const isPole = mfrKey === 'Chevy'
-              ? (poleEng.includes('chevy') || poleEng.includes('chevrolet'))
-              : poleEng.includes('honda');
-            if (isPole) pts += 1;
-          }
-        }
+        // +1 once if this manufacturer's driver got pole
+        if (poleCar && isThisMfr(poleCar)) pts += 1;
 
         mfrs[mfrKey].roundPts[rn] = pts;
         mfrs[mfrKey].total += pts;
