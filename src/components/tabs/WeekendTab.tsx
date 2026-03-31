@@ -116,7 +116,7 @@ const WeekendTab = () => {
 
       {/* Combined Practice */}
       {combinedPractice && combinedPractice.length > 0 && (
-        <div>
+        <div id="combined-practice" className="scroll-mt-[120px]">
           <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-3">Combined Practice Results</h3>
           <p className="font-mono text-[12px] text-racing-muted mb-2">Best time across all practice sessions per driver.</p>
           {isMobile ? (
