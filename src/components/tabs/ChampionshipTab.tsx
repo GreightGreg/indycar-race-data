@@ -406,7 +406,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 2 – NTT P1 Award */}
-      <Section title="NTT P1 Award" description="50 points awarded to the pole position qualifier at each event.">
+      <Section id="ntt-p1" title="NTT P1 Award" description="50 points awarded to the pole position qualifier at each event." onShare={() => shareSection('ntt-p1')}>
         {isMobile ? (
           <div className="space-y-2">
             {p1Standings.map((d, i) => (
