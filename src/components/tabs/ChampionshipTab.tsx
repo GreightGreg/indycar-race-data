@@ -649,7 +649,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 7 – Nations Cup */}
-      <Section title="Nations Cup" description="Fan-calculated championship awarding each country the points of its highest-finishing driver per race. Inspired by the CART Nations Cup. Not an official INDYCAR championship." unofficial>
+      <Section id="nations-cup" title="Nations Cup" description="Fan-calculated championship awarding each country the points of its highest-finishing driver per race. Inspired by the CART Nations Cup. Not an official INDYCAR championship." unofficial onShare={() => shareSection('nations-cup')}>
         {isMobile ? (
           <div className="space-y-2">
             {nationStandings.map((n, i) => (
