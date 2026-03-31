@@ -119,10 +119,6 @@ const ChampionshipTab = () => {
     return m;
   }, [qualPoles, fast6Poles]);
 
-  if (!raceDetails || !seasonRaces) {
-    return <p className="text-racing-muted font-body">Loading championship data…</p>;
-  }
-
   const latestRace = races[races.length - 1];
 
   // ─── SECTION 1: Driver Championship ───
