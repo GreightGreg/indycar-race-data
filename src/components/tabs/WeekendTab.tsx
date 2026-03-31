@@ -106,11 +106,11 @@ const WeekendTab = () => {
       <div>
         <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-3">Practice Results</h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SessionResultsView title="Practice 1" data={p1Results || []} isMobile={isMobile} />
+          <SessionResultsView id="practice-1" title="Practice 1" data={p1Results || []} isMobile={isMobile} />
           {p2Results && p2Results.length > 0 && (
-            <SessionResultsView title="Practice 2" data={p2Results} isMobile={isMobile} />
+            <SessionResultsView id="practice-2" title="Practice 2" data={p2Results} isMobile={isMobile} />
           )}
-          <SessionResultsView title="Practice Final" data={pfResults || []} isMobile={isMobile} />
+          <SessionResultsView id="practice-final" title="Practice Final" data={pfResults || []} isMobile={isMobile} />
         </div>
       </div>
 
