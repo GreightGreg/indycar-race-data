@@ -257,10 +257,10 @@ const WeekendTab = () => {
   );
 };
 
-const SessionResultsView = ({ title, data, isMobile }: { title: string; data: any[]; isMobile: boolean }) => {
+const SessionResultsView = ({ id, title, data, isMobile }: { id?: string; title: string; data: any[]; isMobile: boolean }) => {
   if (!data.length) return null;
   return (
-    <div>
+    <div id={id} className="scroll-mt-[120px]">
       <h4 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-2">{title}</h4>
       {isMobile ? (
         <div className="space-y-1.5">
