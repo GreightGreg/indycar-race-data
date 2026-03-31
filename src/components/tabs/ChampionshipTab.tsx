@@ -356,7 +356,7 @@ const ChampionshipTab = () => {
       </div>
 
       {/* SECTION 1 – Driver Championship */}
-      <Section title="Driver Championship" description="Points awarded based on finishing position in each race." defaultOpen>
+      <Section id="driver" title="Driver Championship" description="Points awarded based on finishing position in each race." defaultOpen onShare={() => shareSection('driver')}>
         {isMobile ? (
           <div className="space-y-2">
             {driverStandings.map((d, i) => (
