@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useRaceContext } from '@/contexts/RaceContext';
 import {
   useRaceDetails,
@@ -12,8 +12,10 @@ import {
 import { formatDriverName } from '@/lib/formatName';
 import CarBadge from '@/components/racing/CarBadge';
 import EngineIcon from '@/components/racing/EngineIcon';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { buildDeepLink, copyDeepLink } from '@/lib/deepLink';
+import { toast } from 'sonner';
 
 // Race points scale (P1=50 down)
 const POINTS_SCALE = [50, 40, 35, 32, 30, 28, 26, 24, 22, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
