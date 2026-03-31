@@ -84,6 +84,18 @@ const roundLabel = (trackName: string) => {
 const ChampionshipTab = () => {
   const { raceId } = useRaceContext();
   const { data: raceDetails } = useRaceDetails(raceId);
+
+  const shareSection = useCallback((sectionSlug: string) => {
+    if (!raceDetails) return;
+    const url = buildDeepLink(raceDetails.year, raceDetails.round_number, 'Championship', sectionSlug);
+    copyDeepLink(url).then(() => {
+      toast('Link copied!', {
+        duration: 2000,
+        position: 'bottom-center',
+        style: { background: 'hsl(212, 41%, 9%)', color: 'hsl(48, 100%, 50%)', border: '1px solid hsl(212, 36%, 18%)' },
+      });
+    });
+  }, [raceDetails]);
   const year = raceDetails?.year ?? null;
   const { data: seasonRaces } = useSeasonRaces(year);
   const { data: seasonResults } = useSeasonResults(year);
