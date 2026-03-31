@@ -106,17 +106,17 @@ const WeekendTab = () => {
       <div>
         <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-3">Practice Results</h3>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <SessionResultsView title="Practice 1" data={p1Results || []} isMobile={isMobile} />
+          <SessionResultsView id="practice-1" title="Practice 1" data={p1Results || []} isMobile={isMobile} />
           {p2Results && p2Results.length > 0 && (
-            <SessionResultsView title="Practice 2" data={p2Results} isMobile={isMobile} />
+            <SessionResultsView id="practice-2" title="Practice 2" data={p2Results} isMobile={isMobile} />
           )}
-          <SessionResultsView title="Practice Final" data={pfResults || []} isMobile={isMobile} />
+          <SessionResultsView id="practice-final" title="Practice Final" data={pfResults || []} isMobile={isMobile} />
         </div>
       </div>
 
       {/* Combined Practice */}
       {combinedPractice && combinedPractice.length > 0 && (
-        <div>
+        <div id="combined-practice" className="scroll-mt-[120px]">
           <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-3">Combined Practice Results</h3>
           <p className="font-mono text-[12px] text-racing-muted mb-2">Best time across all practice sessions per driver.</p>
           {isMobile ? (
@@ -172,15 +172,21 @@ const WeekendTab = () => {
           <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-1">Qualifying Session Results</h3>
           <p className="font-mono text-[12px] text-racing-muted mb-3">Road and street course qualifying is shown by session: groups, Fast 12, Fast 6, and combined order when available.</p>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {roadCourseQualifyingSessions.map(session => (
-              <SessionResultsView key={session.title} title={session.title} data={session.data} isMobile={isMobile} />
-            ))}
+            {roadCourseQualifyingSessions.map(session => {
+              const slug = session.title.toLowerCase()
+                .replace('qualifying group 1', 'qualifying-group-1')
+                .replace('qualifying group 2', 'qualifying-group-2')
+                .replace('qualifying round 2 (fast 12)', 'qualifying-fast-12')
+                .replace('qualifying round 3 (fast 6)', 'qualifying-fast-6')
+                .replace('qualifying combined', 'qualifying-combined');
+              return <SessionResultsView key={session.title} id={slug} title={session.title} data={session.data} isMobile={isMobile} />;
+            })}
           </div>
         </div>
       )}
 
       {qualResults && qualResults.length > 0 && (
-        <div>
+        <div id="qualifying-oval" className="scroll-mt-[120px]">
           <h3 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-1">Qualifying Results</h3>
           <p className="font-mono text-[12px] text-racing-muted mb-3">Oval qualifying: average of two flying laps. Total time determines grid position.</p>
           {isMobile ? (
@@ -257,10 +263,10 @@ const WeekendTab = () => {
   );
 };
 
-const SessionResultsView = ({ title, data, isMobile }: { title: string; data: any[]; isMobile: boolean }) => {
+const SessionResultsView = ({ id, title, data, isMobile }: { id?: string; title: string; data: any[]; isMobile: boolean }) => {
   if (!data.length) return null;
   return (
-    <div>
+    <div id={id} className="scroll-mt-[120px]">
       <h4 className="font-condensed font-semibold text-[15px] text-racing-text uppercase mb-2">{title}</h4>
       {isMobile ? (
         <div className="space-y-1.5">

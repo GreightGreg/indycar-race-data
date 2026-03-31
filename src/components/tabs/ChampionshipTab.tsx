@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { useRaceContext } from '@/contexts/RaceContext';
 import {
   useRaceDetails,
@@ -12,8 +12,10 @@ import {
 import { formatDriverName } from '@/lib/formatName';
 import CarBadge from '@/components/racing/CarBadge';
 import EngineIcon from '@/components/racing/EngineIcon';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { buildDeepLink, copyDeepLink } from '@/lib/deepLink';
+import { toast } from 'sonner';
 
 // Race points scale (P1=50 down)
 const POINTS_SCALE = [50, 40, 35, 32, 30, 28, 26, 24, 22, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
@@ -25,18 +27,28 @@ const FLAG_EMOJI: Record<string, string> = {
 };
 
 // Collapsible section wrapper
-const Section = ({ title, description, defaultOpen = false, unofficial = false, children }: {
-  title: string; description: string; defaultOpen?: boolean; unofficial?: boolean; children: React.ReactNode;
+const Section = ({ id, title, description, defaultOpen = false, unofficial = false, onShare, children }: {
+  id: string; title: string; description: string; defaultOpen?: boolean; unofficial?: boolean; onShare?: () => void; children: React.ReactNode;
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={`border rounded-lg ${unofficial ? 'border-racing-muted/40' : 'border-racing-border'}`}>
+    <div id={id} className={`border rounded-lg scroll-mt-[120px] ${unofficial ? 'border-racing-muted/40' : 'border-racing-border'}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-3 flex-wrap">
           <h3 className="font-heading text-lg text-racing-yellow">{title}</h3>
+          {onShare && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); onShare(); }}
+              className="text-racing-muted hover:text-racing-yellow transition-colors cursor-pointer"
+              title="Copy link to this section"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+            </span>
+          )}
           {unofficial && (
             <span className="text-[11px] font-mono text-racing-muted border border-racing-muted/40 rounded px-2 py-0.5">
               Fan Calculated · Not Official INDYCAR Championship
@@ -72,6 +84,18 @@ const roundLabel = (trackName: string) => {
 const ChampionshipTab = () => {
   const { raceId } = useRaceContext();
   const { data: raceDetails } = useRaceDetails(raceId);
+
+  const shareSection = useCallback((sectionSlug: string) => {
+    if (!raceDetails) return;
+    const url = buildDeepLink(raceDetails.year, raceDetails.round_number, 'Championship', sectionSlug);
+    copyDeepLink(url).then(() => {
+      toast('Link copied!', {
+        duration: 2000,
+        position: 'bottom-center',
+        style: { background: '#0d1821', color: '#ffe600', border: '1px solid #1e2e40' },
+      });
+    });
+  }, [raceDetails]);
   const year = raceDetails?.year ?? null;
   const { data: seasonRaces } = useSeasonRaces(year);
   const { data: seasonResults } = useSeasonResults(year);
@@ -332,7 +356,7 @@ const ChampionshipTab = () => {
       </div>
 
       {/* SECTION 1 – Driver Championship */}
-      <Section title="Driver Championship" description="Points awarded based on finishing position in each race." defaultOpen>
+      <Section id="driver" title="Driver Championship" description="Points awarded based on finishing position in each race." defaultOpen onShare={() => shareSection('driver')}>
         {isMobile ? (
           <div className="space-y-2">
             {driverStandings.map((d, i) => (
@@ -382,7 +406,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 2 – NTT P1 Award */}
-      <Section title="NTT P1 Award" description="50 points awarded to the pole position qualifier at each event.">
+      <Section id="ntt-p1" title="NTT P1 Award" description="50 points awarded to the pole position qualifier at each event." onShare={() => shareSection('ntt-p1')}>
         {isMobile ? (
           <div className="space-y-2">
             {p1Standings.map((d, i) => (
@@ -430,7 +454,7 @@ const ChampionshipTab = () => {
 
       {/* SECTION 3 – Rookie of the Year */}
       {rookieStandings.length > 0 && (
-        <Section title="Rookie of the Year" description="Cumulative race points for drivers in their first full INDYCAR season.">
+        <Section id="rookie" title="Rookie of the Year" description="Cumulative race points for drivers in their first full INDYCAR season." onShare={() => shareSection('rookie')}>
           {isMobile ? (
             <div className="space-y-2">
               {rookieStandings.map((d, i) => (
@@ -477,7 +501,7 @@ const ChampionshipTab = () => {
       )}
 
       {/* SECTION 4 – Engine Manufacturer Championship */}
-      <Section title="Engine Manufacturer Championship" description="Points awarded to top two full-season entrants per manufacturer per race, plus 5 for race win and 1 for pole position.">
+      <Section id="engine-manufacturer" title="Engine Manufacturer Championship" description="Points awarded to top two full-season entrants per manufacturer per race, plus 5 for race win and 1 for pole position." onShare={() => shareSection('engine-manufacturer')}>
         {isMobile ? (
           <div className="space-y-2">
             {engineStandings.map((m, i) => (
@@ -526,7 +550,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 5 – Team Championship */}
-      <Section title="Team Championship" description="Average race points per driver per race across all team entries.">
+      <Section id="team" title="Team Championship" description="Average race points per driver per race across all team entries." onShare={() => shareSection('team')}>
         {isMobile ? (
           <div className="space-y-2">
             {teamStandings.map((t, i) => (
@@ -575,7 +599,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 6 – Firestone Pit Stop Performance */}
-      <Section title="Firestone Pit Stop Performance" description="Points awarded based on average pit lane transit time per race. Faster pit stops earn more points.">
+      <Section id="pit-stop-performance" title="Firestone Pit Stop Performance" description="Points awarded based on average pit lane transit time per race. Faster pit stops earn more points." onShare={() => shareSection('pit-stop-performance')}>
         {pitStandings === null ? (
           <p className="text-racing-muted font-body text-[14px]">Data pending — upload Section Data Race reports to populate pit stop times.</p>
         ) : (
@@ -625,7 +649,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 7 – Nations Cup */}
-      <Section title="Nations Cup" description="Fan-calculated championship awarding each country the points of its highest-finishing driver per race. Inspired by the CART Nations Cup. Not an official INDYCAR championship." unofficial>
+      <Section id="nations-cup" title="Nations Cup" description="Fan-calculated championship awarding each country the points of its highest-finishing driver per race. Inspired by the CART Nations Cup. Not an official INDYCAR championship." unofficial onShare={() => shareSection('nations-cup')}>
         {isMobile ? (
           <div className="space-y-2">
             {nationStandings.map((n, i) => (
