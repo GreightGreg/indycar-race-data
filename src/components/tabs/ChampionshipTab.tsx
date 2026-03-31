@@ -32,13 +32,13 @@ const Section = ({ id, title, description, defaultOpen = false, unofficial = fal
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div id={id} className={`border rounded-lg scroll-mt-[120px] ${unofficial ? 'border-racing-muted/40' : 'border-racing-border'}`}>
+    <div id={id} className={`border rounded-lg scroll-mt-[120px] ${unofficial ? 'border-racing-muted/40 border-l-4 border-l-racing-muted/30' : 'border-racing-border'}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-3 flex-wrap">
-          <h3 className="font-heading text-lg text-racing-yellow">{title}</h3>
+          <h3 className={`font-heading text-lg ${unofficial ? 'text-racing-muted' : 'text-racing-yellow'}`}>{title}</h3>
           {onShare && (
             <span
               role="button"
