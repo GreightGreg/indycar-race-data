@@ -454,7 +454,7 @@ const ChampionshipTab = () => {
 
       {/* SECTION 3 – Rookie of the Year */}
       {rookieStandings.length > 0 && (
-        <Section title="Rookie of the Year" description="Cumulative race points for drivers in their first full INDYCAR season.">
+        <Section id="rookie" title="Rookie of the Year" description="Cumulative race points for drivers in their first full INDYCAR season." onShare={() => shareSection('rookie')}>
           {isMobile ? (
             <div className="space-y-2">
               {rookieStandings.map((d, i) => (
