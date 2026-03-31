@@ -410,7 +410,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 2 – NTT P1 Award */}
-      <Section id="ntt-p1" title="NTT P1 Award" description="50 points awarded to the pole position qualifier at each event." onShare={() => shareSection('ntt-p1')}>
+      <Section id="ntt-p1" title="NTT P1 Award" description="The pole position qualifier earns points equal to their actual race finishing points at each event." onShare={() => shareSection('ntt-p1')}>
         {isMobile ? (
           <div className="space-y-2">
             {p1Standings.map((d, i) => (
@@ -444,7 +444,7 @@ const ChampionshipTab = () => {
                     <td className="px-2 py-2 font-heading text-[15px] text-racing-muted">{i + 1}</td>
                     <td className="px-2 py-2"><CarBadge num={d.car} /></td>
                     <td className="px-2 py-2 font-body text-[15px] text-racing-text">{formatDriverName(d.name)}</td>
-                    <RoundCells roundData={d.roundPoles} format="boolean" />
+                    <RoundCells roundData={d.roundPts} />
                     <td className="px-2 py-2 font-mono text-[15px] text-racing-yellow font-bold text-center">{d.total}</td>
                     <td className="px-2 py-2 font-mono text-[15px] text-racing-text text-center">{d.poles}</td>
                   </tr>
