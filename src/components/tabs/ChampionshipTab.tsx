@@ -26,6 +26,11 @@ const FLAG_EMOJI: Record<string, string> = {
   NED: '🇳🇱', GER: '🇩🇪', JPN: '🇯🇵',
 };
 
+const getFinishPositionPoints = (finishPosition?: number | null) => {
+  if (!finishPosition || finishPosition < 1) return 0;
+  return POINTS_SCALE[finishPosition - 1] ?? 0;
+};
+
 // Collapsible section wrapper
 const Section = ({ id, title, description, defaultOpen = false, unofficial = false, onShare, children }: {
   id: string; title: string; description: string; defaultOpen?: boolean; unofficial?: boolean; onShare?: () => void; children: React.ReactNode;
@@ -195,32 +200,32 @@ const ChampionshipTab = () => {
       Honda: { name: 'Honda', roundPts: {}, total: 0 },
     };
 
-    const isChevy = (car: string) => {
+    const getManufacturerKey = (car: string) => {
       const eng = (metaMap[car]?.engine || '').toLowerCase();
-      return eng.includes('chevy') || eng.includes('chevrolet') || eng === 'c';
+      if (eng.includes('chevy') || eng.includes('chevrolet') || eng === 'c') return 'Chevy';
+      if (eng.includes('honda') || eng === 'h') return 'Honda';
+      return null;
     };
 
     for (const race of races) {
       const rn = race.round_number;
       const results = resultsByRound[rn] || [];
       const poleCar = poleByRound[rn];
+      const raceWinner = results.find(r => r.finish_position === 1);
+      const winningManufacturer = raceWinner ? getManufacturerKey(raceWinner.car_number) : null;
+      const poleManufacturer = poleCar ? getManufacturerKey(poleCar) : null;
 
       for (const mfrKey of ['Chevy', 'Honda'] as const) {
-        const isThisMfr = (car: string) => mfrKey === 'Chevy' ? isChevy(car) : !isChevy(car);
-
         const mfrResults = results
-          .filter(r => isThisMfr(r.car_number) && fullSeasonCars.has(r.car_number))
+          .filter(r => getManufacturerKey(r.car_number) === mfrKey && fullSeasonCars.has(r.car_number))
           .sort((a: any, b: any) => a.finish_position - b.finish_position);
 
         const top2 = mfrResults.slice(0, 2);
-        let pts = top2.reduce((s: number, r: any) => s + r.race_points, 0);
+        let pts = top2.reduce((sum: number, r: any) => sum + getFinishPositionPoints(r.finish_position), 0);
 
-        // +5 once if this manufacturer's driver won (finish_position=1 overall)
-        const raceWinner = results.find(r => r.finish_position === 1);
-        if (raceWinner && isThisMfr(raceWinner.car_number)) pts += 5;
+        if (winningManufacturer === mfrKey) pts += 5;
 
-        // +1 once if this manufacturer's driver got pole
-        if (poleCar && isThisMfr(poleCar)) pts += 1;
+        if (poleManufacturer === mfrKey) pts += 1;
 
         mfrs[mfrKey].roundPts[rn] = pts;
         mfrs[mfrKey].total += pts;
