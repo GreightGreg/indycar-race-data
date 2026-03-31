@@ -131,6 +131,9 @@ serve(async (req) => {
       case "quals_sectors":
         result = await parseQualifyingSectors(supabase, pdf, raceId);
         break;
+      case "section_data_race":
+        result = await parseSectionDataRace(supabase, pdf, raceId);
+        break;
       default:
         result = { message: "Report type recognized but not yet parsed", type: reportType };
     }
