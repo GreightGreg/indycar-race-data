@@ -27,18 +27,28 @@ const FLAG_EMOJI: Record<string, string> = {
 };
 
 // Collapsible section wrapper
-const Section = ({ title, description, defaultOpen = false, unofficial = false, children }: {
-  title: string; description: string; defaultOpen?: boolean; unofficial?: boolean; children: React.ReactNode;
+const Section = ({ id, title, description, defaultOpen = false, unofficial = false, onShare, children }: {
+  id: string; title: string; description: string; defaultOpen?: boolean; unofficial?: boolean; onShare?: () => void; children: React.ReactNode;
 }) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={`border rounded-lg ${unofficial ? 'border-racing-muted/40' : 'border-racing-border'}`}>
+    <div id={id} className={`border rounded-lg scroll-mt-[120px] ${unofficial ? 'border-racing-muted/40' : 'border-racing-border'}`}>
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
       >
         <div className="flex items-center gap-3 flex-wrap">
           <h3 className="font-heading text-lg text-racing-yellow">{title}</h3>
+          {onShare && (
+            <span
+              role="button"
+              onClick={(e) => { e.stopPropagation(); onShare(); }}
+              className="text-racing-muted hover:text-racing-yellow transition-colors cursor-pointer"
+              title="Copy link to this section"
+            >
+              <Link2 className="w-3.5 h-3.5" />
+            </span>
+          )}
           {unofficial && (
             <span className="text-[11px] font-mono text-racing-muted border border-racing-muted/40 rounded px-2 py-0.5">
               Fan Calculated · Not Official INDYCAR Championship
