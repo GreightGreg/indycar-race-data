@@ -501,7 +501,7 @@ const ChampionshipTab = () => {
       )}
 
       {/* SECTION 4 – Engine Manufacturer Championship */}
-      <Section title="Engine Manufacturer Championship" description="Points awarded to top two full-season entrants per manufacturer per race, plus 5 for race win and 1 for pole position.">
+      <Section id="engine-manufacturer" title="Engine Manufacturer Championship" description="Points awarded to top two full-season entrants per manufacturer per race, plus 5 for race win and 1 for pole position." onShare={() => shareSection('engine-manufacturer')}>
         {isMobile ? (
           <div className="space-y-2">
             {engineStandings.map((m, i) => (
