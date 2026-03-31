@@ -44,6 +44,16 @@
   }
 }
 
+/* Deep link highlight animation */
+@keyframes highlight-flash {
+  0% { border-left: 3px solid hsl(48, 100%, 50%); }
+  100% { border-left: 3px solid transparent; }
+}
+.deep-link-highlight {
+  animation: highlight-flash 1.5s ease-out forwards;
+  scroll-margin-top: 120px;
+}
+
 /* Custom scrollbar for dark theme */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #080e14; }
