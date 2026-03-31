@@ -599,7 +599,7 @@ const ChampionshipTab = () => {
       </Section>
 
       {/* SECTION 6 – Firestone Pit Stop Performance */}
-      <Section title="Firestone Pit Stop Performance" description="Points awarded based on average pit lane transit time per race. Faster pit stops earn more points.">
+      <Section id="pit-stop-performance" title="Firestone Pit Stop Performance" description="Points awarded based on average pit lane transit time per race. Faster pit stops earn more points." onShare={() => shareSection('pit-stop-performance')}>
         {pitStandings === null ? (
           <p className="text-racing-muted font-body text-[14px]">Data pending — upload Section Data Race reports to populate pit stop times.</p>
         ) : (
