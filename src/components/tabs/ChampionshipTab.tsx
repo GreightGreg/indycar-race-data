@@ -92,7 +92,7 @@ const ChampionshipTab = () => {
       toast('Link copied!', {
         duration: 2000,
         position: 'bottom-center',
-        style: { background: 'hsl(212, 41%, 9%)', color: 'hsl(48, 100%, 50%)', border: '1px solid hsl(212, 36%, 18%)' },
+        style: { background: '#0d1821', color: '#ffe600', border: '1px solid #1e2e40' },
       });
     });
   }, [raceDetails]);

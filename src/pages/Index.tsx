@@ -98,7 +98,7 @@ const Index = () => {
       toast('Link copied!', {
         duration: 2000,
         position: 'bottom-center',
-        style: { background: 'hsl(var(--racing-surface))', color: 'hsl(var(--racing-yellow))', border: '1px solid hsl(var(--racing-border))' },
+        style: { background: '#0d1821', color: '#ffe600', border: '1px solid #1e2e40' },
       });
     });
   }, [currentRace, activeTab]);
