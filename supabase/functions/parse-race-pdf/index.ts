@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const PARSE_BATCH_SIZE = 20;
-const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart", "section_data_race"]);
+const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart"]);
 
 type BatchedParseOptions = {
   startPage: number;
@@ -150,8 +150,9 @@ serve(async (req) => {
         result = await parseQualifyingSectors(supabase, pdf, raceId);
         break;
       case "section_data_race":
-        result = await parseSectionDataRace(supabase, pdf, raceId, batchOptions!);
-        break;
+        return new Response(JSON.stringify({ success: true, skipped: true, message: "Section Data Race reports are no longer processed." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       default:
         result = { message: "Report type recognized but not yet parsed", type: reportType };
     }
@@ -315,7 +316,6 @@ function identifyReport(lines: string[]): string | null {
     return "results_quals_combined";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
   if (reportLine.includes("Section Data Report")) {
-    if (sessionLine.includes("Race")) return "section_data_race";
     return "unsupported_section_data";
   }
   return null;
@@ -1827,122 +1827,4 @@ async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
     throw new Error("No qualifying sector rows parsed; existing qualifying sector data was preserved");
   await replaceRows(supabase, "qualifying_sectors", { race_id: raceId }, rows);
   return { drivers: rows.length };
-}
-
-async function parseSectionDataRace(supabase: any, pdf: any, raceId: string, options: BatchedParseOptions) {
-  const { startPage, endPage, clearExisting, isFinalBatch } = options;
-  const pitRows: any[] = [];
-  let didClearExisting = false;
-
-  for (let p = startPage; p <= endPage; p++) {
-    const lines = await getPageLines(pdf, p);
-
-    const driverLine = lines.find((l) => l.includes("Section Data for Car"));
-    if (!driverLine) continue;
-    const driverM = driverLine.match(/Section Data for Car (\d+)\s+-\s+(.+)/);
-    if (!driverM) continue;
-    const carNumber = driverM[1];
-    const driverName = driverM[2].trim();
-
-    const headerLine = lines.find((l) => l.includes("PI to PO"));
-    if (!headerLine) continue;
-
-    // Dynamically find the PI to PO column index from the header
-    // Header format: "Lap  T/S  Sec1  Sec2  ...  PI to PO  Elapsed  Lap" (varies by track)
-    const headerParts = headerLine.trim().split(/\s{2,}/);
-    const piToPoHeaderIdx = headerParts.findIndex((p: string) => p.includes("PI to PO"));
-    if (piToPoHeaderIdx === -1) continue;
-
-    // Find where data columns start (skip Lap, T/S, I/O headers)
-    let dataStartIdx = 0;
-    for (let h = 0; h < headerParts.length; h++) {
-      const part = headerParts[h].trim().toLowerCase();
-      if (part === "lap" || part === "t/s" || part === "i/o") {
-        dataStartIdx = h + 1;
-      } else {
-        break;
-      }
-    }
-    const piToPoDataIdx = piToPoHeaderIdx - dataStartIdx;
-    if (piToPoDataIdx < 0) continue;
-
-    console.log(`Car ${carNumber}: PI to PO at data column ${piToPoDataIdx} (header parts: ${headerParts.length}, header idx: ${piToPoHeaderIdx}, data start: ${dataStartIdx})`);
-
-    let currentLap = 0;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      const lapOnlyMatch = line.trim().match(/^(\d+)$/);
-      if (lapOnlyMatch) {
-        currentLap = parseInt(lapOnlyMatch[1]);
-        continue;
-      }
-
-      if (line.trim().startsWith("T ") && currentLap > 0) {
-        const values = line.trim().replace(/^T\s+/, "").split(/\s+/).map(parseFloat);
-
-        if (values.length > piToPoDataIdx && !isNaN(values[piToPoDataIdx])) {
-          const pitTime = values[piToPoDataIdx];
-
-          // Accept pit times from 5s (fast ovals) to 120s (long street courses)
-          if (pitTime >= 5 && pitTime <= 120) {
-            let pitSpeed: number | null = null;
-            if (i + 2 < lines.length && lines[i + 2].trim().startsWith("S ")) {
-              const speedValues = lines[i + 2].trim().replace(/^S\s+/, "").split(/\s+/).map(parseFloat);
-              if (speedValues.length > piToPoDataIdx && !isNaN(speedValues[piToPoDataIdx])) {
-                pitSpeed = speedValues[piToPoDataIdx];
-              }
-            }
-
-            pitRows.push({
-              race_id: raceId,
-              car_number: carNumber,
-              driver_name: driverName,
-              lap_number: currentLap,
-              pit_time_seconds: pitTime,
-              pit_speed: pitSpeed,
-            });
-          }
-        }
-      }
-    }
-  }
-
-  if (pitRows.length > 0) {
-    if (clearExisting) {
-      await supabase.from("race_pit_times").delete().eq("race_id", raceId);
-      didClearExisting = true;
-    }
-    for (let i = 0; i < pitRows.length; i += 500) {
-      const chunk = pitRows.slice(i, i + 500);
-      const { error } = await supabase.from("race_pit_times").insert(chunk);
-      if (error) throw new Error(`Failed inserting pit times: ${error.message}`);
-    }
-  }
-
-  console.log(
-    `Section data batch pages ${startPage}-${endPage}: ${pitRows.length} rows${didClearExisting ? " (cleared existing)" : ""}`,
-  );
-
-  if (!isFinalBatch) {
-    return { pitStops: pitRows.length, didClearExisting };
-  }
-
-  if (pitRows.length === 0 && clearExisting) {
-    return { message: "No pit time rows found", pitStops: 0, didClearExisting };
-  }
-
-  const { count, error } = await supabase
-    .from("race_pit_times")
-    .select("*", { head: true, count: "exact" })
-    .eq("race_id", raceId);
-  if (error) throw new Error(`Failed counting pit times: ${error.message}`);
-  if (!count) {
-    return { message: "No pit time rows found", pitStops: 0, didClearExisting };
-  }
-
-  await markFileReceived(supabase, raceId, "section_data_race");
-  console.log(`Parsed section data race: ${count} pit time records`);
-  return { pitStops: count, didClearExisting };
 }
