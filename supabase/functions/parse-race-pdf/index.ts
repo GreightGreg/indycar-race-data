@@ -1828,10 +1828,7 @@ async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
   await replaceRows(supabase, "qualifying_sectors", { race_id: raceId }, rows);
   return { drivers: rows.length };
 }
-    const carNumber = driverM[1];
-    const driverName = driverM[2].trim();
 
-    const headerLine = lines.find((l) => l.includes("PI to PO"));
     if (!headerLine) continue;
 
     // Dynamically find the PI to PO column index from the header
