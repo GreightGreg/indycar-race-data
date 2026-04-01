@@ -9,7 +9,7 @@ const corsHeaders = {
 };
 
 const PARSE_BATCH_SIZE = 20;
-const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart", "section_data_race"]);
+const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart"]);
 
 type BatchedParseOptions = {
   startPage: number;
