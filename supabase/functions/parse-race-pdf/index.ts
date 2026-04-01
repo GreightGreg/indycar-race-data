@@ -1829,10 +1829,7 @@ async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
   return { drivers: rows.length };
 }
 
-async function parseSectionDataRace(supabase: any, pdf: any, raceId: string, options: BatchedParseOptions) {
-  const { startPage, endPage, clearExisting, isFinalBatch } = options;
-  const pitRows: any[] = [];
-  let didClearExisting = false;
+
 
   for (let p = startPage; p <= endPage; p++) {
     const lines = await getPageLines(pdf, p);
