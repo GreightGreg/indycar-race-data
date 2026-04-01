@@ -8,6 +8,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PARSE_BATCH_SIZE = 20;
+const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart", "section_data_race"]);
+
+type BatchedParseOptions = {
+  startPage: number;
+  endPage: number;
+  clearExisting: boolean;
+  isFinalBatch: boolean;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,8 +38,6 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     const pdf = await getDocumentProxy(uint8Array);
-
-    // Don't pre-extract all pages — let parsers read on demand to save CPU
 
     const page1 = await pdf.getPage(1);
     const page1Content = await page1.getTextContent();
@@ -64,6 +72,16 @@ serve(async (req) => {
     const raceId = await getOrCreateRace(supabase, eventInfo);
     console.log("Got raceId:", raceId, "— now parsing", reportType);
 
+    const batchOptions = CONTINUATION_REPORT_TYPES.has(reportType)
+      ? getBatchedParseOptions(formData, pdf.numPages)
+      : null;
+
+    if (batchOptions) {
+      console.log(
+        `Processing ${reportType} pages ${batchOptions.startPage}-${batchOptions.endPage} of ${pdf.numPages} (clearExisting: ${batchOptions.clearExisting})`,
+      );
+    }
+
     let result;
     switch (reportType) {
       case "race_results":
@@ -73,10 +91,10 @@ serve(async (req) => {
         result = await parseEventSummary(supabase, pdf, page1Lines, raceId);
         break;
       case "leader_laps":
-        result = await parseLeaderLaps(supabase, pdf, raceId);
+        result = await parseLeaderLaps(supabase, pdf, raceId, batchOptions!);
         break;
       case "lap_chart":
-        result = await parseLapChart(supabase, pdf, raceId);
+        result = await parseLapChart(supabase, pdf, raceId, batchOptions!);
         break;
       case "pit_stops":
         result = await parsePitStops(supabase, pdf, raceId);
@@ -132,17 +150,39 @@ serve(async (req) => {
         result = await parseQualifyingSectors(supabase, pdf, raceId);
         break;
       case "section_data_race":
-        result = await parseSectionDataRace(supabase, pdf, raceId);
+        result = await parseSectionDataRace(supabase, pdf, raceId, batchOptions!);
         break;
       default:
         result = { message: "Report type recognized but not yet parsed", type: reportType };
     }
 
-    await updateRaceStatus(supabase, raceId);
+    const hasMore = Boolean(batchOptions && !batchOptions.isFinalBatch);
+    if (!hasMore) {
+      await updateRaceStatus(supabase, raceId);
+    }
 
-    return new Response(JSON.stringify({ success: true, reportType, raceId, ...result }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        reportType,
+        raceId,
+        ...result,
+        ...(batchOptions
+          ? {
+              hasMore,
+              nextPage: hasMore ? batchOptions.endPage + 1 : null,
+              processedPageRange: {
+                startPage: batchOptions.startPage,
+                endPage: batchOptions.endPage,
+                totalPages: pdf.numPages,
+              },
+            }
+          : {}),
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (err) {
     console.error("Parse error:", err.message, err.stack);
     return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
@@ -169,6 +209,33 @@ async function getPageLines(pdf: any, pageNum: number): Promise<string[]> {
   const page = await pdf.getPage(pageNum);
   const content = await page.getTextContent();
   return extractLines(content.items);
+}
+
+function parseIntegerFormValue(value: FormDataEntryValue | null, fallback: number): number {
+  if (typeof value !== "string") return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseBooleanFormValue(value: FormDataEntryValue | null, fallback = false): boolean {
+  if (typeof value !== "string") return fallback;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
+function getBatchedParseOptions(formData: FormData, totalPages: number): BatchedParseOptions {
+  const requestedStartPage = parseIntegerFormValue(formData.get("startPage"), 1);
+  const startPage = Math.min(Math.max(requestedStartPage, 1), totalPages);
+  const endPage = Math.min(startPage + PARSE_BATCH_SIZE - 1, totalPages);
+  const clearExisting = parseBooleanFormValue(formData.get("clearExisting"), startPage === 1);
+
+  return {
+    startPage,
+    endPage,
+    clearExisting,
+    isFinalBatch: endPage >= totalPages,
+  };
 }
 
 function normalizeHeaderLine(line: string): string {
@@ -1158,126 +1225,144 @@ async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], 
   return { stats, lapsLed: lapsLedEntries.length };
 }
 
-async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {
-  const BATCH_SIZE = 20;
-  let totalRows = 0;
-  let firstBatch = true;
+async function parseLeaderLaps(supabase: any, pdf: any, raceId: string, options: BatchedParseOptions) {
+  const { startPage, endPage, clearExisting, isFinalBatch } = options;
+  const laps: any[] = [];
+  let didClearExisting = false;
 
-  for (let batchStart = 1; batchStart <= pdf.numPages; batchStart += BATCH_SIZE) {
-    const batchEnd = Math.min(batchStart + BATCH_SIZE - 1, pdf.numPages);
-    const laps: any[] = [];
-
-    for (let p = batchStart; p <= batchEnd; p++) {
-      const lines = await getPageLines(pdf, p);
-      for (const line of lines) {
-        const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d:\.]+)\s+([\d\.]+)\s+([\d:\.]+)\s+(\w+)/);
-        if (m) {
-          laps.push({
-            race_id: raceId,
-            lap_number: parseInt(m[1]),
-            car_number: m[2],
-            driver_name: m[3].trim(),
-            lap_time: m[5],
-            lap_speed: parseFloat(m[6]),
-            gap_to_leader: m[7],
-            flag_status: m[8],
-          });
-        }
-      }
-    }
-
-    if (laps.length > 0) {
-      if (firstBatch) {
-        // Delete existing data only on first batch
-        await supabase.from("race_laps").delete().eq("race_id", raceId);
-        firstBatch = false;
-      }
-      for (let i = 0; i < laps.length; i += 500) {
-        const chunk = laps.slice(i, i + 500);
-        const { error } = await supabase.from("race_laps").insert(chunk);
-        if (error) throw new Error(`Failed inserting leader laps: ${error.message}`);
-      }
-      totalRows += laps.length;
-    }
-    console.log(`Leader laps batch pages ${batchStart}-${batchEnd}: ${laps.length} rows (total: ${totalRows})`);
-  }
-
-  if (totalRows === 0) throw new Error("No leader lap rows parsed; existing lap data was preserved");
-  await markFileReceived(supabase, raceId, "leader_laps");
-  return { laps: totalRows };
-}
-
-async function parseLapChart(supabase: any, pdf: any, raceId: string) {
-  const BATCH_SIZE = 20;
-  let totalRows = 0;
-  let firstBatch = true;
-
-  for (let batchStart = 1; batchStart <= pdf.numPages; batchStart += BATCH_SIZE) {
-    const batchEnd = Math.min(batchStart + BATCH_SIZE - 1, pdf.numPages);
-    const carPositions: Record<string, Record<number, number>> = {};
-
-    for (let p = batchStart; p <= batchEnd; p++) {
-      const lines = await getPageLines(pdf, p);
-
-      let lapNumbers: number[] = [];
-      const numberOnlyLines = lines.filter((l) => /^[\d\s]+$/.test(l.trim()) && l.trim().split(/\s+/).length > 5);
-      for (const nl of numberOnlyLines) {
-        const nums = nl.trim().split(/\s+/).map(Number);
-        let isSequential = true;
-        for (let i = 1; i < Math.min(nums.length, 10); i++) {
-          if (nums[i] <= nums[i - 1]) {
-            isSequential = false;
-            break;
-          }
-        }
-        if (isSequential && nums.length > 5) {
-          lapNumbers = nums;
-          break;
-        }
-      }
-      if (lapNumbers.length === 0) continue;
-
-      for (const line of lines) {
-        const m = line.match(/^(\d+)\s+-\s+.+?\s+\(\d+\)\s+(\d+)\s+(.+)/);
-        if (!m) continue;
-        const rowPosition = parseInt(m[2]);
-        const cellValues = m[3].trim().split(/\s+/);
-        lapNumbers.forEach((lap, idx) => {
-          const carNum = cellValues[idx];
-          if (carNum && !isNaN(parseInt(carNum))) {
-            if (!carPositions[carNum]) carPositions[carNum] = {};
-            carPositions[carNum][lap] = rowPosition;
-          }
+  for (let p = startPage; p <= endPage; p++) {
+    const lines = await getPageLines(pdf, p);
+    for (const line of lines) {
+      const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d:\.]+)\s+([\d\.]+)\s+([\d:\.]+)\s+(\w+)/);
+      if (m) {
+        laps.push({
+          race_id: raceId,
+          lap_number: parseInt(m[1]),
+          car_number: m[2],
+          driver_name: m[3].trim(),
+          lap_time: m[5],
+          lap_speed: parseFloat(m[6]),
+          gap_to_leader: m[7],
+          flag_status: m[8],
         });
       }
     }
-
-    const insertRows: any[] = [];
-    for (const [carNumber, lapMap] of Object.entries(carPositions)) {
-      for (const [lap, pos] of Object.entries(lapMap)) {
-        insertRows.push({ race_id: raceId, lap_number: parseInt(lap), car_number: carNumber, position: pos });
-      }
-    }
-
-    if (insertRows.length > 0) {
-      if (firstBatch) {
-        await supabase.from("race_positions").delete().eq("race_id", raceId);
-        firstBatch = false;
-      }
-      for (let i = 0; i < insertRows.length; i += 500) {
-        const chunk = insertRows.slice(i, i + 500);
-        const { error } = await supabase.from("race_positions").insert(chunk);
-        if (error) throw new Error(`Failed inserting lap chart: ${error.message}`);
-      }
-      totalRows += insertRows.length;
-    }
-    console.log(`Lap chart batch pages ${batchStart}-${batchEnd}: ${insertRows.length} rows (total: ${totalRows})`);
   }
 
-  if (totalRows === 0) throw new Error("No lap chart rows parsed; existing position data was preserved");
+  if (laps.length > 0) {
+    if (clearExisting) {
+      await supabase.from("race_laps").delete().eq("race_id", raceId);
+      didClearExisting = true;
+    }
+    for (let i = 0; i < laps.length; i += 500) {
+      const chunk = laps.slice(i, i + 500);
+      const { error } = await supabase.from("race_laps").insert(chunk);
+      if (error) throw new Error(`Failed inserting leader laps: ${error.message}`);
+    }
+  }
+
+  console.log(
+    `Leader laps batch pages ${startPage}-${endPage}: ${laps.length} rows${didClearExisting ? " (cleared existing)" : ""}`,
+  );
+
+  if (!isFinalBatch) {
+    return { laps: laps.length, didClearExisting };
+  }
+
+  if (laps.length === 0 && clearExisting) {
+    throw new Error("No leader lap rows parsed; existing lap data was preserved");
+  }
+
+  const { count, error } = await supabase.from("race_laps").select("*", { head: true, count: "exact" }).eq("race_id", raceId);
+  if (error) throw new Error(`Failed counting leader laps: ${error.message}`);
+  if (!count) throw new Error("No leader lap rows parsed; existing lap data was preserved");
+
+  await markFileReceived(supabase, raceId, "leader_laps");
+  return { laps: count, didClearExisting };
+}
+
+async function parseLapChart(supabase: any, pdf: any, raceId: string, options: BatchedParseOptions) {
+  const { startPage, endPage, clearExisting, isFinalBatch } = options;
+  const carPositions: Record<string, Record<number, number>> = {};
+  let didClearExisting = false;
+
+  for (let p = startPage; p <= endPage; p++) {
+    const lines = await getPageLines(pdf, p);
+
+    let lapNumbers: number[] = [];
+    const numberOnlyLines = lines.filter((l) => /^[\d\s]+$/.test(l.trim()) && l.trim().split(/\s+/).length > 5);
+    for (const nl of numberOnlyLines) {
+      const nums = nl.trim().split(/\s+/).map(Number);
+      let isSequential = true;
+      for (let i = 1; i < Math.min(nums.length, 10); i++) {
+        if (nums[i] <= nums[i - 1]) {
+          isSequential = false;
+          break;
+        }
+      }
+      if (isSequential && nums.length > 5) {
+        lapNumbers = nums;
+        break;
+      }
+    }
+    if (lapNumbers.length === 0) continue;
+
+    for (const line of lines) {
+      const m = line.match(/^(\d+)\s+-\s+.+?\s+\(\d+\)\s+(\d+)\s+(.+)/);
+      if (!m) continue;
+      const rowPosition = parseInt(m[2]);
+      const cellValues = m[3].trim().split(/\s+/);
+      lapNumbers.forEach((lap, idx) => {
+        const carNum = cellValues[idx];
+        if (carNum && !isNaN(parseInt(carNum))) {
+          if (!carPositions[carNum]) carPositions[carNum] = {};
+          carPositions[carNum][lap] = rowPosition;
+        }
+      });
+    }
+  }
+
+  const insertRows: any[] = [];
+  for (const [carNumber, lapMap] of Object.entries(carPositions)) {
+    for (const [lap, pos] of Object.entries(lapMap)) {
+      insertRows.push({ race_id: raceId, lap_number: parseInt(lap), car_number: carNumber, position: pos });
+    }
+  }
+
+  if (insertRows.length > 0) {
+    if (clearExisting) {
+      await supabase.from("race_positions").delete().eq("race_id", raceId);
+      didClearExisting = true;
+    }
+    for (let i = 0; i < insertRows.length; i += 500) {
+      const chunk = insertRows.slice(i, i + 500);
+      const { error } = await supabase.from("race_positions").insert(chunk);
+      if (error) throw new Error(`Failed inserting lap chart: ${error.message}`);
+    }
+  }
+
+  console.log(
+    `Lap chart batch pages ${startPage}-${endPage}: ${insertRows.length} rows${didClearExisting ? " (cleared existing)" : ""}`,
+  );
+
+  if (!isFinalBatch) {
+    return { positions: insertRows.length, didClearExisting };
+  }
+
+  if (insertRows.length === 0 && clearExisting) {
+    throw new Error("No lap chart rows parsed; existing position data was preserved");
+  }
+
+  const { count, error } = await supabase
+    .from("race_positions")
+    .select("*", { head: true, count: "exact" })
+    .eq("race_id", raceId);
+  if (error) throw new Error(`Failed counting lap chart rows: ${error.message}`);
+  if (!count) throw new Error("No lap chart rows parsed; existing position data was preserved");
+
   await markFileReceived(supabase, raceId, "lap_chart");
-  console.log(`Parsed lap chart: ${totalRows} position records`);
-  return { positions: totalRows };
+  console.log(`Parsed lap chart: ${count} position records`);
+  return { positions: count, didClearExisting };
 }
 
 async function parsePitStops(supabase: any, pdf: any, raceId: string) {
@@ -1744,87 +1829,98 @@ async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
   return { drivers: rows.length };
 }
 
-async function parseSectionDataRace(supabase: any, pdf: any, raceId: string) {
-  const BATCH_SIZE = 20;
-  let totalRows = 0;
+async function parseSectionDataRace(supabase: any, pdf: any, raceId: string, options: BatchedParseOptions) {
+  const { startPage, endPage, clearExisting, isFinalBatch } = options;
+  const pitRows: any[] = [];
+  let didClearExisting = false;
 
-  // Clear existing data once before batched inserts
-  await supabase.from("race_pit_times").delete().eq("race_id", raceId);
+  for (let p = startPage; p <= endPage; p++) {
+    const lines = await getPageLines(pdf, p);
 
-  for (let batchStart = 1; batchStart <= pdf.numPages; batchStart += BATCH_SIZE) {
-    const batchEnd = Math.min(batchStart + BATCH_SIZE - 1, pdf.numPages);
-    const pitRows: any[] = [];
+    const driverLine = lines.find((l) => l.includes("Section Data for Car"));
+    if (!driverLine) continue;
+    const driverM = driverLine.match(/Section Data for Car (\d+)\s+-\s+(.+)/);
+    if (!driverM) continue;
+    const carNumber = driverM[1];
+    const driverName = driverM[2].trim();
 
-    for (let p = batchStart; p <= batchEnd; p++) {
-      const lines = await getPageLines(pdf, p);
+    const headerLine = lines.find((l) => l.includes("PI to PO"));
+    if (!headerLine) continue;
 
-      const driverLine = lines.find((l) => l.includes("Section Data for Car"));
-      if (!driverLine) continue;
-      const driverM = driverLine.match(/Section Data for Car (\d+)\s+-\s+(.+)/);
-      if (!driverM) continue;
-      const carNumber = driverM[1];
-      const driverName = driverM[2].trim();
+    let currentLap = 0;
 
-      const headerLine = lines.find((l) => l.includes("PI to PO"));
-      if (!headerLine) continue;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
 
-      let currentLap = 0;
+      const lapOnlyMatch = line.trim().match(/^(\d+)$/);
+      if (lapOnlyMatch) {
+        currentLap = parseInt(lapOnlyMatch[1]);
+        continue;
+      }
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      if (line.trim().startsWith("T ") && currentLap > 0) {
+        const values = line.trim().replace(/^T\s+/, "").split(/\s+/).map(parseFloat);
 
-        const lapOnlyMatch = line.trim().match(/^(\d+)$/);
-        if (lapOnlyMatch) {
-          currentLap = parseInt(lapOnlyMatch[1]);
-          continue;
-        }
+        if (values.length >= 12 && !isNaN(values[11])) {
+          const pitTime = values[11];
 
-        if (line.trim().startsWith("T ") && currentLap > 0) {
-          const values = line.trim().replace(/^T\s+/, "").split(/\s+/).map(parseFloat);
-
-          if (values.length >= 12 && !isNaN(values[11])) {
-            const pitTime = values[11];
-
-            if (pitTime >= 10 && pitTime <= 60) {
-              let pitSpeed: number | null = null;
-              if (i + 2 < lines.length && lines[i + 2].trim().startsWith("S ")) {
-                const speedValues = lines[i + 2].trim().replace(/^S\s+/, "").split(/\s+/).map(parseFloat);
-                if (speedValues.length >= 12 && !isNaN(speedValues[11])) {
-                  pitSpeed = speedValues[11];
-                }
+          if (pitTime >= 10 && pitTime <= 60) {
+            let pitSpeed: number | null = null;
+            if (i + 2 < lines.length && lines[i + 2].trim().startsWith("S ")) {
+              const speedValues = lines[i + 2].trim().replace(/^S\s+/, "").split(/\s+/).map(parseFloat);
+              if (speedValues.length >= 12 && !isNaN(speedValues[11])) {
+                pitSpeed = speedValues[11];
               }
-
-              pitRows.push({
-                race_id: raceId,
-                car_number: carNumber,
-                driver_name: driverName,
-                lap_number: currentLap,
-                pit_time_seconds: pitTime,
-                pit_speed: pitSpeed,
-              });
             }
+
+            pitRows.push({
+              race_id: raceId,
+              car_number: carNumber,
+              driver_name: driverName,
+              lap_number: currentLap,
+              pit_time_seconds: pitTime,
+              pit_speed: pitSpeed,
+            });
           }
         }
       }
     }
-
-    // Insert this batch immediately and free memory
-    if (pitRows.length > 0) {
-      for (let i = 0; i < pitRows.length; i += 500) {
-        const chunk = pitRows.slice(i, i + 500);
-        const { error } = await supabase.from("race_pit_times").insert(chunk);
-        if (error) throw new Error(`Failed inserting pit times: ${error.message}`);
-      }
-      totalRows += pitRows.length;
-    }
-    console.log(`Section data batch pages ${batchStart}-${batchEnd}: ${pitRows.length} rows (total: ${totalRows})`);
   }
 
-  if (totalRows === 0) {
-    return { message: "No pit time rows found", pitStops: 0 };
+  if (pitRows.length > 0) {
+    if (clearExisting) {
+      await supabase.from("race_pit_times").delete().eq("race_id", raceId);
+      didClearExisting = true;
+    }
+    for (let i = 0; i < pitRows.length; i += 500) {
+      const chunk = pitRows.slice(i, i + 500);
+      const { error } = await supabase.from("race_pit_times").insert(chunk);
+      if (error) throw new Error(`Failed inserting pit times: ${error.message}`);
+    }
+  }
+
+  console.log(
+    `Section data batch pages ${startPage}-${endPage}: ${pitRows.length} rows${didClearExisting ? " (cleared existing)" : ""}`,
+  );
+
+  if (!isFinalBatch) {
+    return { pitStops: pitRows.length, didClearExisting };
+  }
+
+  if (pitRows.length === 0 && clearExisting) {
+    return { message: "No pit time rows found", pitStops: 0, didClearExisting };
+  }
+
+  const { count, error } = await supabase
+    .from("race_pit_times")
+    .select("*", { head: true, count: "exact" })
+    .eq("race_id", raceId);
+  if (error) throw new Error(`Failed counting pit times: ${error.message}`);
+  if (!count) {
+    return { message: "No pit time rows found", pitStops: 0, didClearExisting };
   }
 
   await markFileReceived(supabase, raceId, "section_data_race");
-  console.log(`Parsed section data race: ${totalRows} pit time records`);
-  return { pitStops: totalRows };
+  console.log(`Parsed section data race: ${count} pit time records`);
+  return { pitStops: count, didClearExisting };
 }

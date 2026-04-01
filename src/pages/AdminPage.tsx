@@ -59,15 +59,34 @@ const AdminPage = () => {
     const errors: string[] = [];
     for (const file of files) {
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await supabase.functions.invoke('parse-race-pdf', { body: formData });
-        if (res.error) {
-          errors.push(`✗ ${file.name}: ${res.error.message}`);
-        } else if (res.data?.skipped) {
-          results.push(`⊘ ${file.name} → skipped (${res.data?.message || res.data?.reportType || 'not needed'})`);
+        let nextPage: number | null = 1;
+        let clearExisting = true;
+        let finalData: any = null;
+
+        while (nextPage) {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('startPage', String(nextPage));
+          formData.append('clearExisting', clearExisting ? 'true' : 'false');
+
+          const res = await supabase.functions.invoke('parse-race-pdf', { body: formData });
+          if (res.error) throw res.error;
+
+          finalData = res.data;
+          if (finalData?.didClearExisting) clearExisting = false;
+
+          if (finalData?.hasMore) {
+            if (!finalData?.nextPage) throw new Error('Missing next page for continued parsing');
+            nextPage = finalData.nextPage;
+          } else {
+            nextPage = null;
+          }
+        }
+
+        if (finalData?.skipped) {
+          results.push(`⊘ ${file.name} → skipped (${finalData?.message || finalData?.reportType || 'not needed'})`);
         } else {
-          results.push(`✓ ${file.name} → ${res.data?.reportType || 'parsed'}`);
+          results.push(`✓ ${file.name} → ${finalData?.reportType || 'parsed'}`);
         }
       } catch (e: any) {
         errors.push(`✗ ${file.name}: ${e.message}`);
