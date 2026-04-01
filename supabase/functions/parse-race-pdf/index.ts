@@ -1159,29 +1159,52 @@ async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], 
 }
 
 async function parseLeaderLaps(supabase: any, pdf: any, raceId: string) {
-  const laps = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const lines = await getPageLines(pdf, p);
-    for (const line of lines) {
-      const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d:\.]+)\s+([\d\.]+)\s+([\d:\.]+)\s+(\w+)/);
-      if (m) {
-        laps.push({
-          race_id: raceId,
-          lap_number: parseInt(m[1]),
-          car_number: m[2],
-          driver_name: m[3].trim(),
-          lap_time: m[5],
-          lap_speed: parseFloat(m[6]),
-          gap_to_leader: m[7],
-          flag_status: m[8],
-        });
+  const BATCH_SIZE = 20;
+  let totalRows = 0;
+  let firstBatch = true;
+
+  for (let batchStart = 1; batchStart <= pdf.numPages; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE - 1, pdf.numPages);
+    const laps: any[] = [];
+
+    for (let p = batchStart; p <= batchEnd; p++) {
+      const lines = await getPageLines(pdf, p);
+      for (const line of lines) {
+        const m = line.match(/^(\d+)\s+(\d+)\s+(.+?)\s+(D\/[CH]\/F)\s+([\d:\.]+)\s+([\d\.]+)\s+([\d:\.]+)\s+(\w+)/);
+        if (m) {
+          laps.push({
+            race_id: raceId,
+            lap_number: parseInt(m[1]),
+            car_number: m[2],
+            driver_name: m[3].trim(),
+            lap_time: m[5],
+            lap_speed: parseFloat(m[6]),
+            gap_to_leader: m[7],
+            flag_status: m[8],
+          });
+        }
       }
     }
+
+    if (laps.length > 0) {
+      if (firstBatch) {
+        // Delete existing data only on first batch
+        await supabase.from("race_laps").delete().eq("race_id", raceId);
+        firstBatch = false;
+      }
+      for (let i = 0; i < laps.length; i += 500) {
+        const chunk = laps.slice(i, i + 500);
+        const { error } = await supabase.from("race_laps").insert(chunk);
+        if (error) throw new Error(`Failed inserting leader laps: ${error.message}`);
+      }
+      totalRows += laps.length;
+    }
+    console.log(`Leader laps batch pages ${batchStart}-${batchEnd}: ${laps.length} rows (total: ${totalRows})`);
   }
-  if (laps.length === 0) throw new Error("No leader lap rows parsed; existing lap data was preserved");
-  await replaceRows(supabase, "race_laps", { race_id: raceId }, laps);
+
+  if (totalRows === 0) throw new Error("No leader lap rows parsed; existing lap data was preserved");
   await markFileReceived(supabase, raceId, "leader_laps");
-  return { laps: laps.length };
+  return { laps: totalRows };
 }
 
 async function parseLapChart(supabase: any, pdf: any, raceId: string) {
