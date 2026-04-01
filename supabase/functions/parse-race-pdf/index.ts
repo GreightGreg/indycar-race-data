@@ -150,8 +150,9 @@ serve(async (req) => {
         result = await parseQualifyingSectors(supabase, pdf, raceId);
         break;
       case "section_data_race":
-        result = await parseSectionDataRace(supabase, pdf, raceId, batchOptions!);
-        break;
+        return new Response(JSON.stringify({ success: true, skipped: true, message: "Section Data Race reports are no longer processed." }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       default:
         result = { message: "Report type recognized but not yet parsed", type: reportType };
     }
