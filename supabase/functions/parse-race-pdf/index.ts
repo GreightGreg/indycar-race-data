@@ -1704,74 +1704,86 @@ async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
 }
 
 async function parseSectionDataRace(supabase: any, pdf: any, raceId: string) {
-  const pitRows: any[] = [];
+  const BATCH_SIZE = 20;
+  let totalRows = 0;
 
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const lines = await getPageLines(pdf, p);
+  // Clear existing data once before batched inserts
+  await supabase.from("race_pit_times").delete().eq("race_id", raceId);
 
-    const driverLine = lines.find((l) => l.includes("Section Data for Car"));
-    if (!driverLine) continue;
-    const driverM = driverLine.match(/Section Data for Car (\d+)\s+-\s+(.+)/);
-    if (!driverM) continue;
-    const carNumber = driverM[1];
-    const driverName = driverM[2].trim();
+  for (let batchStart = 1; batchStart <= pdf.numPages; batchStart += BATCH_SIZE) {
+    const batchEnd = Math.min(batchStart + BATCH_SIZE - 1, pdf.numPages);
+    const pitRows: any[] = [];
 
-    const headerLine = lines.find((l) => l.includes("PI to PO"));
-    if (!headerLine) continue;
+    for (let p = batchStart; p <= batchEnd; p++) {
+      const lines = await getPageLines(pdf, p);
 
-    let currentLap = 0;
+      const driverLine = lines.find((l) => l.includes("Section Data for Car"));
+      if (!driverLine) continue;
+      const driverM = driverLine.match(/Section Data for Car (\d+)\s+-\s+(.+)/);
+      if (!driverM) continue;
+      const carNumber = driverM[1];
+      const driverName = driverM[2].trim();
 
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
+      const headerLine = lines.find((l) => l.includes("PI to PO"));
+      if (!headerLine) continue;
 
-      const lapOnlyMatch = line.trim().match(/^(\d+)$/);
-      if (lapOnlyMatch) {
-        currentLap = parseInt(lapOnlyMatch[1]);
-        continue;
-      }
+      let currentLap = 0;
 
-      if (line.trim().startsWith("T ") && currentLap > 0) {
-        const values = line.trim().replace(/^T\s+/, "").split(/\s+/).map(parseFloat);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
 
-        if (values.length >= 12 && !isNaN(values[11])) {
-          const pitTime = values[11];
+        const lapOnlyMatch = line.trim().match(/^(\d+)$/);
+        if (lapOnlyMatch) {
+          currentLap = parseInt(lapOnlyMatch[1]);
+          continue;
+        }
 
-          if (pitTime >= 10 && pitTime <= 60) {
-            let pitSpeed: number | null = null;
-            if (i + 2 < lines.length && lines[i + 2].trim().startsWith("S ")) {
-              const speedValues = lines[i + 2].trim().replace(/^S\s+/, "").split(/\s+/).map(parseFloat);
-              if (speedValues.length >= 12 && !isNaN(speedValues[11])) {
-                pitSpeed = speedValues[11];
+        if (line.trim().startsWith("T ") && currentLap > 0) {
+          const values = line.trim().replace(/^T\s+/, "").split(/\s+/).map(parseFloat);
+
+          if (values.length >= 12 && !isNaN(values[11])) {
+            const pitTime = values[11];
+
+            if (pitTime >= 10 && pitTime <= 60) {
+              let pitSpeed: number | null = null;
+              if (i + 2 < lines.length && lines[i + 2].trim().startsWith("S ")) {
+                const speedValues = lines[i + 2].trim().replace(/^S\s+/, "").split(/\s+/).map(parseFloat);
+                if (speedValues.length >= 12 && !isNaN(speedValues[11])) {
+                  pitSpeed = speedValues[11];
+                }
               }
-            }
 
-            pitRows.push({
-              race_id: raceId,
-              car_number: carNumber,
-              driver_name: driverName,
-              lap_number: currentLap,
-              pit_time_seconds: pitTime,
-              pit_speed: pitSpeed,
-            });
+              pitRows.push({
+                race_id: raceId,
+                car_number: carNumber,
+                driver_name: driverName,
+                lap_number: currentLap,
+                pit_time_seconds: pitTime,
+                pit_speed: pitSpeed,
+              });
+            }
           }
         }
       }
     }
+
+    // Insert this batch immediately and free memory
+    if (pitRows.length > 0) {
+      for (let i = 0; i < pitRows.length; i += 500) {
+        const chunk = pitRows.slice(i, i + 500);
+        const { error } = await supabase.from("race_pit_times").insert(chunk);
+        if (error) throw new Error(`Failed inserting pit times: ${error.message}`);
+      }
+      totalRows += pitRows.length;
+    }
+    console.log(`Section data batch pages ${batchStart}-${batchEnd}: ${pitRows.length} rows (total: ${totalRows})`);
   }
 
-  if (pitRows.length === 0) {
+  if (totalRows === 0) {
     return { message: "No pit time rows found", pitStops: 0 };
   }
 
-  await supabase.from("race_pit_times").delete().eq("race_id", raceId);
-
-  for (let i = 0; i < pitRows.length; i += 500) {
-    const batch = pitRows.slice(i, i + 500);
-    const { error } = await supabase.from("race_pit_times").insert(batch);
-    if (error) throw new Error(`Failed inserting pit times: ${error.message}`);
-  }
-
   await markFileReceived(supabase, raceId, "section_data_race");
-  console.log(`Parsed section data race: ${pitRows.length} pit time records`);
-  return { pitStops: pitRows.length };
+  console.log(`Parsed section data race: ${totalRows} pit time records`);
+  return { pitStops: totalRows };
 }
