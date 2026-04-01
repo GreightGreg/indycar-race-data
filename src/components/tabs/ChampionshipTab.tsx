@@ -283,7 +283,7 @@ const ChampionshipTab = () => {
 
       // Award points
       driverAvgs.forEach((d, i) => {
-        const pts = POINTS_SCALE[i] || 1;
+        const pts = POINTS_SCALE[i] ?? 5;
         if (!drivers[d.car]) {
           const team = metaMap[d.car]?.team || '';
           drivers[d.car] = { car: d.car, name: d.name, team, roundPts: {}, total: 0 };
