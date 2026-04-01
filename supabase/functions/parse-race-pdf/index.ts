@@ -8,6 +8,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const PARSE_BATCH_SIZE = 20;
+const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart", "section_data_race"]);
+
+type BatchedParseOptions = {
+  startPage: number;
+  endPage: number;
+  clearExisting: boolean;
+  isFinalBatch: boolean;
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -28,8 +38,6 @@ serve(async (req) => {
     const arrayBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
     const pdf = await getDocumentProxy(uint8Array);
-
-    // Don't pre-extract all pages — let parsers read on demand to save CPU
 
     const page1 = await pdf.getPage(1);
     const page1Content = await page1.getTextContent();
@@ -64,6 +72,16 @@ serve(async (req) => {
     const raceId = await getOrCreateRace(supabase, eventInfo);
     console.log("Got raceId:", raceId, "— now parsing", reportType);
 
+    const batchOptions = CONTINUATION_REPORT_TYPES.has(reportType)
+      ? getBatchedParseOptions(formData, pdf.numPages)
+      : null;
+
+    if (batchOptions) {
+      console.log(
+        `Processing ${reportType} pages ${batchOptions.startPage}-${batchOptions.endPage} of ${pdf.numPages} (clearExisting: ${batchOptions.clearExisting})`,
+      );
+    }
+
     let result;
     switch (reportType) {
       case "race_results":
@@ -73,10 +91,10 @@ serve(async (req) => {
         result = await parseEventSummary(supabase, pdf, page1Lines, raceId);
         break;
       case "leader_laps":
-        result = await parseLeaderLaps(supabase, pdf, raceId);
+        result = await parseLeaderLaps(supabase, pdf, raceId, batchOptions!);
         break;
       case "lap_chart":
-        result = await parseLapChart(supabase, pdf, raceId);
+        result = await parseLapChart(supabase, pdf, raceId, batchOptions!);
         break;
       case "pit_stops":
         result = await parsePitStops(supabase, pdf, raceId);
@@ -132,17 +150,39 @@ serve(async (req) => {
         result = await parseQualifyingSectors(supabase, pdf, raceId);
         break;
       case "section_data_race":
-        result = await parseSectionDataRace(supabase, pdf, raceId);
+        result = await parseSectionDataRace(supabase, pdf, raceId, batchOptions!);
         break;
       default:
         result = { message: "Report type recognized but not yet parsed", type: reportType };
     }
 
-    await updateRaceStatus(supabase, raceId);
+    const hasMore = Boolean(batchOptions && !batchOptions.isFinalBatch);
+    if (!hasMore) {
+      await updateRaceStatus(supabase, raceId);
+    }
 
-    return new Response(JSON.stringify({ success: true, reportType, raceId, ...result }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        success: true,
+        reportType,
+        raceId,
+        ...result,
+        ...(batchOptions
+          ? {
+              hasMore,
+              nextPage: hasMore ? batchOptions.endPage + 1 : null,
+              processedPageRange: {
+                startPage: batchOptions.startPage,
+                endPage: batchOptions.endPage,
+                totalPages: pdf.numPages,
+              },
+            }
+          : {}),
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (err) {
     console.error("Parse error:", err.message, err.stack);
     return new Response(JSON.stringify({ error: err.message, stack: err.stack }), {
@@ -169,6 +209,33 @@ async function getPageLines(pdf: any, pageNum: number): Promise<string[]> {
   const page = await pdf.getPage(pageNum);
   const content = await page.getTextContent();
   return extractLines(content.items);
+}
+
+function parseIntegerFormValue(value: FormDataEntryValue | null, fallback: number): number {
+  if (typeof value !== "string") return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function parseBooleanFormValue(value: FormDataEntryValue | null, fallback = false): boolean {
+  if (typeof value !== "string") return fallback;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return fallback;
+}
+
+function getBatchedParseOptions(formData: FormData, totalPages: number): BatchedParseOptions {
+  const requestedStartPage = parseIntegerFormValue(formData.get("startPage"), 1);
+  const startPage = Math.min(Math.max(requestedStartPage, 1), totalPages);
+  const endPage = Math.min(startPage + PARSE_BATCH_SIZE - 1, totalPages);
+  const clearExisting = parseBooleanFormValue(formData.get("clearExisting"), startPage === 1);
+
+  return {
+    startPage,
+    endPage,
+    clearExisting,
+    isFinalBatch: endPage >= totalPages,
+  };
 }
 
 function normalizeHeaderLine(line: string): string {
