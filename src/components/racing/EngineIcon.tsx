@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import chevyLogo from '@/assets/chevy-logo.png';
 import hondaLogo from '@/assets/honda-logo.png';
 
@@ -13,16 +14,16 @@ const sizeMap = {
   lg: 'w-10 h-6',
 };
 
-const EngineIcon = ({ engine, size = 'sm', className = '' }: EngineIconProps) => {
+const EngineIcon = forwardRef<HTMLSpanElement, EngineIconProps>(({ engine, size = 'sm', className = '' }, ref) => {
   const isHonda = engine?.toLowerCase().includes('honda') || engine === 'H';
   const isChevy = engine?.toLowerCase().includes('chevy') || engine?.toLowerCase().includes('chevrolet') || engine === 'C';
 
   if (!isHonda && !isChevy) {
-    return <span className="font-mono text-sm text-racing-muted">{engine}</span>;
+    return <span ref={ref} className="font-mono text-sm text-racing-muted">{engine}</span>;
   }
 
   return (
-    <span className={`${sizeMap[size]} inline-flex items-center justify-center ${className}`}>
+    <span ref={ref} className={`${sizeMap[size]} inline-flex items-center justify-center ${className}`}>
       <img
         src={isHonda ? hondaLogo : chevyLogo}
         alt={isHonda ? 'Honda' : 'Chevrolet'}
@@ -31,6 +32,8 @@ const EngineIcon = ({ engine, size = 'sm', className = '' }: EngineIconProps) =>
       />
     </span>
   );
-};
+});
+
+EngineIcon.displayName = 'EngineIcon';
 
 export default EngineIcon;
