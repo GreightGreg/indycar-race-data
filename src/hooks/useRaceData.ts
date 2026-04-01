@@ -342,20 +342,7 @@ export const useDriverMetadata = (year: number | null) =>
     enabled: !!year,
   });
 
-// Get pit times for all races in a season
-export const useSeasonPitTimes = (year: number | null) =>
-  useQuery({
-    queryKey: ['season_pit_times', year],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('race_pit_times')
-        .select(`*, races!inner(id, round_number, year)`)
-        .eq('races.year', year!);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!year,
-  });
+
 
 // Get qualifying results for a season (pole winners only)
 export const useSeasonQualifying = (year: number | null) =>

@@ -316,7 +316,6 @@ function identifyReport(lines: string[]): string | null {
     return "results_quals_combined";
   if (reportLine.includes("Combined Results of Practice")) return "combined_practice";
   if (reportLine.includes("Section Data Report")) {
-    if (sessionLine.includes("Race")) return "section_data_race";
     return "unsupported_section_data";
   }
   return null;
