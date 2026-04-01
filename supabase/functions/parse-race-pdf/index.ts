@@ -1828,9 +1828,6 @@ async function parseQualifyingSectors(supabase: any, pdf: any, raceId: string) {
   await replaceRows(supabase, "qualifying_sectors", { race_id: raceId }, rows);
   return { drivers: rows.length };
 }
-    if (!driverLine) continue;
-    const driverM = driverLine.match(/Section Data for Car (\d+)\s+-\s+(.+)/);
-    if (!driverM) continue;
     const carNumber = driverM[1];
     const driverName = driverM[2].trim();
 
