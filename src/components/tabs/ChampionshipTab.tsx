@@ -259,40 +259,6 @@ const ChampionshipTab = () => {
     }));
   }, [races, resultsByRound, metaMap]);
 
-  // ─── SECTION 6: Firestone Pit Stop Performance ───
-  const pitStandings = useMemo(() => {
-    if (!pitTimes || pitTimes.length === 0) return null;
-    const drivers: Record<string, { car: string; name: string; team: string; roundPts: Record<number, number>; total: number }> = {};
-    for (const race of races) {
-      const rn = race.round_number;
-      const raceTimesRaw = (pitTimes as any[]).filter(pt => pt.races?.round_number === rn);
-      if (raceTimesRaw.length === 0) continue;
-
-      // Average pit time per driver for this race
-      const driverAvgs: { car: string; name: string; avg: number }[] = [];
-      const grouped: Record<string, { name: string; times: number[] }> = {};
-      for (const pt of raceTimesRaw) {
-        if (!grouped[pt.car_number]) grouped[pt.car_number] = { name: pt.driver_name, times: [] };
-        grouped[pt.car_number].times.push(Number(pt.pit_time_seconds));
-      }
-      for (const [car, { name, times }] of Object.entries(grouped)) {
-        driverAvgs.push({ car, name, avg: times.reduce((a, b) => a + b, 0) / times.length });
-      }
-      driverAvgs.sort((a, b) => a.avg - b.avg);
-
-      // Award points
-      driverAvgs.forEach((d, i) => {
-        const pts = POINTS_SCALE[i] ?? 5;
-        if (!drivers[d.car]) {
-          const team = metaMap[d.car]?.team || '';
-          drivers[d.car] = { car: d.car, name: d.name, team, roundPts: {}, total: 0 };
-        }
-        drivers[d.car].roundPts[rn] = pts;
-        drivers[d.car].total += pts;
-      });
-    }
-    return Object.values(drivers).sort((a, b) => b.total - a.total);
-  }, [races, pitTimes, metaMap]);
 
   // ─── SECTION 7: Nations Cup ───
   const nationStandings = useMemo(() => {
