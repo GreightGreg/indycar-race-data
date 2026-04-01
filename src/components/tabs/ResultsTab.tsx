@@ -12,10 +12,13 @@ const PosBadge = ({ pos }: { pos: number }) => {
   return <span className={`inline-flex items-center justify-center font-heading text-[15px] w-8 h-6 rounded-sm ${bg}`}>P{pos}</span>;
 };
 
-const StatusBadge = ({ status }: { status: string }) => {
+import { forwardRef } from 'react';
+
+const StatusBadge = forwardRef<HTMLSpanElement, { status: string }>(({ status }, ref) => {
   const color = status === 'Running' ? 'text-racing-green' : status === 'Contact' ? 'text-racing-red' : 'text-racing-amber';
-  return <span className={`font-mono text-sm ${color}`}>{status}</span>;
-};
+  return <span ref={ref} className={`font-mono text-sm ${color}`}>{status}</span>;
+});
+StatusBadge.displayName = 'StatusBadge';
 
 const ResultCard = ({ r }: { r: any }) => {
   const posChange = r.start_position - r.finish_position;

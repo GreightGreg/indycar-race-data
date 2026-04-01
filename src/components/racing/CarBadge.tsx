@@ -35,7 +35,9 @@ interface CarBadgeProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-const CarBadge = ({ num, size = 'md' }: CarBadgeProps) => {
+import { forwardRef } from 'react';
+
+const CarBadge = forwardRef<HTMLSpanElement, CarBadgeProps>(({ num, size = 'md' }, ref) => {
   const bg = CAR_COLORS[num];
   const dim = size === 'sm' ? 'w-6 h-6' : size === 'lg' ? 'w-16 h-16' : 'w-8 h-8';
   const imgSize = size === 'sm' ? 'w-5 h-5' : size === 'lg' ? 'w-12 h-12' : 'w-6 h-6';
@@ -45,6 +47,7 @@ const CarBadge = ({ num, size = 'md' }: CarBadgeProps) => {
 
   return (
     <span
+      ref={ref}
       className={`inline-flex items-center justify-center rounded-full shrink-0 ${dim}`}
       style={{
         backgroundColor: bg || 'hsl(var(--racing-blue))',
@@ -70,6 +73,8 @@ const CarBadge = ({ num, size = 'md' }: CarBadgeProps) => {
       />
     </span>
   );
-};
+});
+
+CarBadge.displayName = 'CarBadge';
 
 export default CarBadge;
