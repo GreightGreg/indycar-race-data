@@ -28,7 +28,7 @@ const FLAG_EMOJI: Record<string, string> = {
 
 const getFinishPositionPoints = (finishPosition?: number | null) => {
   if (!finishPosition || finishPosition < 1) return 0;
-  return POINTS_SCALE[finishPosition - 1] ?? 0;
+  return POINTS_SCALE[finishPosition - 1] ?? 5;
 };
 
 // Collapsible section wrapper
