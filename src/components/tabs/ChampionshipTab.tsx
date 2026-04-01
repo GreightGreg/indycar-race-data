@@ -517,57 +517,7 @@ const ChampionshipTab = () => {
         )}
       </Section>
 
-      {/* SECTION 5 – Firestone Pit Stop Performance */}
-      <Section id="pit-stop-performance" title="Firestone Pit Stop Performance" description="Points awarded based on average pit lane transit time per race. Faster pit stops earn more points." onShare={() => shareSection('pit-stop-performance')}>
-        {pitStandings === null ? (
-          <p className="text-racing-muted font-body text-[14px]">Data pending — upload Section Data Race reports to populate pit stop times.</p>
-        ) : (
-          isMobile ? (
-            <div className="space-y-2">
-              {pitStandings.slice(0, 15).map((d, i) => (
-                <div key={d.car} className="flex items-center gap-3 bg-racing-surface2/50 rounded-lg px-3 py-2">
-                  <span className="font-heading text-[15px] text-racing-muted w-6">{i + 1}</span>
-                  <CarBadge num={d.car} />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-body text-[15px] text-racing-text truncate">{formatDriverName(d.name)}</p>
-                    <p className="text-[12px] font-mono text-racing-muted">{d.team}</p>
-                  </div>
-                  <span className="font-mono text-[15px] text-racing-yellow font-bold">{d.total}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-racing-border">
-                    <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Rank</th>
-                    <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Car</th>
-                    <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Driver</th>
-                    <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase">Team</th>
-                    <RoundHeaders />
-                    <th className="px-2 py-2 font-condensed font-semibold text-[13px] text-racing-muted uppercase text-center">Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pitStandings.map((d, i) => (
-                    <tr key={d.car} className="border-b border-racing-border/50 hover:bg-racing-surface2/50">
-                      <td className="px-2 py-2 font-heading text-[15px] text-racing-muted">{i + 1}</td>
-                      <td className="px-2 py-2"><CarBadge num={d.car} /></td>
-                      <td className="px-2 py-2 font-body text-[15px] text-racing-text">{formatDriverName(d.name)}</td>
-                      <td className="px-2 py-2 font-body text-[14px] text-racing-muted">{d.team}</td>
-                      <RoundCells roundData={d.roundPts} />
-                      <td className="px-2 py-2 font-mono text-[15px] text-racing-yellow font-bold text-center">{d.total}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
-      </Section>
-
-      {/* SECTION 6 – Team Championship (unofficial) */}
+      {/* SECTION 5 – Team Championship (unofficial) */}
       <Section id="team" title="Team Championship" description="Average race points per driver per race across all team entries." unofficial onShare={() => shareSection('team')}>
         {isMobile ? (
           <div className="space-y-2">
