@@ -104,7 +104,7 @@ const ChampionshipTab = () => {
   const { data: seasonRaces } = useSeasonRaces(year);
   const { data: seasonResults } = useSeasonResults(year);
   const { data: driverMeta } = useDriverMetadata(year);
-  const { data: pitTimes } = useSeasonPitTimes(year);
+  
   const { data: qualPoles } = useSeasonQualifying(year);
   const { data: fast6Poles } = useSeasonFast6Poles(year);
   const isMobile = useIsMobile();
