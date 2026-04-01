@@ -1847,6 +1847,27 @@ async function parseSectionDataRace(supabase: any, pdf: any, raceId: string, opt
     const headerLine = lines.find((l) => l.includes("PI to PO"));
     if (!headerLine) continue;
 
+    // Dynamically find the PI to PO column index from the header
+    // Header format: "Lap  T/S  Sec1  Sec2  ...  PI to PO  Elapsed  Lap" (varies by track)
+    const headerParts = headerLine.trim().split(/\s{2,}/);
+    const piToPoHeaderIdx = headerParts.findIndex((p: string) => p.includes("PI to PO"));
+    if (piToPoHeaderIdx === -1) continue;
+
+    // Find where data columns start (skip Lap, T/S, I/O headers)
+    let dataStartIdx = 0;
+    for (let h = 0; h < headerParts.length; h++) {
+      const part = headerParts[h].trim().toLowerCase();
+      if (part === "lap" || part === "t/s" || part === "i/o") {
+        dataStartIdx = h + 1;
+      } else {
+        break;
+      }
+    }
+    const piToPoDataIdx = piToPoHeaderIdx - dataStartIdx;
+    if (piToPoDataIdx < 0) continue;
+
+    console.log(`Car ${carNumber}: PI to PO at data column ${piToPoDataIdx} (header parts: ${headerParts.length}, header idx: ${piToPoHeaderIdx}, data start: ${dataStartIdx})`);
+
     let currentLap = 0;
 
     for (let i = 0; i < lines.length; i++) {
@@ -1861,15 +1882,16 @@ async function parseSectionDataRace(supabase: any, pdf: any, raceId: string, opt
       if (line.trim().startsWith("T ") && currentLap > 0) {
         const values = line.trim().replace(/^T\s+/, "").split(/\s+/).map(parseFloat);
 
-        if (values.length >= 12 && !isNaN(values[11])) {
-          const pitTime = values[11];
+        if (values.length > piToPoDataIdx && !isNaN(values[piToPoDataIdx])) {
+          const pitTime = values[piToPoDataIdx];
 
-          if (pitTime >= 10 && pitTime <= 60) {
+          // Accept pit times from 5s (fast ovals) to 120s (long street courses)
+          if (pitTime >= 5 && pitTime <= 120) {
             let pitSpeed: number | null = null;
             if (i + 2 < lines.length && lines[i + 2].trim().startsWith("S ")) {
               const speedValues = lines[i + 2].trim().replace(/^S\s+/, "").split(/\s+/).map(parseFloat);
-              if (speedValues.length >= 12 && !isNaN(speedValues[11])) {
-                pitSpeed = speedValues[11];
+              if (speedValues.length > piToPoDataIdx && !isNaN(speedValues[piToPoDataIdx])) {
+                pitSpeed = speedValues[piToPoDataIdx];
               }
             }
 

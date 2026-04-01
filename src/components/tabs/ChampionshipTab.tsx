@@ -18,7 +18,7 @@ import { buildDeepLink, copyDeepLink } from '@/lib/deepLink';
 import { toast } from 'sonner';
 
 // Race points scale (P1=50 down)
-const POINTS_SCALE = [50, 40, 35, 32, 30, 28, 26, 24, 22, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+const POINTS_SCALE = [50, 40, 35, 32, 30, 28, 26, 24, 22, 20, 19, 18, 17, 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 5, 5, 5, 5, 5, 5, 5, 5];
 
 const FLAG_EMOJI: Record<string, string> = {
   USA: '🇺🇸', NZL: '🇳🇿', BRA: '🇧🇷', MEX: '🇲🇽', DEN: '🇩🇰', CAY: '🇰🇾',
@@ -28,7 +28,7 @@ const FLAG_EMOJI: Record<string, string> = {
 
 const getFinishPositionPoints = (finishPosition?: number | null) => {
   if (!finishPosition || finishPosition < 1) return 0;
-  return POINTS_SCALE[finishPosition - 1] ?? 0;
+  return POINTS_SCALE[finishPosition - 1] ?? 5;
 };
 
 // Collapsible section wrapper
@@ -283,7 +283,7 @@ const ChampionshipTab = () => {
 
       // Award points
       driverAvgs.forEach((d, i) => {
-        const pts = POINTS_SCALE[i] || 1;
+        const pts = POINTS_SCALE[i] ?? 5;
         if (!drivers[d.car]) {
           const team = metaMap[d.car]?.team || '';
           drivers[d.car] = { car: d.car, name: d.name, team, roundPts: {}, total: 0 };
