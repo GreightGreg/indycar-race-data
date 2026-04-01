@@ -5,7 +5,6 @@ import {
   useSeasonRaces,
   useSeasonResults,
   useDriverMetadata,
-  useSeasonPitTimes,
   useSeasonQualifying,
   useSeasonFast6Poles,
 } from '@/hooks/useRaceData';
