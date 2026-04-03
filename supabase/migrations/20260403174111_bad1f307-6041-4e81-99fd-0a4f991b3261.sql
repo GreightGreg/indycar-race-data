@@ -1,0 +1,1 @@
+ALTER TABLE public.races ADD COLUMN IF NOT EXISTS track_type text;

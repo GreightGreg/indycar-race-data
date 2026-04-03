@@ -11,6 +11,7 @@ import PitStrategyTab from '@/components/tabs/PitStrategyTab';
 import TrackDominanceTab from '@/components/tabs/TrackDominanceTab';
 import SeasonStatsTab from '@/components/tabs/SeasonStatsTab';
 import ChampionshipTab from '@/components/tabs/ChampionshipTab';
+import TeamGridTab from '@/components/tabs/TeamGridTab';
 import { useRaces } from '@/hooks/useRaceData';
 import { RaceContext } from '@/contexts/RaceContext';
 import { parseDeepLink, slugToTab, tabToSlug, buildDeepLink, copyDeepLink } from '@/lib/deepLink';
@@ -27,6 +28,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   'Season Stats': SeasonStatsTab,
   'Track Dominance': TrackDominanceTab,
   'Championship': ChampionshipTab,
+  'Team Grid': TeamGridTab,
 };
 
 const Index = () => {
