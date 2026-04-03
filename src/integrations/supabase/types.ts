@@ -754,6 +754,7 @@ export type Database = {
           track_length_miles: number | null
           track_map_url: string | null
           track_name: string
+          track_type: string | null
           year: number
         }
         Insert: {
@@ -791,6 +792,7 @@ export type Database = {
           track_length_miles?: number | null
           track_map_url?: string | null
           track_name: string
+          track_type?: string | null
           year: number
         }
         Update: {
@@ -828,6 +830,7 @@ export type Database = {
           track_length_miles?: number | null
           track_map_url?: string | null
           track_name?: string
+          track_type?: string | null
           year?: number
         }
         Relationships: [
