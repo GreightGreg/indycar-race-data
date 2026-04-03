@@ -311,7 +311,7 @@ const SeasonStatsTab = () => {
       </section>
 
       {/* SECTION 3 — Season Leaderboards */}
-      <section>
+      <section id="season-leaders" className="scroll-mt-[120px]">
         <h3 className="font-heading text-xl text-racing-text mb-4">Season Leaders</h3>
         <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-4'}`}>
           <Leaderboard title="Most Laps Led" items={lapsLedLeaderboard.map((l, i) => ({
