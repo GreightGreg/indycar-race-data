@@ -493,20 +493,23 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     }
   }
 
-  console.log("Creating new race for round", eventInfo.roundNumber, "date:", eventInfo.sessionDate);
+  const trackType = eventInfo.trackName ? classifyTrackType(eventInfo.trackName) : null;
+  console.log("Creating new race for round", eventInfo.roundNumber, "date:", eventInfo.sessionDate, "track_type:", trackType);
+  const insertData: Record<string, unknown> = {
+    event_name: eventInfo.eventName,
+    track_name: eventInfo.trackName,
+    track_length_miles: eventInfo.trackLengthMiles,
+    round_number: eventInfo.roundNumber,
+    season_year: eventInfo.year,
+    year: eventInfo.year,
+    race_date: eventInfo.sessionDate,
+    status: "pending",
+    files_received: [],
+  };
+  if (trackType) insertData.track_type = trackType;
   const { data: newRace, error } = await supabase
     .from("races")
-    .insert({
-      event_name: eventInfo.eventName,
-      track_name: eventInfo.trackName,
-      track_length_miles: eventInfo.trackLengthMiles,
-      round_number: eventInfo.roundNumber,
-      season_year: eventInfo.year,
-      year: eventInfo.year,
-      race_date: eventInfo.sessionDate,
-      status: "pending",
-      files_received: [],
-    })
+    .insert(insertData)
     .select("id")
     .single();
   if (error) {
