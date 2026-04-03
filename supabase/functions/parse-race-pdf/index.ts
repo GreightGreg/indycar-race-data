@@ -459,6 +459,7 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     if (e1) console.error("Lookup error (round+year):", e1.message);
     if (existing) {
       console.log("Found existing race by round+year:", existing.id);
+      await backfillTrackType(supabase, existing.id, eventInfo.trackName);
       return existing.id;
     }
 
@@ -471,6 +472,7 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     if (e2) console.error("Lookup error (round+season_year):", e2.message);
     if (existing2) {
       console.log("Found existing race by round+season_year:", existing2.id);
+      await backfillTrackType(supabase, existing2.id, eventInfo.trackName);
       return existing2.id;
     }
   }
