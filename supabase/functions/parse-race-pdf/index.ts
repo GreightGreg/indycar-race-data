@@ -11,6 +11,48 @@ const corsHeaders = {
 const PARSE_BATCH_SIZE = 20;
 const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart"]);
 
+// Track type classification by track name keywords
+const TRACK_TYPE_MAP: Record<string, string> = {
+  // Ovals
+  "phoenix": "oval",
+  "indianapolis": "oval",
+  "iowa": "oval",
+  "gateway": "oval",
+  "texas": "oval",
+  "milwaukee": "oval",
+  "pocono": "oval",
+  "wwt": "oval",
+  // Street courses
+  "streets": "street",
+  "st. petersburg": "street",
+  "long beach": "street",
+  "detroit": "street",
+  "nashville": "street",
+  "toronto": "street",
+  "arlington": "street",
+  // Road courses
+  "barber": "road",
+  "road america": "road",
+  "mid-ohio": "road",
+  "laguna": "road",
+  "portland": "road",
+  "sonoma": "road",
+  "watkins": "road",
+  "elkhart": "road",
+  "thermal": "road",
+  "cota": "road",
+  "circuit of the americas": "road",
+  "lexington": "road",
+};
+
+function classifyTrackType(trackName: string): string | null {
+  const lower = trackName.toLowerCase();
+  for (const [keyword, type] of Object.entries(TRACK_TYPE_MAP)) {
+    if (lower.includes(keyword)) return type;
+  }
+  return null;
+}
+
 type BatchedParseOptions = {
   startPage: number;
   endPage: number;
@@ -400,6 +442,17 @@ function parseEventInfo(lines: string[]) {
   return { eventName, roundNumber, trackName, trackLengthMiles, sessionDate, year };
 }
 
+async function backfillTrackType(supabase: any, raceId: string, trackName: string) {
+  if (!trackName) return;
+  const trackType = classifyTrackType(trackName);
+  if (!trackType) return;
+  const { data: race } = await supabase.from("races").select("track_type").eq("id", raceId).single();
+  if (race && !race.track_type) {
+    await supabase.from("races").update({ track_type: trackType }).eq("id", raceId);
+    console.log("Backfilled track_type:", trackType, "for race:", raceId);
+  }
+}
+
 async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
   console.log(
     "getOrCreateRace called with:",
@@ -417,6 +470,7 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     if (e1) console.error("Lookup error (round+year):", e1.message);
     if (existing) {
       console.log("Found existing race by round+year:", existing.id);
+      await backfillTrackType(supabase, existing.id, eventInfo.trackName);
       return existing.id;
     }
 
@@ -429,6 +483,7 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     if (e2) console.error("Lookup error (round+season_year):", e2.message);
     if (existing2) {
       console.log("Found existing race by round+season_year:", existing2.id);
+      await backfillTrackType(supabase, existing2.id, eventInfo.trackName);
       return existing2.id;
     }
   }
@@ -444,24 +499,28 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     if (e3) console.error("Lookup error (track):", e3.message);
     if (byTrack) {
       console.log("Found existing race by track:", byTrack.id);
+      await backfillTrackType(supabase, byTrack.id, eventInfo.trackName);
       return byTrack.id;
     }
   }
 
-  console.log("Creating new race for round", eventInfo.roundNumber, "date:", eventInfo.sessionDate);
+  const trackType = eventInfo.trackName ? classifyTrackType(eventInfo.trackName) : null;
+  console.log("Creating new race for round", eventInfo.roundNumber, "date:", eventInfo.sessionDate, "track_type:", trackType);
+  const insertData: Record<string, unknown> = {
+    event_name: eventInfo.eventName,
+    track_name: eventInfo.trackName,
+    track_length_miles: eventInfo.trackLengthMiles,
+    round_number: eventInfo.roundNumber,
+    season_year: eventInfo.year,
+    year: eventInfo.year,
+    race_date: eventInfo.sessionDate,
+    status: "pending",
+    files_received: [],
+  };
+  if (trackType) insertData.track_type = trackType;
   const { data: newRace, error } = await supabase
     .from("races")
-    .insert({
-      event_name: eventInfo.eventName,
-      track_name: eventInfo.trackName,
-      track_length_miles: eventInfo.trackLengthMiles,
-      round_number: eventInfo.roundNumber,
-      season_year: eventInfo.year,
-      year: eventInfo.year,
-      race_date: eventInfo.sessionDate,
-      status: "pending",
-      files_received: [],
-    })
+    .insert(insertData)
     .select("id")
     .single();
   if (error) {
