@@ -58,8 +58,6 @@ function classifyTrackType(trackName: string): string | null {
   }
   return null;
 }
-  return null;
-}
 
 type BatchedParseOptions = {
   startPage: number;
