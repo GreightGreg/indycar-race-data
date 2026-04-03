@@ -8,6 +8,7 @@ const TAB_SLUG_MAP: Record<string, string> = {
   'Track Dominance': 'track-dominance',
   'Season Stats': 'season-stats',
   'Championship': 'championship',
+  'Season Overview': 'season-overview',
   'Team Grid': 'team-grid',
 };
 
