@@ -488,6 +488,7 @@ async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
     if (e3) console.error("Lookup error (track):", e3.message);
     if (byTrack) {
       console.log("Found existing race by track:", byTrack.id);
+      await backfillTrackType(supabase, byTrack.id, eventInfo.trackName);
       return byTrack.id;
     }
   }
