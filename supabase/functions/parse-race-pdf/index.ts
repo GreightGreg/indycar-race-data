@@ -53,9 +53,11 @@ const TRACK_TYPE_MAP: [string, string][] = [
 
 function classifyTrackType(trackName: string): string | null {
   const lower = trackName.toLowerCase();
-  for (const [keyword, type] of Object.entries(TRACK_TYPE_MAP)) {
+  for (const [keyword, type] of TRACK_TYPE_MAP) {
     if (lower.includes(keyword)) return type;
   }
+  return null;
+}
   return null;
 }
 
