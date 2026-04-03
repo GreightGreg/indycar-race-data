@@ -8,6 +8,7 @@ const TAB_SLUG_MAP: Record<string, string> = {
   'Track Dominance': 'track-dominance',
   'Season Stats': 'season-stats',
   'Championship': 'championship',
+  'Team Grid': 'team-grid',
 };
 
 const SLUG_TAB_MAP: Record<string, string> = Object.fromEntries(
