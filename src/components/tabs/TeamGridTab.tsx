@@ -219,7 +219,7 @@ const TeamGridTab = () => {
             <div className="px-3 py-2 border-b border-racing-border bg-racing-surface2 flex items-center justify-between">
               <div>
                 <span className="font-heading text-[15px] text-racing-text">{tg.team}</span>
-                <span className="font-mono text-[12px] text-racing-muted ml-2">{tg.engine}</span>
+                <EngineIcon engine={tg.engine} size="sm" />
               </div>
               <span className="font-mono text-racing-yellow text-[15px] font-bold">{fmt(tg.teamAvgFinish)}</span>
             </div>
