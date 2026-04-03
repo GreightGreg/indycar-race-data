@@ -11,43 +11,49 @@ const corsHeaders = {
 const PARSE_BATCH_SIZE = 20;
 const CONTINUATION_REPORT_TYPES = new Set(["leader_laps", "lap_chart"]);
 
-// Track type classification by track name keywords
-const TRACK_TYPE_MAP: Record<string, string> = {
+// Track type classification by track name keywords (order matters — more specific first)
+const TRACK_TYPE_MAP: [string, string][] = [
+  // Road courses (specific matches first)
+  ["indianapolis motor speedway road", "road"],
+  ["ims road", "road"],
+  ["barber", "road"],
+  ["road america", "road"],
+  ["mid-ohio", "road"],
+  ["laguna", "road"],
+  ["portland", "road"],
+  ["sonoma", "road"],
+  ["watkins", "road"],
+  ["elkhart", "road"],
+  ["thermal", "road"],
+  ["cota", "road"],
+  ["circuit of the americas", "road"],
+  ["lexington", "road"],
   // Ovals
-  "phoenix": "oval",
-  "indianapolis": "oval",
-  "iowa": "oval",
-  "gateway": "oval",
-  "texas": "oval",
-  "milwaukee": "oval",
-  "pocono": "oval",
-  "wwt": "oval",
+  ["indianapolis", "oval"],
+  ["phoenix", "oval"],
+  ["iowa", "oval"],
+  ["gateway", "oval"],
+  ["texas", "oval"],
+  ["milwaukee", "oval"],
+  ["pocono", "oval"],
+  ["wwt", "oval"],
+  ["world wide technology", "oval"],
+  ["nashville superspeedway", "oval"],
   // Street courses
-  "streets": "street",
-  "st. petersburg": "street",
-  "long beach": "street",
-  "detroit": "street",
-  "nashville": "street",
-  "toronto": "street",
-  "arlington": "street",
-  // Road courses
-  "barber": "road",
-  "road america": "road",
-  "mid-ohio": "road",
-  "laguna": "road",
-  "portland": "road",
-  "sonoma": "road",
-  "watkins": "road",
-  "elkhart": "road",
-  "thermal": "road",
-  "cota": "road",
-  "circuit of the americas": "road",
-  "lexington": "road",
-};
+  ["streets", "street"],
+  ["st. petersburg", "street"],
+  ["long beach", "street"],
+  ["detroit", "street"],
+  ["nashville", "street"],
+  ["toronto", "street"],
+  ["arlington", "street"],
+  ["markham", "street"],
+  ["washington", "street"],
+];
 
 function classifyTrackType(trackName: string): string | null {
   const lower = trackName.toLowerCase();
-  for (const [keyword, type] of Object.entries(TRACK_TYPE_MAP)) {
+  for (const [keyword, type] of TRACK_TYPE_MAP) {
     if (lower.includes(keyword)) return type;
   }
   return null;
