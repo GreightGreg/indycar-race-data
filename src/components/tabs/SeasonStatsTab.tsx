@@ -198,7 +198,7 @@ const SeasonStatsTab = () => {
       </div>
 
       {/* SECTION 1 — Driver Season Standings */}
-      <section>
+      <section id="driver-standings" className="scroll-mt-[120px]">
         <h3 className="font-heading text-xl text-racing-text mb-4">Driver Season Standings</h3>
         {isMobile ? (
           <MobileStandings standings={standings} rounds={rounds} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
@@ -255,7 +255,7 @@ const SeasonStatsTab = () => {
       </section>
 
       {/* SECTION 2 — Race by Race Summary Cards */}
-      <section>
+      <section id="race-by-race" className="scroll-mt-[120px]">
         <h3 className="font-heading text-xl text-racing-text mb-4">Race by Race</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {seasonRaces.map(race => {
@@ -311,7 +311,7 @@ const SeasonStatsTab = () => {
       </section>
 
       {/* SECTION 3 — Season Leaderboards */}
-      <section>
+      <section id="season-leaders" className="scroll-mt-[120px]">
         <h3 className="font-heading text-xl text-racing-text mb-4">Season Leaders</h3>
         <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-4'}`}>
           <Leaderboard title="Most Laps Led" items={lapsLedLeaderboard.map((l, i) => ({

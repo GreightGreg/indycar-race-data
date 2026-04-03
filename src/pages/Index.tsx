@@ -28,7 +28,7 @@ const TAB_COMPONENTS: Record<string, React.FC> = {
   'Season Stats': SeasonStatsTab,
   'Track Dominance': TrackDominanceTab,
   'Championship': ChampionshipTab,
-  'Team Grid': TeamGridTab,
+  'Season Overview': TeamGridTab,
 };
 
 const Index = () => {

@@ -4,6 +4,7 @@ import { useRaces } from '@/hooks/useRaceData';
 import { useTeamGridData } from '@/hooks/useTeamGridData';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CarBadge from '@/components/racing/CarBadge';
+import EngineIcon from '@/components/racing/EngineIcon';
 import { formatDriverName } from '@/lib/formatName';
 
 type TrackType = 'oval' | 'street' | 'road';
@@ -132,6 +133,9 @@ const TeamGridTab = () => {
     // Group by team
     const teamMap = new Map<string, TeamGroup>();
     for (const [, ds] of driverStatsMap) {
+      // Skip drivers with no race results at all
+      if (ds.avgFinish === null) continue;
+
       if (!teamMap.has(ds.team)) {
         teamMap.set(ds.team, {
           team: ds.team,
@@ -193,7 +197,7 @@ const TeamGridTab = () => {
   }, [completedRaces]);
 
   if (isLoading) {
-    return <p className="text-racing-muted font-body text-center py-12">Loading team grid…</p>;
+    return <p className="text-racing-muted font-body text-center py-12">Loading season overview…</p>;
   }
 
   if (!teams.length) {
@@ -206,7 +210,7 @@ const TeamGridTab = () => {
   if (isMobile) {
     return (
       <div className="space-y-4">
-        <h2 className="font-heading text-racing-yellow text-lg">Team Grid</h2>
+        <h2 className="font-heading text-racing-yellow text-lg">Season Overview</h2>
         <p className="font-mono text-[13px] text-racing-muted">
           Season averages through Round {throughRound} · Sorted by team avg finish
         </p>
@@ -215,7 +219,7 @@ const TeamGridTab = () => {
             <div className="px-3 py-2 border-b border-racing-border bg-racing-surface2 flex items-center justify-between">
               <div>
                 <span className="font-heading text-[15px] text-racing-text">{tg.team}</span>
-                <span className="font-mono text-[12px] text-racing-muted ml-2">{tg.engine}</span>
+                <EngineIcon engine={tg.engine} size="sm" />
               </div>
               <span className="font-mono text-racing-yellow text-[15px] font-bold">{fmt(tg.teamAvgFinish)}</span>
             </div>
@@ -248,7 +252,7 @@ const TeamGridTab = () => {
   // Desktop: wide scrollable grid
   return (
     <div className="space-y-2">
-      <h2 className="font-heading text-racing-yellow text-lg">Team Grid</h2>
+      <h2 className="font-heading text-racing-yellow text-lg">Season Overview</h2>
       <p className="font-mono text-[13px] text-racing-muted mb-2">
         Season averages through Round {throughRound} · Sorted by team avg finish
       </p>
@@ -267,7 +271,7 @@ const TeamGridTab = () => {
                   className="text-center px-2 py-2 font-condensed font-semibold text-racing-text text-[13px] border-l border-racing-border"
                 >
                   <div>{tg.team}</div>
-                  <div className="text-[11px] text-racing-muted font-normal">{tg.engine}</div>
+                  <EngineIcon engine={tg.engine} size="sm" />
                 </th>
               ))}
             </tr>
