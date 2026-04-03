@@ -271,7 +271,7 @@ const TeamGridTab = () => {
                   className="text-center px-2 py-2 font-condensed font-semibold text-racing-text text-[13px] border-l border-racing-border"
                 >
                   <div>{tg.team}</div>
-                  <div className="text-[11px] text-racing-muted font-normal">{tg.engine}</div>
+                  <EngineIcon engine={tg.engine} size="sm" />
                 </th>
               ))}
             </tr>
