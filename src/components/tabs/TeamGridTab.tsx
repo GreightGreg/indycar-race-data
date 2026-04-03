@@ -197,7 +197,7 @@ const TeamGridTab = () => {
   }, [completedRaces]);
 
   if (isLoading) {
-    return <p className="text-racing-muted font-body text-center py-12">Loading team grid…</p>;
+    return <p className="text-racing-muted font-body text-center py-12">Loading season overview…</p>;
   }
 
   if (!teams.length) {
