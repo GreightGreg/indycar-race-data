@@ -252,7 +252,7 @@ const TeamGridTab = () => {
   // Desktop: wide scrollable grid
   return (
     <div className="space-y-2">
-      <h2 className="font-heading text-racing-yellow text-lg">Team Grid</h2>
+      <h2 className="font-heading text-racing-yellow text-lg">Season Overview</h2>
       <p className="font-mono text-[13px] text-racing-muted mb-2">
         Season averages through Round {throughRound} · Sorted by team avg finish
       </p>
