@@ -133,6 +133,9 @@ const TeamGridTab = () => {
     // Group by team
     const teamMap = new Map<string, TeamGroup>();
     for (const [, ds] of driverStatsMap) {
+      // Skip drivers with no race results at all
+      if (ds.avgFinish === null) continue;
+
       if (!teamMap.has(ds.team)) {
         teamMap.set(ds.team, {
           team: ds.team,
