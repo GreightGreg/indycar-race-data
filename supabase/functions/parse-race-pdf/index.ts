@@ -442,6 +442,17 @@ function parseEventInfo(lines: string[]) {
   return { eventName, roundNumber, trackName, trackLengthMiles, sessionDate, year };
 }
 
+async function backfillTrackType(supabase: any, raceId: string, trackName: string) {
+  if (!trackName) return;
+  const trackType = classifyTrackType(trackName);
+  if (!trackType) return;
+  const { data: race } = await supabase.from("races").select("track_type").eq("id", raceId).single();
+  if (race && !race.track_type) {
+    await supabase.from("races").update({ track_type: trackType }).eq("id", raceId);
+    console.log("Backfilled track_type:", trackType, "for race:", raceId);
+  }
+}
+
 async function getOrCreateRace(supabase: any, eventInfo: any): Promise<string> {
   console.log(
     "getOrCreateRace called with:",
