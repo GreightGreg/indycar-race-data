@@ -198,7 +198,7 @@ const SeasonStatsTab = () => {
       </div>
 
       {/* SECTION 1 — Driver Season Standings */}
-      <section>
+      <section id="driver-standings" className="scroll-mt-[120px]">
         <h3 className="font-heading text-xl text-racing-text mb-4">Driver Season Standings</h3>
         {isMobile ? (
           <MobileStandings standings={standings} rounds={rounds} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
