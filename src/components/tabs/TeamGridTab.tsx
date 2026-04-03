@@ -210,7 +210,7 @@ const TeamGridTab = () => {
   if (isMobile) {
     return (
       <div className="space-y-4">
-        <h2 className="font-heading text-racing-yellow text-lg">Team Grid</h2>
+        <h2 className="font-heading text-racing-yellow text-lg">Season Overview</h2>
         <p className="font-mono text-[13px] text-racing-muted">
           Season averages through Round {throughRound} · Sorted by team avg finish
         </p>
