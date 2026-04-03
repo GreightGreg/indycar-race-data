@@ -4,6 +4,7 @@ import { useRaces } from '@/hooks/useRaceData';
 import { useTeamGridData } from '@/hooks/useTeamGridData';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CarBadge from '@/components/racing/CarBadge';
+import EngineIcon from '@/components/racing/EngineIcon';
 import { formatDriverName } from '@/lib/formatName';
 
 type TrackType = 'oval' | 'street' | 'road';
