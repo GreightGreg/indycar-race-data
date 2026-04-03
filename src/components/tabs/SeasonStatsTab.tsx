@@ -255,7 +255,7 @@ const SeasonStatsTab = () => {
       </section>
 
       {/* SECTION 2 — Race by Race Summary Cards */}
-      <section>
+      <section id="race-by-race" className="scroll-mt-[120px]">
         <h3 className="font-heading text-xl text-racing-text mb-4">Race by Race</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {seasonRaces.map(race => {
