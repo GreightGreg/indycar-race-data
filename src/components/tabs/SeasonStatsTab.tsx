@@ -336,7 +336,7 @@ const SeasonStatsTab = () => {
             }))}
           />
           <Leaderboard title="Fastest Race Laps" items={fastestLapLeaderboard.map((l, i) => ({
-            rank: i + 1, car: l.car, driver: l.driver, stat: `${l.count}×`, sub: `${l.bestSpeed} mph`,
+            rank: i + 1, car: l.car, driver: l.driver, stat: `${l.count}×`, sub: l.races.join(', '),
           }))} />
           <Leaderboard title="Laps Completed" items={reliabilityLeaderboard.map((l, i) => ({
             rank: i + 1, car: l.car, driver: l.driver, stat: `${l.lapsCompleted}`, sub: `${l.racesEntered} races · ${l.dnfs} DNF`,
