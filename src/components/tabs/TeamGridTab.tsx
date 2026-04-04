@@ -258,7 +258,7 @@ const TeamGridTab = () => {
       </p>
 
       <div className="overflow-x-auto border border-racing-border rounded-lg" ref={scrollRef}>
-        <table className="text-[13px] font-mono">
+        <table className="w-full text-[13px] font-mono table-fixed">
           <thead>
             <tr className="border-b border-racing-border bg-racing-surface2">
               <th className="sticky left-0 z-10 bg-racing-surface2 text-left px-3 py-2 font-condensed font-semibold text-racing-muted text-[12px] min-w-[140px]">
