@@ -258,10 +258,16 @@ const TeamGridTab = () => {
       </p>
 
       <div className="overflow-x-auto border border-racing-border rounded-lg" ref={scrollRef}>
-        <table className="text-[13px] font-mono">
+        <table className="w-full text-[13px] font-mono">
+          <colgroup>
+            <col className="w-[120px]" />
+            {teams.flatMap(tg =>
+              tg.drivers.map(d => <col key={d.car_number} style={{ minWidth: 52 }} />)
+            )}
+          </colgroup>
           <thead>
             <tr className="border-b border-racing-border bg-racing-surface2">
-              <th className="sticky left-0 z-10 bg-racing-surface2 text-left px-3 py-2 font-condensed font-semibold text-racing-muted text-[12px] min-w-[140px]">
+              <th className="sticky left-0 z-10 bg-racing-surface2 text-left px-3 py-2 font-condensed font-semibold text-racing-muted text-[12px] w-[120px] min-w-[120px]">
                 Avg Finish
               </th>
               {teams.map(tg => (
@@ -270,8 +276,10 @@ const TeamGridTab = () => {
                   colSpan={tg.drivers.length}
                   className="text-center px-2 py-2 font-condensed font-semibold text-racing-text text-[13px] border-l border-racing-border"
                 >
-                  <div>{tg.team}</div>
-                  <EngineIcon engine={tg.engine} size="sm" />
+                  <div className="flex items-center justify-center gap-1.5">
+                    <span>{tg.team}</span>
+                    <EngineIcon engine={tg.engine} size="sm" />
+                  </div>
                 </th>
               ))}
             </tr>
