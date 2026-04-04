@@ -1073,6 +1073,43 @@ async function parseRaceResults(supabase: any, pdf: any, raceId: string, eventIn
     );
   }
 
+  // Parse Leader Summary section for laps led data
+  const lapsLedEntries: any[] = [];
+  let inLeaderSummary = false;
+  for (const rawLine of postResultsLines) {
+    const trimmed = rawLine.trim();
+    if (/Leader\s*Summary/i.test(trimmed)) {
+      inLeaderSummary = true;
+      console.log("Leader Summary section detected in Official Lap Report");
+      continue;
+    }
+    if (inLeaderSummary && (/Caution\s*Summary/i.test(trimmed) || /Penalty\s*Summary/i.test(trimmed) || /Lead\s*Change/i.test(trimmed))) {
+      inLeaderSummary = false;
+      continue;
+    }
+    if (inLeaderSummary) {
+      // Skip header row like "Car Driver Laps Led"
+      if (/^Car\s+Driver\s+Laps/i.test(trimmed)) continue;
+      // Match: car_number  driver_name  laps_led
+      const m = trimmed.match(/^\s*(\d{1,3})\s+(.+?)\s+(\d+)\s*$/);
+      if (m && parseInt(m[3]) > 0) {
+        lapsLedEntries.push({
+          race_id: raceId,
+          car_number: m[1],
+          driver_name: m[2].trim(),
+          laps_led: parseInt(m[3]),
+          stints: 1,
+          longest_consecutive: parseInt(m[3]),
+          start_lap_of_longest: null,
+        });
+      }
+    }
+  }
+  if (lapsLedEntries.length > 0) {
+    await replaceRows(supabase, "laps_led", { race_id: raceId }, lapsLedEntries);
+    console.log("Parsed Leader Summary laps led:", lapsLedEntries.length, "entries");
+  }
+
   await markFileReceived(supabase, raceId, "race_results");
   console.log(
     `Parsed race results: ${results.length} drivers, ${cautions.length} cautions, ${penalties.length} penalties`,
