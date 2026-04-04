@@ -524,6 +524,53 @@ export type Database = {
           },
         ]
       }
+      race_lap_sections: {
+        Row: {
+          car_number: string
+          created_at: string | null
+          driver_name: string
+          id: string
+          is_pit_lap: boolean
+          lap_number: number
+          race_id: string | null
+          section_name: string
+          section_speed: number | null
+          section_time: number | null
+        }
+        Insert: {
+          car_number: string
+          created_at?: string | null
+          driver_name: string
+          id?: string
+          is_pit_lap?: boolean
+          lap_number: number
+          race_id?: string | null
+          section_name: string
+          section_speed?: number | null
+          section_time?: number | null
+        }
+        Update: {
+          car_number?: string
+          created_at?: string | null
+          driver_name?: string
+          id?: string
+          is_pit_lap?: boolean
+          lap_number?: number
+          race_id?: string | null
+          section_name?: string
+          section_speed?: number | null
+          section_time?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "race_lap_sections_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       race_laps: {
         Row: {
           car_number: string
