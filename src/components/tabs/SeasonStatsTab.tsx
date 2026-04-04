@@ -321,28 +321,6 @@ const SeasonStatsTab = () => {
         </div>
       </section>
 
-      {/* SECTION 3 — Season Leaderboards */}
-      <section id="season-leaders" className="scroll-mt-[120px]">
-        <h3 className="font-heading text-xl text-racing-text mb-4">Season Leaders</h3>
-        <div className={`grid gap-4 ${isMobile ? 'grid-cols-1' : 'grid-cols-2 xl:grid-cols-4'}`}>
-          <Leaderboard title="Most Laps Led" items={lapsLedLeaderboard.map((l, i) => ({
-            rank: i + 1, car: l.car, driver: l.driver, stat: `${l.total}`, sub: `${l.races} race${l.races !== 1 ? 's' : ''}`,
-          }))} />
-          <Leaderboard
-            title="Pit Execution — Best PI to PO"
-            subtitle="Fastest pit lane transit (entry → exit) incl. service"
-            items={pitLeaderboard.map((l, i) => ({
-              rank: i + 1, car: l.car, driver: l.driver, stat: `${l.bestTime.toFixed(4)}s`, sub: l.race,
-            }))}
-          />
-          <Leaderboard title="Fastest Race Laps" items={fastestLapLeaderboard.map((l, i) => ({
-            rank: i + 1, car: l.car, driver: l.driver, stat: `${l.count}×`, sub: l.races.join(', '),
-          }))} />
-          <Leaderboard title="Laps Completed" items={reliabilityLeaderboard.map((l, i) => ({
-            rank: i + 1, car: l.car, driver: l.driver, stat: `${l.lapsCompleted}`, sub: `${l.racesEntered} races · ${l.dnfs} DNF`,
-          }))} />
-        </div>
-      </section>
     </div>
   );
 };

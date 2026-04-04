@@ -136,7 +136,7 @@ const Index = () => {
           )}
         </main>
         <Footer />
-        <RaceChatPanel />
+        {/* <RaceChatPanel /> */}
       </div>
     </RaceContext.Provider>
   );
