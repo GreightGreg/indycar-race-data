@@ -1,10 +1,11 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { useRaceContext } from '@/contexts/RaceContext';
 import { useRaces } from '@/hooks/useRaceData';
 import { useTeamGridData } from '@/hooks/useTeamGridData';
 import { useIsMobile } from '@/hooks/use-mobile';
 import CarBadge from '@/components/racing/CarBadge';
 import EngineIcon from '@/components/racing/EngineIcon';
+import DesktopSeasonOverview from '@/components/tabs/season-overview/DesktopSeasonOverview';
 import { formatDriverName } from '@/lib/formatName';
 
 type TrackType = 'oval' | 'street' | 'road';
@@ -42,7 +43,6 @@ const TeamGridTab = () => {
 
   const { data, isLoading } = useTeamGridData(year, throughRound);
   const isMobile = useIsMobile();
-  const scrollRef = useRef<HTMLDivElement>(null);
 
   const { teams, completedRaces } = useMemo(() => {
     if (!data) return { teams: [], completedRaces: [] };
@@ -249,179 +249,7 @@ const TeamGridTab = () => {
     );
   }
 
-  // Desktop: wide scrollable grid
-  return (
-    <div className="space-y-2">
-      <h2 className="font-heading text-racing-yellow text-lg">Season Overview</h2>
-      <p className="font-mono text-[13px] text-racing-muted mb-2">
-        Season averages through Round {throughRound} · Sorted by team avg finish
-      </p>
-
-      <div className="overflow-x-auto border border-racing-border rounded-lg" ref={scrollRef}>
-        <table className="w-full text-[13px] font-mono">
-          <colgroup>
-            <col className="w-[120px]" />
-            {teams.flatMap(tg =>
-              tg.drivers.map(d => <col key={d.car_number} style={{ minWidth: 52 }} />)
-            )}
-          </colgroup>
-          <thead>
-            <tr className="border-b border-racing-border bg-racing-surface2">
-              <th className="sticky left-0 z-10 bg-racing-surface2 text-left px-3 py-2 font-condensed font-semibold text-racing-muted text-[12px] w-[120px] min-w-[120px]">
-                Avg Finish
-              </th>
-              {teams.map(tg => (
-                <th
-                  key={tg.team}
-                  colSpan={tg.drivers.length}
-                  className="text-center px-2 py-2 font-condensed font-semibold text-racing-text text-[13px] border-l border-racing-border"
-                >
-                  <div className="flex items-center justify-center gap-1.5">
-                    <span>{tg.team}</span>
-                    <EngineIcon engine={tg.engine} size="sm" />
-                  </div>
-                </th>
-              ))}
-            </tr>
-            {/* Team avg finish row */}
-            <tr className="border-b border-racing-border bg-racing-surface">
-              <td className="sticky left-0 z-10 bg-racing-surface px-3 py-1.5 text-racing-muted text-[12px]">Team</td>
-              {teams.map(tg => (
-                <td
-                  key={tg.team}
-                  colSpan={tg.drivers.length}
-                  className="text-center px-2 py-1.5 text-racing-yellow font-bold border-l border-racing-border"
-                >
-                  {fmt(tg.teamAvgFinish)}
-                </td>
-              ))}
-            </tr>
-            {/* Driver avg finish row */}
-            <tr className="border-b border-racing-border bg-racing-surface">
-              <td className="sticky left-0 z-10 bg-racing-surface px-3 py-1.5 text-racing-muted text-[12px]">Driver</td>
-              {teams.flatMap(tg =>
-                tg.drivers.map((d, i) => (
-                  <td key={d.car_number} className={`text-center px-2 py-1.5 text-racing-text ${i === 0 ? 'border-l border-racing-border' : ''}`}>
-                    {fmt(d.avgFinish)}
-                  </td>
-                ))
-              )}
-            </tr>
-            {/* Driver names + car numbers */}
-            <tr className="border-b border-racing-border bg-racing-surface2">
-              <td className="sticky left-0 z-10 bg-racing-surface2 px-3 py-1.5 text-racing-muted text-[12px]">Driver</td>
-              {teams.flatMap(tg =>
-                tg.drivers.map((d, i) => (
-                  <td key={d.car_number} className={`text-center px-1 py-1.5 ${i === 0 ? 'border-l border-racing-border' : ''}`}>
-                    <div className="flex flex-col items-center gap-0.5">
-                      <span className="text-racing-text text-[11px] leading-tight whitespace-nowrap">
-                        {formatDriverName(d.driver_name).split(' ').pop()?.toUpperCase()}
-                      </span>
-                      <CarBadge num={d.car_number} size="sm" />
-                    </div>
-                  </td>
-                ))
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {/* Season Avg section */}
-            <tr className="border-b border-racing-border/50 bg-racing-bg">
-              <td colSpan={999} className="px-3 py-1.5">
-                <span className="font-condensed font-semibold text-racing-yellow text-[12px] uppercase tracking-wider">Season Avg.</span>
-              </td>
-            </tr>
-            {/* Driver Q row */}
-            <tr className="border-b border-racing-border/30">
-              <td className="sticky left-0 z-10 bg-racing-bg px-3 py-1 text-racing-muted text-[12px]">
-                <span className="text-racing-text">Driver</span> <span className="text-racing-muted">Q</span>
-              </td>
-              {teams.flatMap(tg =>
-                tg.drivers.map((d, i) => (
-                  <td key={d.car_number} className={`text-center px-2 py-1 text-racing-text ${i === 0 ? 'border-l border-racing-border/30' : ''}`}>
-                    {fmt(d.avgQual)}
-                  </td>
-                ))
-              )}
-            </tr>
-            {/* Driver F row */}
-            <tr className="border-b border-racing-border/30">
-              <td className="sticky left-0 z-10 bg-racing-bg px-3 py-1 text-racing-muted text-[12px]">
-                <span className="text-racing-text">Driver</span> <span className="text-racing-muted">F</span>
-              </td>
-              {teams.flatMap(tg =>
-                tg.drivers.map((d, i) => (
-                  <td key={d.car_number} className={`text-center px-2 py-1 text-racing-text ${i === 0 ? 'border-l border-racing-border/30' : ''}`}>
-                    {fmt(d.avgFinish)}
-                  </td>
-                ))
-              )}
-            </tr>
-            {/* Team Q row */}
-            <tr className="border-b border-racing-border/30">
-              <td className="sticky left-0 z-10 bg-racing-bg px-3 py-1 text-racing-muted text-[12px]">
-                <span className="text-racing-text">Team</span> <span className="text-racing-muted">Q</span>
-              </td>
-              {teams.map(tg => (
-                <td
-                  key={tg.team}
-                  colSpan={tg.drivers.length}
-                  className="text-center px-2 py-1 text-racing-text border-l border-racing-border/30"
-                >
-                  {fmt(tg.teamAvgQual)}
-                </td>
-              ))}
-            </tr>
-            {/* Team F row */}
-            <tr className="border-b border-racing-border/50">
-              <td className="sticky left-0 z-10 bg-racing-bg px-3 py-1 text-racing-muted text-[12px]">
-                <span className="text-racing-text">Team</span> <span className="text-racing-muted">F</span>
-              </td>
-              {teams.map(tg => (
-                <td
-                  key={tg.team}
-                  colSpan={tg.drivers.length}
-                  className="text-center px-2 py-1 text-racing-text border-l border-racing-border/30"
-                >
-                  {fmt(tg.teamAvgFinish)}
-                </td>
-              ))}
-            </tr>
-
-            {/* Track type breakdowns */}
-            {trackTypes.map(tt => (
-              <tbody key={tt}>
-                <tr className="border-b border-racing-border/30">
-                  <td className="sticky left-0 z-10 bg-racing-bg px-3 py-1 text-racing-muted text-[12px]">
-                    <span className="text-racing-text">{TRACK_TYPE_LABELS[tt]}</span> <span className="text-racing-muted">Q</span>
-                  </td>
-                  {teams.flatMap(tg =>
-                    tg.drivers.map((d, i) => (
-                      <td key={d.car_number} className={`text-center px-2 py-1 text-racing-text ${i === 0 ? 'border-l border-racing-border/30' : ''}`}>
-                        {fmt(d.byTrackType[tt].avgQual)}
-                      </td>
-                    ))
-                  )}
-                </tr>
-                <tr className="border-b border-racing-border/50">
-                  <td className="sticky left-0 z-10 bg-racing-bg px-3 py-1 text-racing-muted text-[12px]">
-                    <span className="text-racing-text">{TRACK_TYPE_LABELS[tt]}</span> <span className="text-racing-muted">F</span>
-                  </td>
-                  {teams.flatMap(tg =>
-                    tg.drivers.map((d, i) => (
-                      <td key={d.car_number} className={`text-center px-2 py-1 text-racing-text ${i === 0 ? 'border-l border-racing-border/30' : ''}`}>
-                        {fmt(d.byTrackType[tt].avgFinish)}
-                      </td>
-                    ))
-                  )}
-                </tr>
-              </tbody>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  return <DesktopSeasonOverview teams={teams} trackTypes={trackTypes} throughRound={throughRound} />;
 };
 
 export default TeamGridTab;
