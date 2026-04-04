@@ -79,6 +79,10 @@ const RaceChatPanel = () => {
   const { data: race } = useRaceDetails(raceId);
 
   const [isOpen, setIsOpen] = useState(false);
+  const [pinVerified, setPinVerified] = useState(false);
+  const [showPinOverlay, setShowPinOverlay] = useState(false);
+  const [pinValue, setPinValue] = useState('');
+  const [pinShake, setPinShake] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -90,6 +94,28 @@ const RaceChatPanel = () => {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isLoading]);
+
+  const handleChatButtonClick = () => {
+    if (pinVerified) {
+      setIsOpen(true);
+    } else {
+      setShowPinOverlay(true);
+      setPinValue('');
+    }
+  };
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pinValue === '1013') {
+      setPinVerified(true);
+      setShowPinOverlay(false);
+      setIsOpen(true);
+    } else {
+      setPinShake(true);
+      setPinValue('');
+      setTimeout(() => setPinShake(false), 500);
+    }
+  };
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -226,13 +252,54 @@ const RaceChatPanel = () => {
       {/* Floating button */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={handleChatButtonClick}
           className="fixed bottom-5 right-5 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105 active:scale-95"
           style={{ background: '#0d1620', border: '2px solid #1e2e40' }}
           aria-label="Open chat"
         >
           <MessageCircle className="w-6 h-6" style={{ color: '#e8ff00' }} />
         </button>
+      )}
+
+      {/* PIN overlay */}
+      {showPinOverlay && !pinVerified && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
+          <div
+            className="rounded-xl p-6 w-[300px] flex flex-col items-center gap-4 shadow-2xl"
+            style={{ background: '#0d1620', border: '1px solid #1e2e40' }}
+          >
+            <p className="font-condensed text-[13px] text-racing-muted uppercase tracking-wider">
+              Beta Access Required
+            </p>
+            <form onSubmit={handlePinSubmit} className="flex flex-col items-center gap-3 w-full">
+              <input
+                type="password"
+                inputMode="numeric"
+                maxLength={4}
+                value={pinValue}
+                onChange={(e) => setPinValue(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="Enter PIN"
+                autoFocus
+                className={`w-full text-center text-[24px] font-mono tracking-[0.5em] px-4 py-3 rounded-lg text-racing-text placeholder:text-racing-muted outline-none ${pinShake ? 'animate-shake' : ''}`}
+                style={{ background: '#080e14', border: '1px solid #1e2e40' }}
+              />
+              <button
+                type="submit"
+                disabled={pinValue.length !== 4}
+                className="w-full py-2.5 rounded-lg font-condensed font-semibold text-[15px] uppercase tracking-wider transition-colors disabled:opacity-30"
+                style={{ background: '#e8ff00', color: '#080e14' }}
+              >
+                Submit
+              </button>
+            </form>
+            <button
+              onClick={() => setShowPinOverlay(false)}
+              className="text-[13px] font-condensed text-racing-muted hover:text-racing-text transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Chat panel */}
