@@ -1236,9 +1236,13 @@ async function parseEventSummary(supabase: any, pdf: any, page1Lines: string[], 
   await supabase.from("laps_led").delete().eq("race_id", raceId);
   const lapsLedEntries: any[] = [];
   let inLapsLed = false;
+  // Debug: log lines that mention "Led" or "Laps" to diagnose header detection
+  const ledDebugLines = allLines.filter(l => /led|laps\s+led/i.test(l));
+  console.log("Laps Led debug — matching lines:", JSON.stringify(ledDebugLines.slice(0, 10)));
   for (const line of allLines) {
-    if (line.includes("Laps Led") && (line.includes("Times Led") || line.includes("Longest"))) {
+    if (/laps\s*led/i.test(line) && (/times\s*led/i.test(line) || /longest/i.test(line) || /sequence/i.test(line))) {
       inLapsLed = true;
+      console.log("Laps Led header detected:", line);
       continue;
     }
     // Stop if we hit a different section header
