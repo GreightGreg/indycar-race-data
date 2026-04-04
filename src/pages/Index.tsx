@@ -17,6 +17,7 @@ import { RaceContext } from '@/contexts/RaceContext';
 import { parseDeepLink, slugToTab, tabToSlug, buildDeepLink, copyDeepLink } from '@/lib/deepLink';
 import { Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import RaceChatPanel from '@/components/racing/RaceChatPanel';
 
 const TAB_COMPONENTS: Record<string, React.FC> = {
   'Race Results': ResultsTab,
@@ -135,6 +136,7 @@ const Index = () => {
           )}
         </main>
         <Footer />
+        <RaceChatPanel />
       </div>
     </RaceContext.Provider>
   );
