@@ -49,7 +49,7 @@ const DesktopSeasonOverview = ({ teams, throughRound, trackTypes }: DesktopSeaso
 
   const renderStickyLabel = (content: ReactNode, bgClass: string, extraClassName = '') => (
     <div
-      className={`sticky left-0 z-20 flex items-center px-3 text-[12px] text-racing-muted border-r border-racing-border/20 ${bgClass} ${extraClassName}`}
+      className={`sticky left-0 z-20 flex items-center gap-1 whitespace-nowrap px-3 text-[12px] text-racing-muted border-r border-racing-border/20 ${bgClass} ${extraClassName}`}
     >
       {content}
     </div>
@@ -79,7 +79,7 @@ const DesktopSeasonOverview = ({ teams, throughRound, trackTypes }: DesktopSeaso
       </p>
 
       <div className="overflow-x-auto border border-racing-border rounded-lg">
-        <div className="min-w-full">
+        <div className="min-w-full text-[13px] font-mono">
           <div className="grid border-b border-racing-border bg-racing-surface2" style={rowStyle}>
             {renderStickyLabel('Avg Finish', 'bg-racing-surface2', 'z-30 py-2 font-condensed font-semibold min-h-11')}
             {teams.map((team) => (
