@@ -142,10 +142,21 @@ const SeasonStatsTab = () => {
 
   const pitLeaderboard = useMemo(() => {
     if (!pitTransitData?.length) return [];
+    const parseTimeStr = (s: string): number | null => {
+      // Handle "MM:SS.xxxx" or plain seconds
+      if (s.includes(':')) {
+        const [min, sec] = s.split(':');
+        const total = parseFloat(min) * 60 + parseFloat(sec);
+        return isNaN(total) ? null : total;
+      }
+      const v = parseFloat(s);
+      return isNaN(v) ? null : v;
+    };
     const map: Record<string, { car: string; driver: string; bestTime: number; race: string }> = {};
     pitTransitData.forEach((l: any) => {
-      const time = l.section_time ? parseFloat(l.section_time) : (l.time ? parseFloat(l.time) : null);
-      if (time === null || isNaN(time)) return;
+      const raw = l.section_time || l.time;
+      const time = raw ? parseTimeStr(String(raw)) : null;
+      if (time === null || time <= 0) return;
       const key = l.car_number;
       if (!map[key] || time < map[key].bestTime) {
         map[key] = { car: l.car_number, driver: l.driver_name || '', bestTime: time, race: l._race?.event_name || '' };
