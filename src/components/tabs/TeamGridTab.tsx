@@ -265,6 +265,7 @@ const TeamGridTab = () => {
               tg.drivers.map(d => <col key={d.car_number} style={{ minWidth: 52 }} />)
             )}
           </colgroup>
+          <thead>
             <tr className="border-b border-racing-border bg-racing-surface2">
               <th className="sticky left-0 z-10 bg-racing-surface2 text-left px-3 py-2 font-condensed font-semibold text-racing-muted text-[12px] w-[120px] min-w-[120px]">
                 Avg Finish
