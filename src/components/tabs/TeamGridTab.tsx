@@ -217,7 +217,7 @@ const TeamGridTab = () => {
         {teams.map(tg => (
           <div key={tg.team} className="bg-racing-surface border border-racing-border rounded-lg overflow-hidden">
             <div className="px-3 py-2 border-b border-racing-border bg-racing-surface2 flex items-center justify-between">
-              <div>
+              <div className="flex items-center gap-1.5">
                 <span className="font-heading text-[15px] text-racing-text">{tg.team}</span>
                 <EngineIcon engine={tg.engine} size="sm" />
               </div>
