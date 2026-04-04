@@ -30,12 +30,6 @@ WHAT GOOD NUMBERS MEAN:
 - Pit lane times (PI to PO) typically range from 18 to 25 seconds at road and street courses
 - Lap time degradation of more than 0.3 seconds per lap indicates significant tire wear
 
-TRACK CONTEXT:
-- Barber Motorsports Park: 2.3 mile permanent road course in Birmingham Alabama. High speed flowing layout. Turn 5 is the key overtaking zone. The back section through Turns 8 through 13 rewards smooth driving.
-- Streets of St Petersburg: 1.8 mile temporary street circuit. Tight and technical. Turn 1 braking is critical. Turn 9a chicane causes incidents.
-- Phoenix Raceway: 1 mile oval with unique egg shape. The Dogleg on the front straight creates unusual rhythm. Turn 1 and Turn 3 entries are the most critical sections for lap time.
-- Streets of Arlington: 2.73 mile temporary street circuit built around AT&T Stadium in Arlington Texas. 14 corners. The backstretch sectors BS1 through BS5 are the main overtaking opportunity.
-
 IMPORTANT RULES:
 - Never use column names, table names, or SQL terminology
 - Always round times to 3 decimal places and speeds to 1 decimal place
@@ -90,7 +84,7 @@ serve(async (req) => {
       const { data: race } = await supabase.from("races").select("*").eq("id", raceId).single();
       if (race) {
         currentRace = race;
-        raceContext = `Race: ${race.event_name}, Round ${race.round_number}, ${race.track_name} (${race.track_type || "unknown"} track), ${race.race_date}, Year ${race.year}. Total laps: ${race.total_laps || "N/A"}. Lead changes: ${race.lead_changes || "N/A"}. Fastest lap: ${race.fastest_lap_driver || "N/A"} (#${race.fastest_lap_car || "N/A"}) at ${race.fastest_lap_speed || "N/A"} mph.`;
+        raceContext = `Race: ${race.event_name}, ${race.track_name}, ${race.track_length_miles || "N/A"} miles, Round ${race.round_number}, ${race.race_date}. Track type: ${race.track_type || "unknown"}. Year ${race.year}. Total laps: ${race.total_laps || "N/A"}. Lead changes: ${race.lead_changes || "N/A"}. Fastest lap: ${race.fastest_lap_driver || "N/A"} (#${race.fastest_lap_car || "N/A"}) at ${race.fastest_lap_speed || "N/A"} mph.`;
       }
     }
 
